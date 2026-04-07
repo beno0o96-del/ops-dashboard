@@ -220,7 +220,7 @@ console.log(violations);
 
 ## 📝 الترخيص
 
-هذا المشروع خاص بـ Olayan Group
+هذا المشروع خاص بـ CompliQ / Dev - Bandar Abdull wahab
 
 ---
 
