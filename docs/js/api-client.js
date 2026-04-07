@@ -6,33 +6,115 @@
  * ============================================ ========================================
  */
 
-// Initialize BASE_URL globally if not exists
-if (typeof window.BASE_URL === 'undefined') {
-  window.BASE_URL = (function() {
-    // If served from Laravel (port 8000), always use relative path to avoid CORS
-    // Check if port is 8000 OR if hostname ends with 8000 (just in case)
-    const hostStr = window.location.host; // includes port if present
-    if (hostStr.includes(':8000')) {
-      console.log('Running on port 8000, using relative API path');
-      return '/api';
+if (!window.ApiRuntime) {
+  window.ApiRuntime = (function() {
+    function normalizeApiBase(url) {
+      return String(url || '').trim().replace(/\/+$/, '');
     }
-    
-    // If served from Live Server or file system, point to port 8000 on the same host
-    // Unified to use 127.0.0.1 (IPv4) for better compatibility
-    if (window.location.hostname === 'localhost') {
-        console.log('Using IPv4 127.0.0.1 for API');
-        return 'http://127.0.0.1:8000/api';
+    function isGitHubPagesHost() {
+      try {
+        return /github\.io$/i.test(String(window.location.hostname || ''));
+      } catch (_) {
+        return false;
+      }
     }
-
-    const host = window.location.hostname || '127.0.0.1';
-    const url = `http://${host}:8000/api`;
-    console.log('Running on external port, using absolute API path:', url);
-    return url;
+    function getConfiguredOverrideApiBase() {
+      try {
+        const fromConfig = normalizeApiBase(window.OD_CONFIG && window.OD_CONFIG.apiBase);
+        if (fromConfig) return fromConfig;
+      } catch (_) {}
+      return normalizeApiBase(window.__API_BASE_OVERRIDE__);
+    }
+    function isInvalidGitHubPagesApiBase(url) {
+      const normalized = normalizeApiBase(url);
+      if (!normalized) return true;
+      try {
+        const parsed = new URL(normalized, window.location.href);
+        const host = String(parsed.hostname || '').toLowerCase();
+        const path = String(parsed.pathname || '').toLowerCase();
+        if (host === 'localhost' || host === '127.0.0.1') return true;
+        if (/github\.io$/i.test(host)) return true;
+        if (path === '/api' || path.endsWith('/api')) return true;
+      } catch (_) {
+        return true;
+      }
+      return false;
+    }
+    function getStoredApiBase() {
+      try {
+        const stored = normalizeApiBase(localStorage.getItem('api.base'));
+        if (isGitHubPagesHost() && !getConfiguredOverrideApiBase() && isInvalidGitHubPagesApiBase(stored)) {
+          localStorage.removeItem('api.base');
+          return '';
+        }
+        return stored;
+      } catch (_) {
+        return '';
+      }
+    }
+    function computeDefaultApiBase() {
+      try {
+        const override = getConfiguredOverrideApiBase();
+        if (override) return override;
+        const host = String(window.location.hostname || '').toLowerCase();
+        const hostStr = String(window.location.host || '');
+        const origin = window.location.origin && window.location.origin !== 'null' ? window.location.origin : '';
+        if (hostStr.includes(':8000')) return '/api';
+        if (window.location.protocol === 'file:') return 'http://127.0.0.1:8000/api';
+        if (host === 'localhost' || host === '127.0.0.1') return 'http://127.0.0.1:8000/api';
+        if (/github\.io$/i.test(host)) return '';
+        if (/^https?:\/\//i.test(origin)) return normalizeApiBase(origin) + '/api';
+      } catch (_) {}
+      return 'http://127.0.0.1:8000/api';
+    }
+    function resolveApiBase() {
+      const stored = getStoredApiBase();
+      if (stored) return stored;
+      const override = getConfiguredOverrideApiBase();
+      if (override) return override;
+      return computeDefaultApiBase();
+    }
+    function setApiBase(url, persist) {
+      const normalized = normalizeApiBase(url);
+      try {
+        if (persist === false) {
+        } else if (normalized) {
+          localStorage.setItem('api.base', normalized);
+        } else {
+          localStorage.removeItem('api.base');
+        }
+      } catch (_) {}
+      window.BASE_URL = normalized;
+      return normalized;
+    }
+    function hasConfiguredApiBase() {
+      const stored = getStoredApiBase();
+      const override = getConfiguredOverrideApiBase();
+      if (isGitHubPagesHost() && !override && isInvalidGitHubPagesApiBase(stored)) return false;
+      return !!(stored || override);
+    }
+    return {
+      normalizeApiBase: normalizeApiBase,
+      getStoredApiBase: getStoredApiBase,
+      computeDefaultApiBase: computeDefaultApiBase,
+      resolveApiBase: resolveApiBase,
+      setApiBase: setApiBase,
+      hasConfiguredApiBase: hasConfiguredApiBase,
+      isGitHubPagesHost: isGitHubPagesHost,
+      getApiBase: function() {
+        const current = normalizeApiBase(window.BASE_URL);
+        if (current) return current;
+        return setApiBase(resolveApiBase(), false);
+      }
+    };
   })();
 }
 
-// Use window.BASE_URL internally
-const getBaseUrl = () => window.BASE_URL;
+if (typeof window.BASE_URL === 'undefined') {
+  window.BASE_URL = window.ApiRuntime.getApiBase();
+}
+
+const getBaseUrl = () => window.ApiRuntime.getApiBase();
 const getHostBase = () => {
   try {
     const loc = window.location;
@@ -84,7 +166,9 @@ window.APIClient = (function() {
    * دالة عامة لإرسال طلبات HTTP
    */
   async function request(method, endpoint, data = null) {
-    const url = `${getBaseUrl()}/${endpoint}`;
+    const base = getBaseUrl();
+    if (!base) throw new Error('API_NOT_CONFIGURED');
+    const url = `${base}/${endpoint}`;
     const token = localStorage.getItem('api_token') || localStorage.getItem('auth_token');
     const xsrf = (document.cookie || '').split('; ').find(c => c.startsWith('XSRF-TOKEN=')); 
     const xsrfVal = xsrf ? decodeURIComponent(xsrf.split('=')[1]) : null;
@@ -207,6 +291,9 @@ window.APIClient = (function() {
           payload = fd;
         }
         return await request('POST', `violations/${id}/attachments`, payload);
+      },
+      deleteAttachment: async (id, attachmentId) => {
+        return await request('DELETE', `violations/${id}/attachments/${attachmentId}`);
       }
     },
 
@@ -253,7 +340,9 @@ window.APIClient = (function() {
       } else if (url.startsWith('/')) {
         url = `${getHostBase()}${url}`;
       } else {
-        url = `${getBaseUrl()}/${url}`;
+        const base = getBaseUrl();
+        if (!base) throw new Error('API_NOT_CONFIGURED');
+        url = `${base}/${url}`;
       }
       const headers = Object.assign({
         'Accept': 'application/json',
@@ -292,7 +381,7 @@ window.APIClient = (function() {
         if (!payload) payload = { message: txt };
       }
       if (!res.ok) {
-        const msg = (payload && (payload.message || payload.error)) || `HTTP ${res.status}`;
+        const msg = (payload && (payload.error || payload.message)) || `HTTP ${res.status}`;
         throw new Error(msg);
       }
       if (payload && typeof payload === 'object' && ('success' in payload || 'data' in payload)) {
@@ -303,6 +392,7 @@ window.APIClient = (function() {
       }
       return { success: true, data: payload };
     },
+    request: request,
     branchesSpecial: {
       async attach(id, fileOrData, category) {
         let payload = fileOrData;
@@ -321,9 +411,11 @@ window.APIClient = (function() {
     },
     auth: {
       async login(identifier, password) {
+        const base = getBaseUrl();
+        if (!base) throw new Error('API_NOT_CONFIGURED');
         const csrfUrl = `${getHostBase()}/sanctum/csrf-cookie`;
         try { await fetch(csrfUrl, { credentials: 'include' }); } catch (_) {}
-        const res = await fetch(`${getBaseUrl()}/login`, {
+        const res = await fetch(`${base}/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -344,8 +436,13 @@ window.APIClient = (function() {
         return json;
       },
       async logout() {
+        const base = getBaseUrl();
         const token = localStorage.getItem('api_token') || localStorage.getItem('auth_token');
-        await fetch(`${getBaseUrl()}/logout`, {
+        if (!base) {
+          localStorage.removeItem('api_token');
+          return;
+        }
+        await fetch(`${base}/logout`, {
           method: 'POST',
           headers: {
             'Accept': 'application/json',
@@ -408,6 +505,7 @@ window.APIClient = (function() {
      */
     async test() {
       try {
+        if (!getBaseUrl()) return true;
         const response = await fetch(`${getBaseUrl()}/violations`, {
           method: 'GET',
           headers: { 'Accept': 'application/json' }
