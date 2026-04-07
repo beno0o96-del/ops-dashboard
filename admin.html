@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title data-en="Admin Panel" data-ar="لوحة الإدارة">لوحة الإدارة</title>
-  <link rel="stylesheet" href="style-admin.css?v=20260407_rootlogofix1">
+  <link rel="stylesheet" href="style-admin.css?v=20260407_mobilesidebar1">
   <link rel="icon" type="image/svg+xml" href="olayan-mark.svg">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
@@ -300,6 +300,14 @@
         </div>
       </div>
     </aside>
+    <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+    <button type="button" id="mobile-sidebar-trigger" class="mobile-sidebar-trigger" aria-label="فتح القائمة">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 7H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M4 12H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M4 17H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
     <main class="admin-main">
       <header class="admin-header">
         <div class="header-title" id="page-title" data-en="Admin Dashboard" data-ar="لوحة التحكم">
@@ -1619,12 +1627,63 @@
       window.location.href = 'login.html';
     };
     var sbToggle = document.getElementById('sidebar-toggle');
+    var sb = document.querySelector('.admin-sidebar');
+    var sbBackdrop = document.getElementById('sidebar-backdrop');
+    var sbTrigger = document.getElementById('mobile-sidebar-trigger');
+    function isMobileSidebar(){ return window.innerWidth <= 768; }
+    function setSidebarOpen(isOpen) {
+      if (!sb) return;
+      var open = !!isOpen;
+      sb.classList.toggle('collapsed', !open);
+      document.body.classList.toggle('sidebar-mobile-open', isMobileSidebar() && open);
+      if (sbBackdrop) sbBackdrop.classList.toggle('open', isMobileSidebar() && open);
+      if (sbTrigger) sbTrigger.classList.toggle('is-open', isMobileSidebar() && open);
+      if (sbToggle) sbToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (sbTrigger) sbTrigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    function syncSidebarState(forceOpen) {
+      if (!sb) return;
+      if (!isMobileSidebar()) {
+        sb.classList.remove('collapsed');
+        document.body.classList.remove('sidebar-mobile-open');
+        if (sbBackdrop) sbBackdrop.classList.remove('open');
+        if (sbTrigger) sbTrigger.classList.remove('is-open');
+        return;
+      }
+      if (typeof forceOpen === 'boolean') {
+        setSidebarOpen(forceOpen);
+        return;
+      }
+      setSidebarOpen(!sb.classList.contains('collapsed'));
+    }
     if (sbToggle) {
       sbToggle.onclick = function () {
-        var sb = document.querySelector('.admin-sidebar');
-        if (sb) sb.classList.toggle('collapsed');
+        if (!sb) return;
+        setSidebarOpen(sb.classList.contains('collapsed'));
       };
     }
+    if (sbTrigger) {
+      sbTrigger.onclick = function () {
+        if (!sb) return;
+        setSidebarOpen(true);
+      };
+    }
+    if (sbBackdrop) {
+      sbBackdrop.onclick = function(){
+        if (!isMobileSidebar()) return;
+        setSidebarOpen(false);
+      };
+    }
+    window.addEventListener('resize', function(){ syncSidebarState(); });
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape' && isMobileSidebar()) setSidebarOpen(false);
+    });
+    document.addEventListener('click', function(e){
+      var navItem = e.target && e.target.closest ? e.target.closest('.admin-sidebar .nav-item') : null;
+      if (!navItem || !isMobileSidebar()) return;
+      setSidebarOpen(false);
+    });
+    syncSidebarState(!isMobileSidebar());
     function toggleSidebarGroup(id) {
       var g = document.getElementById(id);
       if (!g) return;
