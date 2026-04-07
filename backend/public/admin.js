@@ -20,6 +20,7 @@ window.toggleSidebarGroup = function(groupId) {
 };
 
 window.showSection = function(id) {
+  window.__adminActiveSection = id;
   // Hide all sections
   document.querySelectorAll('section[id^="section-"]').forEach(function(s){
     s.style.display = 'none';
@@ -47,7 +48,7 @@ window.showSection = function(id) {
   else if (id === 'tasks') { try { renderTasks(); } catch(e){} }
   else if (id === 'violations') { try { renderViolationsDashboard(); } catch(e){} }
   else if (id === 'branches') { try { renderBranchesCoverage(); renderBranchesControl(); renderBranchesTable(); } catch(e){} }
-  else if (id === 'settings') { try { renderQuotes(); } catch(e){} try { initSmtpSettings(); } catch(e){} }
+  else if (id === 'settings') { try { renderQuotes(); } catch(e){} try { initSmtpSettings(); } catch(e){} try { initAlertTemplatesSettings(); } catch(e){} }
   else if (id === 'housings') { try { renderHousingsTable(); } catch(e){} }
   else if (id === 'transports') { try { renderTransportsTable(); } catch(e){} }
   else if (id === 'tasks') { try { renderTasks(); } catch(e){} }
@@ -58,6 +59,32 @@ window.showSection = function(id) {
   }
 };
 
+function getAdminLang(){
+  if (window.App && typeof App.getLang === 'function') return App.getLang();
+  return document.documentElement.lang || 'ar';
+}
+
+function tAdmin(ar, en){
+  return getAdminLang() === 'en' ? en : ar;
+}
+
+function rerenderActiveAdminSection(){
+  var id = window.__adminActiveSection;
+  if (!id) {
+    var activeNav = document.querySelector('.nav-item.active[id^="nav-"]');
+    if (activeNav) id = String(activeNav.id || '').replace(/^nav-/, '');
+  }
+  if (!id) return;
+  try { window.showSection(id); } catch(_) {}
+}
+
+document.addEventListener('app:lang', function(){
+  setTimeout(function(){
+    rerenderActiveAdminSection();
+    try { if (typeof updateTaskBulkState === 'function') updateTaskBulkState(); } catch(_) {}
+  }, 0);
+});
+
 function initSmtpSettings(){
   if (window.__smtpInited) {
     loadSmtpSettings();
@@ -67,7 +94,7 @@ function initSmtpSettings(){
 
   var saveBtn = document.getElementById('smtp-save');
   var testBtn = document.getElementById('smtp-test');
-  var smtpLocked = true;
+  var smtpLocked = false;
 
   var lockIds = [
     'smtp-host','smtp-port','smtp-encryption','smtp-mailer',
@@ -75,43 +102,65 @@ function initSmtpSettings(){
   ];
   lockIds.forEach(function(id){
     var el = document.getElementById(id);
-    if (el) el.disabled = true;
+    if (el) el.disabled = false;
   });
+
+  var smtpRequest = async function(method, endpoint, data){
+    if (!window.APIClient) throw new Error('APIClient missing');
+    if (typeof APIClient.request === 'function') return await APIClient.request(method, endpoint, data);
+    if (typeof APIClient.fetch === 'function') {
+      var response = await APIClient.fetch(endpoint, {
+        method: method,
+        body: data == null ? undefined : data
+      });
+      if (response && typeof response === 'object' && 'data' in response && response.data != null) return response.data;
+      return response;
+    }
+    throw new Error('APIClient missing');
+  };
+
+  var normalizeEmailForTest = function(raw){
+    var value = String(raw || '').trim();
+    if (!value) return '';
+    value = value.replace(/[\u060C،;\n\r\t]/g, ',');
+    var mAny = value.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+    if (mAny && mAny[0]) return String(mAny[0]).trim();
+    var parts = value.split(',').map(function(x){ return String(x || '').trim(); }).filter(Boolean);
+    var first = parts.length ? parts[0] : value;
+    var m = first.match(/<([^>]+)>/);
+    if (m && m[1]) first = String(m[1]).trim();
+    return first;
+  };
+
+  var isValidEmail = function(email){
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
+  };
 
   if (saveBtn) {
     saveBtn.onclick = async function(){
       try {
-        if (!window.APIClient || !APIClient.request) throw new Error('APIClient missing');
-
-        var payload;
-        if (smtpLocked) {
-          payload = {
-            alert_recipients: (document.getElementById('smtp-alert-recipients') && document.getElementById('smtp-alert-recipients').value || '').trim() || null
-          };
-        } else {
-          payload = {
-            mail_mailer: (document.getElementById('smtp-mailer') && document.getElementById('smtp-mailer').value) || null,
-            mail_host: (document.getElementById('smtp-host') && document.getElementById('smtp-host').value || '').trim() || null,
-            mail_port: (function(){
-              var v = document.getElementById('smtp-port') && document.getElementById('smtp-port').value;
-              var n = parseInt(v, 10);
-              return isNaN(n) ? null : n;
-            })(),
-            mail_encryption: (document.getElementById('smtp-encryption') && document.getElementById('smtp-encryption').value) || null,
-            mail_username: (document.getElementById('smtp-username') && document.getElementById('smtp-username').value || '').trim() || null,
-            mail_from_address: (document.getElementById('smtp-from-address') && document.getElementById('smtp-from-address').value || '').trim() || null,
-            mail_from_name: (document.getElementById('smtp-from-name') && document.getElementById('smtp-from-name').value || '').trim() || null,
-            alert_recipients: (document.getElementById('smtp-alert-recipients') && document.getElementById('smtp-alert-recipients').value || '').trim() || null
-          };
-          var passElUnlocked = document.getElementById('smtp-password');
-          var passValUnlocked = passElUnlocked ? String(passElUnlocked.value || '') : '';
-          if (passValUnlocked.trim()) payload.mail_password = passValUnlocked.trim();
-        }
+        var payload = {
+          mail_mailer: (document.getElementById('smtp-mailer') && document.getElementById('smtp-mailer').value) || null,
+          mail_host: (document.getElementById('smtp-host') && document.getElementById('smtp-host').value || '').trim() || null,
+          mail_port: (function(){
+            var v = document.getElementById('smtp-port') && document.getElementById('smtp-port').value;
+            var n = parseInt(v, 10);
+            return isNaN(n) ? null : n;
+          })(),
+          mail_encryption: (document.getElementById('smtp-encryption') && document.getElementById('smtp-encryption').value) || null,
+          mail_username: (document.getElementById('smtp-username') && document.getElementById('smtp-username').value || '').trim() || null,
+          mail_from_address: (document.getElementById('smtp-from-address') && document.getElementById('smtp-from-address').value || '').trim() || null,
+          mail_from_name: (document.getElementById('smtp-from-name') && document.getElementById('smtp-from-name').value || '').trim() || null,
+          alert_recipients: (document.getElementById('smtp-alert-recipients') && document.getElementById('smtp-alert-recipients').value || '').trim() || null
+        };
+        var passElUnlocked = document.getElementById('smtp-password');
+        var passValUnlocked = passElUnlocked ? String(passElUnlocked.value || '') : '';
+        if (passValUnlocked.trim()) payload.mail_password = passValUnlocked.trim();
 
         var passEl = document.getElementById('smtp-password');
         if (passEl) passEl.value = '';
 
-        await APIClient.request('POST', 'settings', payload);
+        await smtpRequest('POST', 'settings', payload);
         var st = document.getElementById('smtp-status');
         if (st) st.textContent = 'تم الحفظ';
         if (typeof toast === 'function') toast('success','تم','تم حفظ إعدادات البريد');
@@ -119,7 +168,7 @@ function initSmtpSettings(){
       } catch (e) {
         var st2 = document.getElementById('smtp-status');
         if (st2) st2.textContent = 'فشل الحفظ';
-        if (typeof toast === 'function') toast('error','خطأ','تعذر حفظ إعدادات البريد');
+        if (typeof toast === 'function') toast('error','خطأ','تعذر حفظ إعدادات البريد' + (e && e.message ? ': ' + e.message : ''));
       }
     };
   }
@@ -127,25 +176,44 @@ function initSmtpSettings(){
   if (testBtn) {
     testBtn.onclick = async function(){
       try {
-        if (!window.APIClient || !APIClient.request) throw new Error('APIClient missing');
-        var to = (document.getElementById('smtp-test-to') && document.getElementById('smtp-test-to').value || '').trim();
-        if (!to) { if (typeof toast === 'function') toast('warning','تنبيه','اكتب بريد المستقبل للاختبار'); return; }
+        var recipientsEl = document.getElementById('smtp-alert-recipients');
+        var recipientsRaw = String(recipientsEl ? recipientsEl.value : '').trim();
+        if (!recipientsRaw) { if (typeof toast === 'function') toast('warning','تنبيه','اكتب بريد/بريدات في Alert Recipients أولًا'); return; }
+        var emails = [];
+        var found = recipientsRaw.match(/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/ig) || [];
+        found.forEach(function(e){
+          var v = String(e || '').trim().toLowerCase();
+          if (v && emails.indexOf(v) === -1) emails.push(v);
+        });
+        if (!emails.length) { if (typeof toast === 'function') toast('warning','تنبيه','صيغة البريد غير صحيحة في Alert Recipients'); return; }
+        var noteEl = document.getElementById('smtp-test-message');
+        var testMessage = String(noteEl ? noteEl.value : '').trim();
+        var filesEl = document.getElementById('smtp-test-attachments');
+        var files = filesEl && filesEl.files ? Array.from(filesEl.files) : [];
         var st = document.getElementById('smtp-status');
         if (st) st.textContent = 'جارٍ الإرسال...';
-        await APIClient.request('POST', 'settings/test-mail', { to: to });
+        var payload = new FormData();
+        payload.append('to', emails.join(','));
+        if (testMessage) payload.append('message', testMessage);
+        files.forEach(function(file){
+          payload.append('attachments[]', file);
+        });
+        await smtpRequest('POST', 'settings/test-mail', payload);
+        if (filesEl) filesEl.value = '';
         if (st) st.textContent = 'تم إرسال اختبار';
-        if (typeof toast === 'function') toast('success','تم','تم إرسال بريد اختبار');
+        if (typeof toast === 'function') toast('success','تم','تم إرسال بريد اختبار' + (files.length ? (' مع ' + files.length + ' مرفق') : ''));
       } catch (e) {
         var st2 = document.getElementById('smtp-status');
         if (st2) st2.textContent = 'فشل الإرسال';
         
-        // Check if it's a Gmail authentication issue
-        var user = String(document.getElementById('mail_username')?.value || '').trim();
-        var host = String(document.getElementById('mail_host')?.value || '').trim();
+        var user = String(document.getElementById('smtp-username')?.value || '').trim();
+        var host = String(document.getElementById('smtp-host')?.value || '').trim();
         var isGmail = /@gmail\.com$/i.test(user) || host.toLowerCase().includes('gmail');
         
         var errorMsg = 'تعذر إرسال بريد الاختبار';
-        if (isGmail && e.message && (e.message.includes('535') || e.message.includes('authentication') || e.message.includes('password'))) {
+        if (e && e.message && (e.message.includes('valid email address') || e.message.includes('to field'))) {
+          errorMsg = 'تعذر إرسال بريد الاختبار: صيغة بريد المستقبل غير صحيحة';
+        } else if (isGmail && e.message && (e.message.includes('535') || e.message.includes('authentication') || e.message.includes('password'))) {
           errorMsg += '\n\nلحسابات Gmail: تأكد من استخدام "كلمة مرور التطبيق" بدلاً من كلمة مرور حسابك العادية.\nيمكنك إنشاء كلمة مرور التطبيق من: myaccount.google.com/apppasswords';
         } else if (e.message) {
           errorMsg += ': ' + e.message;
@@ -162,8 +230,13 @@ function initSmtpSettings(){
 
 async function loadSmtpSettings(){
   try {
-    if (!window.APIClient || !APIClient.request) return;
-    var v = await APIClient.request('GET', 'settings');
+    if (!window.APIClient) return;
+    var v;
+    if (typeof APIClient.request === 'function') v = await APIClient.request('GET', 'settings');
+    else if (typeof APIClient.fetch === 'function') {
+      var response = await APIClient.fetch('settings', { method: 'GET' });
+      v = response && typeof response === 'object' && 'data' in response && response.data != null ? response.data : response;
+    } else return;
     var setVal = function(id, val){
       var el = document.getElementById(id);
       if (!el) return;
@@ -210,7 +283,8 @@ async function loadSmtpSettings(){
       }
 
       if (needsFix) {
-        await APIClient.request('POST', 'settings', fix);
+        if (typeof APIClient.request === 'function') await APIClient.request('POST', 'settings', fix);
+        else if (typeof APIClient.fetch === 'function') await APIClient.fetch('settings', { method: 'POST', body: fix });
         setVal('smtp-host', fix.mail_host != null ? fix.mail_host : v.mail_host || '');
         setVal('smtp-port', fix.mail_port != null ? fix.mail_port : v.mail_port || '');
         setVal('smtp-encryption', fix.mail_encryption != null ? fix.mail_encryption : v.mail_encryption || '');
@@ -223,6 +297,256 @@ async function loadSmtpSettings(){
     var st2 = document.getElementById('smtp-status');
     if (st2) st2.textContent = '';
   }
+}
+
+function getDefaultAlertTemplates(){
+  return [
+    {
+      key: 'health_expiry',
+      title: 'انتهاء الصحية Health Expiry',
+      subject: 'تنبيه قرب انتهاء — {اسم المتطلب}',
+      body: 'تنبيه رسمي:\n\nنود إشعاركم بأن التدريب الصحي الخاص بـ الموظف {اسم الموظف} في فرع {اسم الفرع}\nسينتهي بتاريخ: {تاريخ الانتهاء}.\n\nالمتبقي على الانتهاء: {عدد الأيام}.\n\nحالة التنبيه: خطر مخالفة\nتحتاج إجراء: يرجى إعادة أو تجديد التدريب الصحي قبل تاريخ الانتهاء حسب متطلبات الجهة المختصة.\n\nهذا تنبيه آلي صادر من نظام OFS.\n\nفي حال تم التجديد، يرجى تحديث البيانات في النظام.'
+    },
+    {
+      key: 'tcoe_expiry',
+      title: 'انتهاء التدريب العملي T.C.O.E',
+      subject: 'تنبيه قرب انتهاء — {اسم المتطلب}',
+      body: 'تنبيه رسمي:\n\nنود إشعاركم بأن التدريب العملي الخاص بـ الموظف {اسم الموظف} في فرع {اسم الفرع}\nسينتهي بتاريخ: {تاريخ الانتهاء}.\n\nالمتبقي على الانتهاء: {عدد الأيام}.\n\nحالة التنبيه: خطر مخالفة\nتحتاج إجراء: يرجى تحديث أو تجديد التدريب العملي قبل تاريخ الانتهاء.\n\nهذا تنبيه آلي صادر من نظام OFS.\n\nفي حال تم التجديد، يرجى تحديث البيانات في النظام.'
+    },
+    {
+      key: 'permit_expiry_date',
+      title: 'تاريخ الانتهاء Expiry Date',
+      subject: 'تنبيه قرب انتهاء — {اسم المتطلب}',
+      body: 'تنبيه رسمي:\n\nنود إشعاركم بأن {سياق}\nسينتهي بتاريخ: {تاريخ الانتهاء}.\n\nالمتبقي على الانتهاء: {عدد الأيام}.\n\nحالة التنبيه: خطر مخالفة\nتحتاج إجراء: يرجى اتخاذ الإجراء اللازم قبل تاريخ الانتهاء لتجنب المخالفات أو الإيقاف.\n\nهذا تنبيه آلي صادر من نظام OFS.\n\nفي حال تم التجديد، يرجى تحديث البيانات في النظام.'
+    },
+    {
+      key: 'municipality_license',
+      title: 'رخصة البلدية',
+      subject: 'تنبيه قرب انتهاء — رخصة البلدية',
+      body: 'تنبيه رسمي:\n\nنود إشعاركم بأن رخصة البلدية الخاصة بفرع {اسم الفرع}\nسينتهي بتاريخ: {تاريخ الانتهاء}.\n\nالمتبقي على الانتهاء: {عدد الأيام}.\n\nحالة التنبيه: خطر مخالفة\nتحتاج إجراء: يرجى البدء بإجراءات تجديد الرخصة قبل تاريخ الانتهاء لتجنب الإغلاق أو الغرامات.\n\nهذا تنبيه آلي صادر من نظام OFS.\n\nفي حال تم التجديد، يرجى تحديث البيانات في النظام.'
+    },
+    {
+      key: 'civil_defense',
+      title: 'الدفاع المدني',
+      subject: 'تنبيه قرب انتهاء — تصريح الدفاع المدني',
+      body: 'تنبيه رسمي:\n\nنود إشعاركم بأن تصريح الدفاع المدني الخاص بفرع {اسم الفرع}\nسينتهي بتاريخ: {تاريخ الانتهاء}.\n\nالمتبقي على الانتهاء: {عدد الأيام}.\n\nحالة التنبيه: خطر مخالفة\nتحتاج إجراء: يرجى التأكد من تجديد التصريح واستيفاء متطلبات الدفاع المدني قبل تاريخ الانتهاء لتجنب الإيقاف.\n\nهذا تنبيه آلي صادر من نظام OFS.\n\nفي حال تم التجديد، يرجى تحديث البيانات في النظام.'
+    },
+    {
+      key: 'delivery_permit',
+      title: 'تصريح التوصيل',
+      subject: 'تنبيه قرب انتهاء — تصريح التوصيل',
+      body: 'تنبيه رسمي:\n\nنود إشعاركم بأن تصريح التوصيل الخاص بفرع {اسم الفرع}\nسينتهي بتاريخ: {تاريخ الانتهاء}.\n\nالمتبقي على الانتهاء: {عدد الأيام}.\n\nحالة التنبيه: خطر مخالفة\nتحتاج إجراء: يرجى تجديد تصريح التوصيل قبل تاريخ الانتهاء.\n\nهذا تنبيه آلي صادر من نظام OFS.\n\nفي حال تم التجديد، يرجى تحديث البيانات في النظام.'
+    },
+    {
+      key: 'permit_24h',
+      title: 'تصريح 24 ساعة',
+      subject: 'تنبيه قرب انتهاء — تصريح 24 ساعة',
+      body: 'تنبيه رسمي:\n\nنود إشعاركم بأن تصريح 24 ساعة الخاص بفرع {اسم الفرع}\nسينتهي بتاريخ: {تاريخ الانتهاء}.\n\nالمتبقي على الانتهاء: {عدد الأيام}.\n\nحالة التنبيه: خطر مخالفة\nتحتاج إجراء: يرجى تجديد التصريح قبل تاريخ الانتهاء.\n\nهذا تنبيه آلي صادر من نظام OFS.\n\nفي حال تم التجديد، يرجى تحديث البيانات في النظام.'
+    },
+    {
+      key: 'outdoor_seating_permit',
+      title: 'تصريح الجلسات الخارجية',
+      subject: 'تنبيه قرب انتهاء — تصريح الجلسات الخارجية',
+      body: 'تنبيه رسمي:\n\nنود إشعاركم بأن تصريح الجلسات الخارجية الخاص بفرع {اسم الفرع}\nسينتهي بتاريخ: {تاريخ الانتهاء}.\n\nالمتبقي على الانتهاء: {عدد الأيام}.\n\nحالة التنبيه: خطر مخالفة\nتحتاج إجراء: يرجى تجديد التصريح قبل تاريخ الانتهاء.\n\nهذا تنبيه آلي صادر من نظام OFS.\n\nفي حال تم التجديد، يرجى تحديث البيانات في النظام.'
+    },
+    {
+      key: 'advertising_permits',
+      title: 'التصاريح الإعلانية',
+      subject: 'تنبيه قرب انتهاء — التصاريح الإعلانية',
+      body: 'تنبيه رسمي:\n\nنود إشعاركم بأن {سياق}\nسينتهي بتاريخ: {تاريخ الانتهاء}.\n\nالمتبقي على الانتهاء: {عدد الأيام}.\n\nحالة التنبيه: خطر مخالفة\nتحتاج إجراء: يرجى تجديد التصريح الإعلاني قبل تاريخ الانتهاء.\n\nهذا تنبيه آلي صادر من نظام OFS.\n\nفي حال تم التجديد، يرجى تحديث البيانات في النظام.'
+    },
+    {
+      key: 'clean_contract',
+      title: 'عقد النظافة',
+      subject: 'تنبيه قرب انتهاء — عقد النظافة',
+      body: 'تنبيه رسمي:\n\nنود إشعاركم بأن عقد النظافة الخاص بفرع {اسم الفرع}\nسينتهي بتاريخ: {تاريخ الانتهاء}.\n\nالمتبقي على الانتهاء: {عدد الأيام}.\n\nحالة التنبيه: خطر مخالفة\nتحتاج إجراء: يرجى تجديد عقد النظافة قبل تاريخ الانتهاء.\n\nهذا تنبيه آلي صادر من نظام OFS.\n\nفي حال تم التجديد، يرجى تحديث البيانات في النظام.'
+    }
+  ];
+}
+
+function initAlertTemplatesSettings(){
+  var listEl = document.getElementById('alert-templates-list');
+  var saveBtn = document.getElementById('alert-template-save');
+  var addBtn = document.getElementById('alert-template-add');
+  var resetBtn = document.getElementById('alert-template-reset');
+  var statusEl = document.getElementById('alert-template-status');
+  if (!listEl || !saveBtn || !addBtn || !resetBtn) return;
+
+  var templates = [];
+  var isCurrentUserAdmin = function(){
+    try {
+      if (window.App && typeof App.isAdmin === 'function' && App.isAdmin()) return true;
+      var role = '';
+      if (window.App && typeof App.getRole === 'function') role = App.getRole();
+      else if (window.App && typeof App.currentUser === 'function') role = (App.currentUser() || {}).role || '';
+      else role = localStorage.getItem('auth_role') || localStorage.getItem('role') || '';
+      role = String(role || '').toLowerCase();
+      return role === 'admin' || role === 'administrator' || role === 'مدير النظام';
+    } catch(_) { return false; }
+  };
+  var request = async function(method, endpoint, data){
+    if (!window.APIClient) throw new Error('APIClient missing');
+    if (typeof APIClient.request === 'function') return await APIClient.request(method, endpoint, data);
+    if (typeof APIClient.fetch === 'function') {
+      var response = await APIClient.fetch(endpoint, { method: method, body: data == null ? undefined : data });
+      return response && typeof response === 'object' && 'data' in response && response.data != null ? response.data : response;
+    }
+    throw new Error('APIClient missing');
+  };
+
+  var normalize = function(item){
+    return {
+      key: String(item && item.key || '').trim(),
+      title: String(item && item.title || '').trim(),
+      subject: String(item && item.subject || '').trim(),
+      body: String(item && item.body || '').trim(),
+      threshold_days: String(item && item.threshold_days || '').trim(),
+      manual_recipients: String(item && item.manual_recipients || '').trim()
+    };
+  };
+
+  var render = function(){
+    var canManage = isCurrentUserAdmin();
+    saveBtn.disabled = !canManage;
+    addBtn.disabled = !canManage;
+    resetBtn.disabled = !canManage;
+    if (!canManage) {
+      saveBtn.classList.add('opacity-50','cursor-not-allowed');
+      addBtn.classList.add('opacity-50','cursor-not-allowed');
+      resetBtn.classList.add('opacity-50','cursor-not-allowed');
+    } else {
+      saveBtn.classList.remove('opacity-50','cursor-not-allowed');
+      addBtn.classList.remove('opacity-50','cursor-not-allowed');
+      resetBtn.classList.remove('opacity-50','cursor-not-allowed');
+    }
+    listEl.innerHTML = templates.map(function(t, idx){
+      return '<div class="p-3 rounded-xl border border-slate-700/60 bg-slate-900/40" data-idx="' + idx + '">' +
+        '<div class="grid md:grid-cols-2 gap-2">' +
+        '<div><label class="block text-slate-400 text-xs mb-1">عدد الأيام للتنبيه</label><input class="form-control alert-t-threshold" placeholder="60,30,15,0" value="' + (t.threshold_days || '').replace(/"/g,'&quot;') + '"' + (canManage ? '' : ' disabled') + '></div>' +
+        '<div><label class="block text-slate-400 text-xs mb-1">إيميلات يدوية لهذا القالب</label><input class="form-control alert-t-recipients" placeholder="owner@example.com, audit@example.com" value="' + (t.manual_recipients || '').replace(/"/g,'&quot;') + '"' + (canManage ? '' : ' disabled') + '></div>' +
+        '<input class="form-control alert-t-key" placeholder="key (مثال: municipality_license)" value="' + (t.key || '').replace(/"/g,'&quot;') + '"' + (canManage ? '' : ' disabled') + '>' +
+        '<input class="form-control alert-t-title" placeholder="العنوان الظاهر" value="' + (t.title || '').replace(/"/g,'&quot;') + '"' + (canManage ? '' : ' disabled') + '>' +
+        '<input class="form-control md:col-span-2 alert-t-subject" placeholder="Subject" value="' + (t.subject || '').replace(/"/g,'&quot;') + '"' + (canManage ? '' : ' disabled') + '>' +
+        '<textarea class="form-control md:col-span-2 alert-t-body" rows="5" placeholder="Body"' + (canManage ? '' : ' disabled') + '>' + (t.body || '') + '</textarea>' +
+        '<div class="md:col-span-2 flex justify-end"><button type="button" class="btn alert-t-remove' + (canManage ? '' : ' opacity-50 cursor-not-allowed') + '"' + (canManage ? '' : ' disabled') + '>حذف</button></div>' +
+        '</div></div>';
+    }).join('');
+  };
+
+  var bindListEvents = function(){
+    listEl.addEventListener('input', function(e){
+      if (!isCurrentUserAdmin()) return;
+      var card = e.target.closest('[data-idx]');
+      if (!card) return;
+      var idx = parseInt(card.getAttribute('data-idx'), 10);
+      if (isNaN(idx) || !templates[idx]) return;
+      templates[idx].threshold_days = String(card.querySelector('.alert-t-threshold')?.value || '').trim();
+      templates[idx].manual_recipients = String(card.querySelector('.alert-t-recipients')?.value || '').trim();
+      templates[idx].key = String(card.querySelector('.alert-t-key')?.value || '').trim();
+      templates[idx].title = String(card.querySelector('.alert-t-title')?.value || '').trim();
+      templates[idx].subject = String(card.querySelector('.alert-t-subject')?.value || '').trim();
+      templates[idx].body = String(card.querySelector('.alert-t-body')?.value || '').trim();
+    });
+    listEl.addEventListener('click', function(e){
+      var btn = e.target.closest('.alert-t-remove');
+      if (!btn) return;
+      if (!isCurrentUserAdmin()) {
+        if (typeof toast === 'function') toast('warning','تنبيه','الحذف مسموح فقط للأدمن');
+        return;
+      }
+      if (!window.confirm('هل أنت متأكد من حذف هذا القالب؟')) return;
+      var card = e.target.closest('[data-idx]');
+      if (!card) return;
+      var idx = parseInt(card.getAttribute('data-idx'), 10);
+      if (isNaN(idx)) return;
+      templates.splice(idx, 1);
+      render();
+    });
+  };
+
+  if (!window.__alertTemplatesInited) {
+    window.__alertTemplatesInited = true;
+    bindListEvents();
+    addBtn.onclick = function(){
+      if (!isCurrentUserAdmin()) { if (typeof toast === 'function') toast('warning','تنبيه','التعديل مسموح فقط للأدمن'); return; }
+      templates.push({ key: '', title: '', subject: 'تنبيه قرب انتهاء — {اسم المتطلب}', body: '', threshold_days: '', manual_recipients: '' });
+      render();
+    };
+    resetBtn.onclick = function(){
+      if (!isCurrentUserAdmin()) { if (typeof toast === 'function') toast('warning','تنبيه','التعديل مسموح فقط للأدمن'); return; }
+      templates = getDefaultAlertTemplates().map(normalize);
+      render();
+      if (statusEl) statusEl.textContent = 'تمت إعادة القوالب الافتراضية';
+    };
+    saveBtn.onclick = async function(){
+      try {
+        if (!isCurrentUserAdmin()) {
+          if (typeof toast === 'function') toast('warning','تنبيه','الحفظ مسموح فقط للأدمن');
+          return;
+        }
+        var clean = templates.map(normalize).filter(function(t){ return t.key; });
+        clean = clean.map(function(t){
+          var thresholdValues = (String(t.threshold_days || '').match(/-?\d+/g) || [])
+            .map(function(v){ return parseInt(v, 10); })
+            .filter(function(v){ return !isNaN(v) && v >= 0; });
+          var normalizedThresholds = Array.from(new Set(thresholdValues)).sort(function(a, b){ return b - a; });
+          var emails = Array.from(new Set((String(t.manual_recipients || '').match(/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/ig) || []).map(function(e){
+            return String(e || '').trim().toLowerCase();
+          })));
+          return Object.assign({}, t, {
+            threshold_days: normalizedThresholds.join(','),
+            manual_recipients: emails.join(',')
+          });
+        });
+        await request('POST', 'settings', {
+          alert_templates_json: JSON.stringify(clean)
+        });
+        templates = clean;
+        render();
+        if (statusEl) statusEl.textContent = 'تم حفظ القوالب';
+        if (typeof toast === 'function') toast('success','تم','تم حفظ قوالب التنبيهات');
+      } catch (e) {
+        if (statusEl) statusEl.textContent = 'فشل حفظ القوالب';
+        if (typeof toast === 'function') toast('error','خطأ','تعذر حفظ قوالب التنبيهات' + (e && e.message ? ': ' + e.message : ''));
+      }
+    };
+  }
+
+  (async function(){
+    try {
+      var settings = await request('GET', 'settings');
+      var stored = [];
+      try { stored = JSON.parse(String(settings && settings.alert_templates_json || '[]')); } catch(_) { stored = []; }
+      var legacyThreshold = String(settings && settings.alert_threshold_days || '').trim();
+      var legacyRecipients = String(settings && settings.alert_manual_recipients || '').trim();
+      var defaults = getDefaultAlertTemplates().map(normalize);
+      var map = {};
+      defaults.forEach(function(t){ map[t.key] = t; });
+      if (Array.isArray(stored)) {
+        stored.map(normalize).forEach(function(t){ if (t.key) map[t.key] = t; });
+      }
+      Object.keys(map).forEach(function(k){
+        if (!map[k].threshold_days) map[k].threshold_days = legacyThreshold || '60,30,15,0';
+        if (!map[k].manual_recipients) map[k].manual_recipients = legacyRecipients || '';
+      });
+      if (Array.isArray(stored)) {
+        stored.map(normalize).forEach(function(t){
+          if (t.key && !map[t.key]) {
+            if (!t.threshold_days) t.threshold_days = legacyThreshold || '60,30,15,0';
+            if (!t.manual_recipients) t.manual_recipients = legacyRecipients || '';
+            map[t.key] = t;
+          }
+        });
+      }
+      templates = Object.keys(map).map(function(k){ return map[k]; });
+      render();
+      if (statusEl && !statusEl.textContent) statusEl.textContent = '';
+    } catch (e) {
+      templates = getDefaultAlertTemplates().map(normalize);
+      render();
+      if (statusEl) statusEl.textContent = '';
+    }
+  })();
 }
 
 function renderDashboardKPIs(){
@@ -642,7 +966,7 @@ window.renderMembers = async function() {
 
   tbody.innerHTML = '';
   if (members.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" class="text-center p-8 text-slate-500">لا يوجد أعضاء لعرضهم.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center p-8 text-slate-500">' + tAdmin('لا يوجد أعضاء لعرضهم.', 'No members to display.') + '</td></tr>';
     return;
   }
 
@@ -655,9 +979,9 @@ window.renderMembers = async function() {
       <td class="px-6 py-4 font-medium text-white">${member.name}</td>
       <td class="px-6 py-4 text-slate-400">${member.email}</td>
       <td class="px-6 py-4"><span class="role-badge ${roleClass}">${member.role}</span></td>
-      <td class="px-6 py-4 text-slate-400">${member.branch_access && member.branch_access.length > 0 ? member.branch_access.join(', ') : 'All'}</td>
+      <td class="px-6 py-4 text-slate-400">${member.branch_access && member.branch_access.length > 0 ? member.branch_access.join(', ') : tAdmin('الكل', 'All')}</td>
       <td class="px-6 py-4 text-right">
-        <button onclick="openMemberModal('${member.id}')" class="font-medium text-blue-500 hover:underline">Edit</button>
+        <button onclick="openMemberModal('${member.id}')" class="font-medium text-blue-500 hover:underline">${tAdmin('تعديل', 'Edit')}</button>
       </td>
     `;
     tbody.appendChild(tr);
@@ -685,7 +1009,7 @@ window.openMemberModal = async (memberId = null) => {
   });
 
   if (memberId) {
-    modalTitle.textContent = 'تعديل عضو';
+    modalTitle.textContent = tAdmin('تعديل عضو', 'Edit Member');
     // Use APIClient to fetch from /api/users-list which has fallback data
     let users = [];
     try {
@@ -710,9 +1034,9 @@ window.openMemberModal = async (memberId = null) => {
         });
       }
     }
-    passwordInput.placeholder = "اتركه فارغاً لعدم التغيير";
+    passwordInput.placeholder = tAdmin('اتركه فارغاً لعدم التغيير', 'Leave empty to keep unchanged');
   } else {
-    modalTitle.textContent = 'إضافة عضو جديد';
+    modalTitle.textContent = tAdmin('إضافة عضو جديد', 'Add New Member');
     passwordInput.placeholder = "";
   }
   
@@ -815,7 +1139,7 @@ window.renderLicenses = async function() {
 
   grid.innerHTML = '';
   if (filtered.length === 0) {
-    grid.innerHTML = '<div class="col-span-full text-center p-8 text-slate-500">لا توجد رخص تطابق الفلتر.</div>';
+    grid.innerHTML = '<div class="col-span-full text-center p-8 text-slate-500">' + tAdmin('لا توجد رخص تطابق الفلتر.', 'No licenses match the current filter.') + '</div>';
     return;
   }
 
@@ -828,13 +1152,13 @@ window.renderLicenses = async function() {
     const daysDiff = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
 
     let statusClass = 'bg-green-500/20 text-green-300';
-    let statusText = `سارية (${daysDiff} يوم متبقي)`;
+    let statusText = tAdmin('سارية (' + daysDiff + ' يوم متبقي)', 'Active (' + daysDiff + ' days left)');
     if (daysDiff < 0) {
       statusClass = 'bg-red-500/20 text-red-300';
-      statusText = `منتهية منذ ${Math.abs(daysDiff)} يوم`;
+      statusText = tAdmin('منتهية منذ ' + Math.abs(daysDiff) + ' يوم', 'Expired ' + Math.abs(daysDiff) + ' days ago');
     } else if (daysDiff <= 30) {
       statusClass = 'bg-yellow-500/20 text-yellow-300';
-      statusText = `قرب الانتهاء (${daysDiff} يوم متبقي)`;
+      statusText = tAdmin('قرب الانتهاء (' + daysDiff + ' يوم متبقي)', 'Expiring soon (' + daysDiff + ' days left)');
     }
 
     card.innerHTML = `
@@ -843,12 +1167,12 @@ window.renderLicenses = async function() {
           <h3 class="font-bold text-lg text-white">${lic.name}</h3>
           <span class="text-xs px-2 py-1 rounded-full ${statusClass}">${statusText}</span>
         </div>
-        <p class="text-sm text-slate-400 mb-1">النوع: ${lic.type}</p>
-        <p class="text-sm text-slate-400">رقم: ${lic.number || '-'}</p>
+        <p class="text-sm text-slate-400 mb-1">${tAdmin('النوع', 'Type')}: ${lic.type}</p>
+        <p class="text-sm text-slate-400">${tAdmin('رقم', 'Number')}: ${lic.number || '-'}</p>
       </div>
       <div class="text-xs text-slate-500 mt-4">
-        تاريخ الإصدار: ${new Date(lic.issue_date).toLocaleDateString()} <br>
-        تاريخ الانتهاء: ${expiryDate.toLocaleDateString()}
+        ${tAdmin('تاريخ الإصدار', 'Issue Date')}: ${new Date(lic.issue_date).toLocaleDateString()} <br>
+        ${tAdmin('تاريخ الانتهاء', 'Expiry Date')}: ${expiryDate.toLocaleDateString()}
       </div>
     `;
     grid.appendChild(card);
@@ -877,7 +1201,7 @@ window.renderBranches = async function() {
 
   grid.innerHTML = '';
   if (branches.length === 0) {
-    grid.innerHTML = '<div class="col-span-full text-center p-8 text-slate-500">لا توجد فروع لعرضها.</div>';
+    grid.innerHTML = '<div class="col-span-full text-center p-8 text-slate-500">' + tAdmin('لا توجد فروع لعرضها.', 'No branches to display.') + '</div>';
     return;
   }
 
@@ -891,24 +1215,24 @@ window.renderBranches = async function() {
       maintenance: 'bg-yellow-500/20 text-yellow-300'
     };
     const statusTexts = {
-      active: 'نشط',
-      inactive: 'غير نشط',
-      maintenance: 'صيانة'
+      active: tAdmin('نشط', 'Active'),
+      inactive: tAdmin('غير نشط', 'Inactive'),
+      maintenance: tAdmin('صيانة', 'Maintenance')
     };
 
     card.innerHTML = `
       <div class="flex justify-between items-center mb-3">
-        <h3 class="text-xl font-bold text-white">${branch.name_ar || branch.name_en}</h3>
+        <h3 class="text-xl font-bold text-white">${getAdminLang() === 'en' ? (branch.name_en || branch.name_ar) : (branch.name_ar || branch.name_en)}</h3>
         <span class="text-xs px-2 py-1 rounded-full ${statusClasses[branch.status] || ''}">${statusTexts[branch.status] || branch.status}</span>
       </div>
       <p class="text-sm text-slate-400 mb-4">${branch.city || ''}, ${branch.region || ''}</p>
       <div class="text-sm text-slate-300 space-y-2">
-        <p><i class="fas fa-user-tie fa-fw mr-2 text-slate-500"></i> ${branch.manager_name || 'غير محدد'}</p>
-        <p><i class="fas fa-phone fa-fw mr-2 text-slate-500"></i> ${branch.phone || 'غير محدد'}</p>
+        <p><i class="fas fa-user-tie fa-fw mr-2 text-slate-500"></i> ${branch.manager_name || tAdmin('غير محدد', 'Not specified')}</p>
+        <p><i class="fas fa-phone fa-fw mr-2 text-slate-500"></i> ${branch.phone || tAdmin('غير محدد', 'Not specified')}</p>
       </div>
       <div class="mt-4 pt-4 border-t border-slate-700/50 flex justify-end">
         <button onclick="openBranchModal('${branch.id}')" class="text-blue-400 hover:text-blue-300 transition">
-          تعديل <i class="fas fa-edit ml-1"></i>
+          ${tAdmin('تعديل', 'Edit')} <i class="fas fa-edit ml-1"></i>
         </button>
       </div>
     `;
@@ -926,7 +1250,7 @@ window.openBranchModal = async (branchId = null) => {
   switchTab(null, 'basic-info');
 
   if (branchId) {
-    modalTitle.textContent = 'تعديل فرع';
+    modalTitle.textContent = tAdmin('تعديل فرع', 'Edit Branch');
     const branches = await window.App.store.list('branches') || [];
     const branch = branches.find(b => b.id === branchId);
     if (branch) {
@@ -941,7 +1265,7 @@ window.openBranchModal = async (branchId = null) => {
       document.getElementById('branch-google_maps_url').value = branch.google_maps_url;
     }
   } else {
-    modalTitle.textContent = 'إضافة فرع جديد';
+    modalTitle.textContent = tAdmin('إضافة فرع جديد', 'Add New Branch');
   }
   
   modal.style.display = 'flex';
@@ -1021,7 +1345,7 @@ window.renderViolationsDashboard = async function() {
     ...r,
     paid: (r.paid === true || String(r.paid).toLowerCase() === 'true'),
     amount: Number(r.amount || 0),
-    region: r.region || 'الرياض',
+    region: r.region || tAdmin('الرياض', 'Riyadh'),
     displayNo: r.vio_no || r.id || '-'
   }));
 
@@ -1037,7 +1361,7 @@ window.renderViolationsDashboard = async function() {
     const optionsChanged = existingOpts.length !== regions.length || !existingOpts.every((v, i) => v === regions[i]);
 
     if (optionsChanged) {
-      filterSelect.innerHTML = '<option value="all" class="bg-slate-800 text-slate-200">كل المناطق</option>';
+      filterSelect.innerHTML = '<option value="all" class="bg-slate-800 text-slate-200">' + tAdmin('كل المناطق', 'All Regions') + '</option>';
       regions.forEach(reg => {
         const opt = document.createElement('option');
         opt.value = reg;
@@ -1123,7 +1447,7 @@ function renderViolationsTable(rows) {
 
   tbody.innerHTML = '';
   if (paginatedRows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" class="text-center p-8 text-slate-500">لا توجد مخالفات تطابق الفلتر الحالي.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center p-8 text-slate-500">' + tAdmin('لا توجد مخالفات تطابق الفلتر الحالي.', 'No violations match the current filter.') + '</td></tr>';
     return;
   }
 
@@ -1131,7 +1455,7 @@ function renderViolationsTable(rows) {
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-white/5 transition border-b border-slate-700 last:border-0';
     const statusClass = r.paid ? 'text-green-400' : 'text-red-400';
-    const statusText = r.paid ? 'مدفوعة' : 'مفتوحة';
+    const statusText = r.paid ? tAdmin('مدفوعة', 'Paid') : tAdmin('مفتوحة', 'Open');
 
     tr.innerHTML = `
       <td class="p-3 text-sm text-slate-300">${r.displayNo}</td>
@@ -1143,9 +1467,9 @@ function renderViolationsTable(rows) {
       <td class="p-3 text-sm text-slate-400">${r.region}</td>
       <td class="p-3">
         <div class="flex items-center justify-center gap-2">
-          <button class="p-2 bg-slate-500/20 hover:bg-slate-500/40 text-slate-400 rounded transition" onclick="viewViolation('${r.id}')" title="عرض">👁</button>
-          <button class="p-2 bg-blue-500/20 hover:bg-blue-500/40 text-blue-500 rounded transition" onclick="editViolation('${r.id}')" title="تعديل">✏</button>
-          <button class="p-2 bg-red-500/20 hover:bg-red-500/40 text-red-500 rounded transition" onclick="confirmDeleteViolation('${r.id}')" title="حذف">🗑</button>
+          <button class="p-2 bg-slate-500/20 hover:bg-slate-500/40 text-slate-400 rounded transition" onclick="viewViolation('${r.id}')" title="${tAdmin('عرض', 'View')}">👁</button>
+          <button class="p-2 bg-blue-500/20 hover:bg-blue-500/40 text-blue-500 rounded transition" onclick="editViolation('${r.id}')" title="${tAdmin('تعديل', 'Edit')}">✏</button>
+          <button class="p-2 bg-red-500/20 hover:bg-red-500/40 text-red-500 rounded transition" onclick="confirmDeleteViolation('${r.id}')" title="${tAdmin('حذف', 'Delete')}">🗑</button>
         </div>
       </td>
     `;
@@ -1352,20 +1676,95 @@ window.safeSave = function (key, list) {
   localStorage.setItem(key, JSON.stringify(list));
 };
 
-window.getViolationAttachmentCount = function(id){
+window.vioReadAttachmentMap = function(){
   try {
     const raw = localStorage.getItem('db:violation_attachments');
     const map = raw ? JSON.parse(raw) : {};
-    const arr = map[id] || [];
-    return Array.isArray(arr) ? arr.length : 0;
-  } catch { return 0; }
+    return map && typeof map === 'object' ? map : {};
+  } catch(_) {
+    return {};
+  }
+};
+
+window.vioWriteAttachmentMap = function(map){
+  try { localStorage.setItem('db:violation_attachments', JSON.stringify(map || {})); } catch(_) {}
+};
+
+window.vioNormalizeAttachment = function(item){
+  if (!item || typeof item !== 'object') return null;
+  const normalized = Object.assign({}, item);
+  normalized.name = normalized.name || normalized.file_name || 'attachment';
+  normalized.type = normalized.type || normalized.mime_type || '';
+  normalized.size = Number(normalized.size || normalized.file_size || 0) || 0;
+  normalized.db_id = normalized.db_id || normalized.id || normalized.attachment_id || '';
+  normalized.path = normalized.path || normalized.file_path || '';
+  normalized.url = normalized.url || normalized.previewUrl || normalized.file_url || '';
+  if (!normalized.url && normalized.path) {
+    const cleanPath = String(normalized.path).replace(/^\/+/, '');
+    normalized.url = /^https?:\/\//i.test(cleanPath)
+      ? cleanPath
+      : '/' + (cleanPath.indexOf('storage/') === 0 ? cleanPath : ('storage/' + cleanPath));
+  }
+  normalized.persisted = normalized.persisted !== false && (!!normalized.db_id || !!normalized.url || !!normalized.path);
+  return normalized;
+};
+
+window.vioMergeAttachmentLists = function(){
+  const merged = [];
+  const seen = new Set();
+  Array.prototype.slice.call(arguments).forEach(function(list){
+    (Array.isArray(list) ? list : []).forEach(function(item){
+      const normalized = window.vioNormalizeAttachment(item);
+      if (!normalized) return;
+      const key = String(normalized.db_id || '') || [normalized.url || '', normalized.name || '', normalized.path || ''].join('|');
+      if (seen.has(key)) return;
+      seen.add(key);
+      merged.push(normalized);
+    });
+  });
+  return merged;
+};
+
+window.vioGetSavedAttachments = function(id, attachments){
+  const storedMap = window.vioReadAttachmentMap();
+  const stored = id ? storedMap[id] || [] : [];
+  const record = (window.App && App.store && typeof App.store.get === 'function' && id)
+    ? App.store.get('violations', id)
+    : null;
+  const recordAttachments = record ? [].concat(record.attachments || [], record.files || []) : [];
+  return window.vioMergeAttachmentLists(attachments, recordAttachments, stored);
+};
+
+window.vioPersistSavedAttachments = function(id, attachments){
+  if (!id) return [];
+  const normalized = window.vioMergeAttachmentLists(attachments);
+  const map = window.vioReadAttachmentMap();
+  map[id] = normalized;
+  window.vioWriteAttachmentMap(map);
+  try {
+    if (window.App && App.store && typeof App.store.list === 'function' && typeof App.store.set === 'function') {
+      const list = App.store.list('violations') || [];
+      const next = list.map(function(v){
+        if (String(v && v.id) !== String(id)) return v;
+        return Object.assign({}, v, { attachments: normalized });
+      });
+      App.store.set('violations', next);
+    }
+  } catch(_) {}
+  return normalized;
+};
+
+window.getViolationAttachmentCount = function(id){
+  try {
+    return window.vioGetSavedAttachments(id).length;
+  } catch {
+    return 0;
+  }
 };
 
 window.showViolationAttachments = function(id, attachments, title){
   try {
-    const raw = localStorage.getItem('db:violation_attachments');
-    const map = raw ? JSON.parse(raw) : {};
-    const atts = attachments || map[id] || [];
+    const atts = window.vioGetSavedAttachments(id, attachments);
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay open';
     const box = document.createElement('div');
@@ -1401,10 +1800,46 @@ window.showViolationAttachments = function(id, attachments, title){
       body.appendChild(empty);
     } else {
       atts.forEach(function(a){
+        a = window.vioNormalizeAttachment(a) || a;
         const card = document.createElement('div');
         card.style.border = '1px solid #334155';
         card.style.borderRadius = '8px';
         card.style.padding = '8px';
+        card.style.position = 'relative';
+        const del = document.createElement('button');
+        del.className = 'btn';
+        del.textContent = '×';
+        del.style.position = 'absolute';
+        del.style.top = '6px';
+        del.style.right = '6px';
+        del.style.padding = '2px 8px';
+        del.onclick = async function(e){
+          e.preventDefault();
+          e.stopPropagation();
+          const ok = await window.confirmDialog({
+            title: 'حذف المرفق',
+            message: 'هل أنت متأكد من حذف هذا المرفق؟',
+            confirmText: 'حذف',
+            cancelText: 'إلغاء'
+          });
+          if (!ok) return;
+          try {
+            if (id && a.db_id && window.APIClient && APIClient.special && APIClient.special.violations && typeof APIClient.special.violations.deleteAttachment === 'function') {
+              await APIClient.special.violations.deleteAttachment(id, a.db_id);
+            }
+          } catch(err) {
+            if (typeof toast === 'function') toast('error', 'خطأ', (err && err.message) ? err.message : 'تعذر حذف المرفق');
+            return;
+          }
+          const current = window.vioGetSavedAttachments(id).filter(function(x){
+            const normalized = window.vioNormalizeAttachment(x) || {};
+            if (a.db_id && normalized.db_id) return String(normalized.db_id) !== String(a.db_id);
+            return !((normalized.url || '') === (a.url || '') && (normalized.name || '') === (a.name || ''));
+          });
+          window.vioPersistSavedAttachments(id, current);
+          document.body.removeChild(overlay);
+          window.showViolationAttachments(id, current, title);
+        };
         const name = document.createElement('div');
         name.style.color = '#cbd5e1';
         name.style.fontSize = '12px';
@@ -1467,6 +1902,7 @@ window.showViolationAttachments = function(id, attachments, title){
           row.appendChild(dl);
           area.appendChild(row);
         }
+        card.appendChild(del);
         card.appendChild(name);
         card.appendChild(area);
         grid.appendChild(card);
@@ -1565,8 +2001,35 @@ window.confirmDialog = function(opts){
 window.__vioPendingAttachments = window.__vioPendingAttachments || [];
 window.__vioAttachmentViewer = window.__vioAttachmentViewer || { overlay: null, media: null, zoomValue: null, title: null, current: null, scale: 1 };
 
-window.vioResetPendingAttachments = function(){
-  try { window.__vioPendingAttachments = []; } catch(_) {}
+window.vioLoadEditorAttachments = function(violationId){
+  const saved = violationId ? window.vioGetSavedAttachments(violationId) : [];
+  window.__vioPendingAttachments = saved.map(function(item){
+    const normalized = window.vioNormalizeAttachment(item) || {};
+    normalized.status = normalized.status || 'ready';
+    normalized.persisted = true;
+    normalized.file = null;
+    normalized.previewUrl = normalized.previewUrl || normalized.url || '';
+    return normalized;
+  });
+  try { window.vioRenderPendingAttachments(); } catch(_) {}
+};
+
+window.vioResetPendingAttachments = function(keepSaved){
+  const violationId = window.__vioEditingId || '';
+  try {
+    window.__vioPendingAttachments = keepSaved && violationId
+      ? window.vioGetSavedAttachments(violationId).map(function(item){
+          const normalized = window.vioNormalizeAttachment(item) || {};
+          normalized.status = 'ready';
+          normalized.persisted = true;
+          normalized.file = null;
+          normalized.previewUrl = normalized.previewUrl || normalized.url || '';
+          return normalized;
+        })
+      : [];
+  } catch(_) {
+    window.__vioPendingAttachments = [];
+  }
   try { window.vioRenderPendingAttachments(); } catch(_) {}
 };
 
@@ -1768,8 +2231,9 @@ window.vioOpenAttachmentViewer = function(item){
 window.vioUploadQueuedAttachments = async function(violationId){
   const items = Array.isArray(window.__vioPendingAttachments) ? window.__vioPendingAttachments : [];
   if (!violationId || !items.length) return;
+  const uploaded = window.vioGetSavedAttachments(violationId);
   for (const it of items) {
-    if (!it || !it.file) continue;
+    if (!it || !it.file || it.persisted) continue;
     it.status = 'uploading';
     it.errorMessage = '';
     window.vioRenderPendingAttachments();
@@ -1787,8 +2251,10 @@ window.vioUploadQueuedAttachments = async function(violationId){
       it.url = url;
       it.path = path;
       it.db_id = dbId;
+      it.persisted = !!(url || path || dbId);
       it.status = url ? 'ready' : 'error';
       if (!url) it.errorMessage = 'لم يتم استلام رابط الملف من السيرفر';
+      if (it.persisted) uploaded.push(window.vioNormalizeAttachment(it));
     } catch (e) {
       it.status = 'error';
       it.errorMessage = (e && e.message) ? String(e.message) : 'خطأ غير معروف';
@@ -1797,6 +2263,7 @@ window.vioUploadQueuedAttachments = async function(violationId){
       window.vioRenderPendingAttachments();
     }
   }
+  window.vioPersistSavedAttachments(violationId, uploaded);
 };
 
 window.vioRenderPendingAttachments = function(){
@@ -1834,11 +2301,23 @@ window.vioRenderPendingAttachments = function(){
     del.style.top = '6px';
     del.style.right = '6px';
     del.style.padding = '2px 8px';
-    del.onclick = function(){
+    del.onclick = async function(){
       try {
-        window.__vioPendingAttachments = (window.__vioPendingAttachments || []).filter(function(x){ return x.id !== it.id; });
+        if (it.persisted && window.__vioEditingId && it.db_id && window.APIClient && APIClient.special && APIClient.special.violations && typeof APIClient.special.violations.deleteAttachment === 'function') {
+          const ok = await window.confirmDialog({ title: 'حذف المرفق', message: 'هل أنت متأكد من حذف هذا المرفق؟', confirmText: 'حذف', cancelText: 'إلغاء' });
+          if (!ok) return;
+          await APIClient.special.violations.deleteAttachment(window.__vioEditingId, it.db_id);
+          const saved = window.vioGetSavedAttachments(window.__vioEditingId).filter(function(x){
+            const normalized = window.vioNormalizeAttachment(x) || {};
+            return String(normalized.db_id || '') !== String(it.db_id || '');
+          });
+          window.vioPersistSavedAttachments(window.__vioEditingId, saved);
+        }
+        window.__vioPendingAttachments = (window.__vioPendingAttachments || []).filter(function(x){ return x.id !== it.id && String(x.db_id || '') !== String(it.db_id || ''); });
         window.vioRenderPendingAttachments();
-      } catch(_) {}
+      } catch(err) {
+        if (typeof toast === 'function') toast('error', 'خطأ', (err && err.message) ? err.message : 'تعذر حذف المرفق');
+      }
     };
 
     const media = document.createElement('div');
@@ -1891,6 +2370,14 @@ window.vioRenderPendingAttachments = function(){
       try {
         const v = nameInput.value || '';
         (window.__vioPendingAttachments || []).forEach(function(x){ if (x.id === it.id) x.name = v; });
+        if (it.persisted && window.__vioEditingId) {
+          const saved = window.vioGetSavedAttachments(window.__vioEditingId).map(function(x){
+            const normalized = window.vioNormalizeAttachment(x) || {};
+            if (String(normalized.db_id || '') === String(it.db_id || '') || String(normalized.url || '') === String(it.url || '')) normalized.name = v;
+            return normalized;
+          });
+          window.vioPersistSavedAttachments(window.__vioEditingId, saved);
+        }
       } catch(_) {}
     };
 
@@ -1987,7 +2474,8 @@ window.vioHandleViolationFilesSelected = async function(files){
       previewUrl: '',
       url: '',
       path: '',
-      status: window.__vioEditingId ? 'uploading' : 'queued'
+      status: window.__vioEditingId ? 'uploading' : 'queued',
+      persisted: false
     };
     try { item.previewUrl = URL.createObjectURL(f); } catch(_) {}
     pending.push(item);
@@ -1997,6 +2485,7 @@ window.vioHandleViolationFilesSelected = async function(files){
 
   if (!window.__vioEditingId) return;
 
+  const uploaded = window.vioGetSavedAttachments(window.__vioEditingId);
   await Promise.all(pending.map(async function(it){
     if (it.status !== 'uploading' || !it.file) return;
     try {
@@ -2008,8 +2497,10 @@ window.vioHandleViolationFilesSelected = async function(files){
       it.url = url;
       it.path = path;
       it.db_id = dbId;
+      it.persisted = !!(url || path || dbId);
       if (url) {
         it.status = 'ready';
+        uploaded.push(window.vioNormalizeAttachment(it));
       } else {
         it.status = 'error';
         it.errorMessage = 'لم يتم استلام رابط الملف من السيرفر';
@@ -2022,6 +2513,7 @@ window.vioHandleViolationFilesSelected = async function(files){
       window.vioRenderPendingAttachments();
     }
   }));
+  if (window.__vioEditingId) window.vioPersistSavedAttachments(window.__vioEditingId, uploaded);
 };
 
 window.vioPrintPendingAttachments = function(){
@@ -2055,9 +2547,27 @@ document.addEventListener('DOMContentLoaded', function(){
   const btnClear = document.getElementById('vio-files-clear');
   if (btnClear && !btnClear.__vioBound) {
     btnClear.__vioBound = true;
-    btnClear.addEventListener('click', function(e){
+    btnClear.addEventListener('click', async function(e){
       e.preventDefault();
-      window.vioResetPendingAttachments();
+      const items = Array.isArray(window.__vioPendingAttachments) ? window.__vioPendingAttachments.slice() : [];
+      if (!items.length) {
+        window.vioResetPendingAttachments(false);
+        return;
+      }
+      const ok = await window.confirmDialog({ title: 'حذف المرفقات', message: 'هل تريد حذف جميع المرفقات المعروضة؟', confirmText: 'حذف', cancelText: 'إلغاء' });
+      if (!ok) return;
+      if (window.__vioEditingId) {
+        for (const item of items) {
+          if (!item || !item.persisted || !item.db_id) continue;
+          try {
+            if (window.APIClient && APIClient.special && APIClient.special.violations && typeof APIClient.special.violations.deleteAttachment === 'function') {
+              await APIClient.special.violations.deleteAttachment(window.__vioEditingId, item.db_id);
+            }
+          } catch(_) {}
+        }
+        window.vioPersistSavedAttachments(window.__vioEditingId, []);
+      }
+      window.vioResetPendingAttachments(false);
     });
   }
 
@@ -2478,13 +2988,15 @@ window.renderTasks = function(){
     if (!branch) return;
     const id = String(branch.id || branch.branch_id || branch.code || '').trim();
     if (!id) return;
-    const name = branch.name_ar || branch.name_en || branch.name || branch.title || branch.branch_name || id;
+    const name = getAdminLang() === 'en'
+      ? (branch.name_en || branch.name_ar || branch.name || branch.title || branch.branch_name || id)
+      : (branch.name_ar || branch.name_en || branch.name || branch.title || branch.branch_name || id);
     branchNameById.set(id, String(name));
   });
 
   rows.innerHTML = '';
   if(!norm.length){
-    rows.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:15px">لا توجد مهام</td></tr>';
+    rows.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:15px">' + tAdmin('لا توجد مهام', 'No tasks') + '</td></tr>';
     return;
   }
 
@@ -2532,12 +3044,12 @@ window.renderTasks = function(){
       </td>
       <td class="p-2 text-center">
         <div class="flex items-center justify-center gap-1 flex-wrap">
-          <button class="text-cyan-300 hover:text-cyan-200 transition-colors p-1" title="معاينة" onclick="previewTaskCard('${escapeAdmin(t.id)}')">👁️</button>
-          <button class="text-amber-300 hover:text-amber-200 transition-colors p-1" title="طباعة" onclick="printTaskCard('${escapeAdmin(t.id)}')">🖨️</button>
-          <button class="text-emerald-300 hover:text-emerald-200 transition-colors p-1" title="رد" onclick="replyTask('${escapeAdmin(t.id)}')">💬</button>
-          <button class="text-violet-300 hover:text-violet-200 transition-colors p-1" title="المرفقات" onclick="viewTaskAttachments('${escapeAdmin(t.id)}')">📎</button>
-          <button class="text-blue-400 hover:text-blue-300 transition-colors p-1" title="تعديل" onclick="editTask('${escapeAdmin(t.id)}')">✏️</button>
-          <button class="text-red-400 hover:text-red-300 transition-colors p-1" title="حذف" onclick="deleteTask('${escapeAdmin(t.id)}')">🗑️</button>
+          <button class="text-cyan-300 hover:text-cyan-200 transition-colors p-1" title="${tAdmin('معاينة', 'Preview')}" onclick="previewTaskCard('${escapeAdmin(t.id)}')">👁️</button>
+          <button class="text-amber-300 hover:text-amber-200 transition-colors p-1" title="${tAdmin('طباعة', 'Print')}" onclick="printTaskCard('${escapeAdmin(t.id)}')">🖨️</button>
+          <button class="text-emerald-300 hover:text-emerald-200 transition-colors p-1" title="${tAdmin('رد', 'Reply')}" onclick="replyTask('${escapeAdmin(t.id)}')">💬</button>
+          <button class="text-violet-300 hover:text-violet-200 transition-colors p-1" title="${tAdmin('المرفقات', 'Attachments')}" onclick="viewTaskAttachments('${escapeAdmin(t.id)}')">📎</button>
+          <button class="text-blue-400 hover:text-blue-300 transition-colors p-1" title="${tAdmin('تعديل', 'Edit')}" onclick="editTask('${escapeAdmin(t.id)}')">✏️</button>
+          <button class="text-red-400 hover:text-red-300 transition-colors p-1" title="${tAdmin('حذف', 'Delete')}" onclick="deleteTask('${escapeAdmin(t.id)}')">🗑️</button>
         </div>
       </td>
     `;
@@ -2775,7 +3287,8 @@ window.closeModal = function(id) {
     var m = document.getElementById(id);
     if (m) {
       m.classList.remove('open');
-      m.style.display = 'none';
+      if (m.classList && m.classList.contains('modal-overlay')) m.style.display = '';
+      else m.style.display = 'none';
     }
   };
 
@@ -2915,13 +3428,43 @@ window.closeModal = function(id) {
     }
   };
 
-  window.openViolationModal = function() {
+  window.openViolationModal = function(id) {
     var m = document.getElementById('vio-modal');
+    var form = document.getElementById('violation-form');
+    if (form && !id) form.reset();
+    window.__vioEditingId = id || null;
+    if (id) {
+      var violation = (window.App && App.store && typeof App.store.get === 'function') ? App.store.get('violations', id) : null;
+      if (violation) {
+        var setVal = function(fieldId, value){
+          var el = document.getElementById(fieldId);
+          if (el) el.value = value == null ? '' : value;
+        };
+        setVal('vio-branch', violation.branch);
+        setVal('vio-cost-center', violation.cost_center);
+        setVal('vio-number', violation.vio_no);
+        setVal('vio-efaa', violation.efaa_no);
+        setVal('vio-payment', violation.payment_no);
+        setVal('vio-date', violation.date);
+        setVal('vio-type', violation.type || violation.description);
+        setVal('vio-amount', violation.amount);
+        setVal('vio-paid', violation.paid_status || (violation.paid ? 'true' : 'false'));
+        setVal('vio-region', violation.region);
+        setVal('vio-appeal', violation.appeal_status);
+        setVal('vio-appeal-number', violation.appeal_number);
+        setVal('vio-appeal-date', violation.appeal_date);
+        setVal('vio-finance-date', violation.finance_date);
+      }
+      window.vioLoadEditorAttachments(id);
+    } else {
+      window.vioResetPendingAttachments(false);
+    }
     if(m) { m.classList.add('open'); m.style.display = 'flex'; }
   };
   window.closeViolationModal = function() {
     window.closeModal('vio-modal');
     window.__vioEditingId = null;
+    window.vioResetPendingAttachments(false);
   };
 
   // ملاحظة: دالة saveViolation تم نقلها إلى unified-saves.js
@@ -3522,6 +4065,9 @@ function openRoleModal(id) {
   if (!role) return;
   document.getElementById('role-modal-title').textContent = id ? 'تعديل الدور' : 'إضافة دور جديد';
   document.getElementById('role-name').value = role.name || '';
+  var fullAccessEl = document.getElementById('role-full-access');
+  var fullAccessChecked = !!role.full_access || PERMS.every(function(p){ return !!(role.permissions && role.permissions[p.key]); });
+  if (fullAccessEl) fullAccessEl.checked = fullAccessChecked;
   
   // Generate permissions grid from PERMS
   var grid = document.getElementById('role-permissions-grid');
@@ -3548,6 +4094,22 @@ function openRoleModal(id) {
     div.appendChild(lbl);
     grid.appendChild(div);
   });
+  var applyFullAccessMode = function(){
+    if (!fullAccessEl) return;
+    var allChecks = grid.querySelectorAll('input[type="checkbox"]');
+    allChecks.forEach(function(c){
+      if (fullAccessEl.checked) {
+        c.checked = true;
+        c.disabled = true;
+      } else {
+        c.disabled = false;
+      }
+    });
+  };
+  if (fullAccessEl) {
+    fullAccessEl.onchange = applyFullAccessMode;
+  }
+  applyFullAccessMode();
 
   document.getElementById('role-save-btn').onclick = function() {
     var name = document.getElementById('role-name').value;
@@ -3558,11 +4120,15 @@ function openRoleModal(id) {
     checkboxes.forEach(function(c){
       if(c.checked) newPerms[c.dataset.key] = true;
     });
+    if (fullAccessEl && fullAccessEl.checked) {
+      PERMS.forEach(function(p){ newPerms[p.key] = true; });
+    }
 
     var data = {
       id: role.id || ('role_' + Date.now()),
       name: name,
-      permissions: newPerms
+      permissions: newPerms,
+      full_access: !!(fullAccessEl && fullAccessEl.checked)
     };
     
     if (role.id) App.store.update(ROLES_COL, role.id, data);
@@ -3599,7 +4165,9 @@ function can(permission){
    var user = (App.getUser && App.getUser()) || { role: 'Admin' }; // Mock current user
    if (user.role === 'Admin') return true; // Admin has all
    var roles = listRoles();
-   var r = roles.find(function(x){ return x.name === user.role; });
+   var roleId = (window.App && typeof App.getRole === 'function') ? App.getRole() : '';
+   var r = roles.find(function(x){ return x.name === user.role || x.id === roleId || x.name === roleId; });
+   if (r && r.full_access) return true;
    return r && r.permissions && r.permissions[permission];
 }
 

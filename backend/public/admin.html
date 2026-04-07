@@ -10,18 +10,18 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title data-en="Admin Panel" data-ar="لوحة الإدارة">لوحة الإدارة</title>
-  <link rel="stylesheet" href="style-admin.css?v=20260207_palette2">
+  <link rel="stylesheet" href="style-admin.css?v=20260407_mobileheaderfix1">
   <link rel="icon" type="image/svg+xml" href="logos/CompliQ1.png">
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- API Client - موحد للتواصل مع خادم Laravel -->
-  <script src="js/api-client.js?v=20260308_uploadfix3"></script>
+  <script src="js/api-client.js?v=20260407_smtpfix1"></script>
   <!-- دوال المساعدة -->
-  <script src="js/helpers.js?v=20260207_fix_db"></script>
+  <script src="js/helpers.js?v=20260407_unifiedapi1"></script>
   <script src="js/helpers-branches.js?v=20260304_hotfix1"></script>
   <!-- الملفات الأساسية -->
-  <script src="app.js?v=20260207_fix_db"></script>
+  <script src="app.js?v=20260407_unifiedapi1"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
-  <script src="admin.js?v=20260308_uploadfix3"></script>
+  <script src="admin.js?v=20260407_alerttmpl4"></script>
   <!-- دوال العرض المحدثة (render functions) -->
   <script src="js/render-api.js?v=20260304_hotfix2"></script>
   <!-- دوال الحفظ الموحدة -->
@@ -304,6 +304,22 @@
     #section-tasks .kpi-grid .kpi-value {
       font-size: 1.55rem;
       line-height: 1;
+    }
+    .alert-templates-header::after {
+      content: "🔔";
+      display: inline-block;
+      margin-inline-start: 8px;
+      transform-origin: top center;
+      animation: alertBellSwing 1.6s ease-in-out infinite;
+      filter: drop-shadow(0 0 6px rgba(250, 204, 21, 0.45));
+    }
+    @keyframes alertBellSwing {
+      0%, 100% { transform: rotate(0deg); }
+      15% { transform: rotate(15deg); }
+      30% { transform: rotate(-12deg); }
+      45% { transform: rotate(10deg); }
+      60% { transform: rotate(-6deg); }
+      75% { transform: rotate(4deg); }
     }
   </style>
 </head>
@@ -652,7 +668,7 @@
             <span style="display: block; width: 24px; height: 2px; background-color: #fff;"></span>
             <span style="display: block; width: 24px; height: 2px; background-color: #fff;"></span>
         </div>
-        <img src="logos/CompliQ1.png" class="sidebar-logo" alt="CompliQ" style="display: none;">
+        <img src="logos/CompliQ.svg" class="sidebar-logo-compact" alt="CompliQ">
         <span class="sidebar-brand" data-en="Admin Panel" data-ar="لوحة التحكم">Admin Panel</span>
       </div>
       <nav class="sidebar-nav">
@@ -782,24 +798,25 @@
         </div>
       </div>
     </aside>
+    <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
     <main class="admin-main">
       <header class="admin-header">
-        <div class="header-title" id="page-title" data-en="Admin Dashboard" data-ar="لوحة التحكم">
+        <div class="header-title" id="page-title" style="display:flex;align-items:center;gap:12px;">
           <button id="sidebar-toggle" class="sidebar-toggle">☰</button>
-          <span data-en="Admin Dashboard" data-ar="لوحة التحكم">لوحة التحكم</span>
+          <img src="logos/CompliQ.svg" alt="CompliQ" style="height:34px;width:auto;display:block;">
+          <div class="status-pill" id="phrase-generator"><span>💡</span><span data-en="Inspiration" data-ar="إلهام">إلهام</span></div>
+          <div class="ai-command-bar" style="margin-inline-start:0;">
+            <input id="ai-command-input" class="ai-command-input" type="text" data-i18n-ph="ai.placeholder" placeholder="اكتب: أظهر المخالفات، تحليل، فروع الرياض" />
+            <button class="ai-command-btn" type="button" onclick="smartReplyFromInput('ai-command-input')">
+              <span>🤖</span><span data-en="AI" data-ar="ذكاء">AI</span>
+            </button>
+          </div>
         </div>
         <div class="header-actions">
           <div class="lang-switch inline-flex items-center gap-2">
             <button class="btn btn-secondary" onclick="setLang('en')">EN</button>
             <span class="text-slate-500">/</span>
             <button class="btn btn-secondary" onclick="setLang('ar')">AR</button>
-          </div>
-          <div class="status-pill" id="phrase-generator"><span>💡</span><span data-en="Inspiration" data-ar="إلهام">إلهام</span></div>
-          <div class="ai-command-bar">
-            <input id="ai-command-input" class="ai-command-input" type="text" data-i18n-ph="ai.placeholder" placeholder="اكتب: أظهر المخالفات، تحليل، فروع الرياض" />
-            <button class="ai-command-btn" type="button" onclick="smartReplyFromInput('ai-command-input')">
-              <span>🤖</span><span data-en="AI" data-ar="ذكاء">AI</span>
-            </button>
           </div>
           <button class="btn btn-secondary" onclick="App.logout()" data-en="Logout" data-ar="تسجيل الخروج">Logout</button>
         </div>
@@ -1157,7 +1174,7 @@
                 <div><label class="form-group-label" data-en="Appeal Number" data-ar="رقم الاعتراض">رقم الاعتراض</label><input id="vio-appeal-number" class="form-control"></div>
                 <div><label class="form-group-label" data-en="Appeal Date" data-ar="تاريخ تقديم الاعتراض">تاريخ تقديم الاعتراض</label><input id="vio-appeal-date" type="text" class="form-control date-input-fix" placeholder="yyyy/mm/dd"></div>
                 <div><label class="form-group-label" data-en="Finance Send Date" data-ar="تاريخ الإرسال للمالية">تاريخ الإرسال للمالية</label><input id="vio-finance-date" type="text" class="form-control date-input-fix" placeholder="yyyy/mm/dd"></div>
-                <div style="grid-column:1/-1"><label class="form-group-label" data-en="Attachments" data-ar="المرفقات">المرفقات (PDF + صور)</label><input id="vio-files" type="file" multiple></div>
+                <div style="grid-column:1/-1"><label class="form-group-label" data-en="Attachments" data-ar="المرفقات">المرفقات (PDF + صور)</label><input id="vio-files" type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.jpe,.jfif,.jbg,.gif,.webp,.bmp,.svg,image/*,application/pdf"></div>
                 <div id="vio-files-preview" style="grid-column:1/-1; display:grid; gap:8px; grid-template-columns: repeat(auto-fill,minmax(140px,1fr)); margin-top:8px;"></div>
                 <div style="grid-column:1/-1; display:flex; gap:8px; margin-top:8px;">
                   <button id="vio-files-print" class="btn bg-purple-600 hover:bg-purple-700 text-white" data-en="Print Attachments" data-ar="طباعة المرفقات">طباعة المرفقات</button>
@@ -1174,7 +1191,7 @@
             <!-- Toolbar -->
             <div class="p-4 bg-slate-800 flex flex-wrap items-center justify-between gap-4" style="border-bottom: 1px solid #334155;">
                <div class="flex items-center gap-3 ml-auto">
-                 <input id="emp-search" type="text" class="form-control bg-slate-900 border-slate-700 text-white px-3 py-2 rounded w-64" placeholder="بحث (الاسم، الهوية، الفرع)...">
+                 <input id="emp-search" type="text" class="form-control bg-slate-900 border-slate-700 text-white px-3 py-2 rounded w-64" data-en="Search (name, ID, branch)..." data-ar="بحث (الاسم، الهوية، الفرع)..." placeholder="بحث (الاسم، الهوية، الفرع)...">
                </div>
                <div class="flex items-center gap-3">
                  <label for="emp-excel-input" class="btn bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded flex items-center gap-2" style="cursor:pointer;">
@@ -2222,15 +2239,30 @@
                 <label class="block text-slate-400 text-xs mb-1">Alert Recipients (comma-separated)</label>
                 <input id="smtp-alert-recipients" class="form-control" placeholder="ops@example.com, hr@example.com">
               </div>
+              <div class="md:col-span-2">
+                <label class="block text-slate-400 text-xs mb-1">Test Message / Note</label>
+                <textarea id="smtp-test-message" class="form-control" rows="3" placeholder="اكتب هنا رسالة اختبار أو ملاحظة تريد إرسالها مع بريد الاختبار"></textarea>
+              </div>
             </div>
             <div class="flex flex-wrap gap-2 items-center mt-4">
               <button type="button" id="smtp-save" class="btn btn-primary">حفظ</button>
               <div class="flex items-center gap-2">
-                <input id="smtp-test-to" class="form-control" type="email" style="width:260px" placeholder="اختبار: بريد المستقبل">
+                <input id="smtp-test-attachments" class="form-control" type="file" multiple style="width:320px">
                 <button type="button" id="smtp-test" class="btn">Send Test</button>
               </div>
               <div class="text-xs text-slate-400" id="smtp-status"></div>
             </div>
+          </div>
+          <div class="data-card">
+            <div class="card-header alert-templates-header" data-en="Alert Templates Control" data-ar="تحكم قوالب التنبيهات">تحكم قوالب التنبيهات</div>
+            <div class="text-xs text-slate-400 mb-3">هذه نصوص التنبيهات الرسمية المعتمدة للنظام، تُستخدم للإيميل (وقابل نستخدمها لاحقًا للواتساب) حسب نوع الانتهاء وتاريخ الانتهاء (60/30/15/0).</div>
+            <div class="flex flex-wrap gap-2 mb-3">
+              <button type="button" id="alert-template-add" class="btn">+ إضافة نوع جديد</button>
+              <button type="button" id="alert-template-reset" class="btn">استعادة الافتراضي</button>
+              <button type="button" id="alert-template-save" class="btn btn-primary">حفظ القوالب</button>
+              <div class="text-xs text-slate-400 self-center" id="alert-template-status"></div>
+            </div>
+            <div id="alert-templates-list" class="grid gap-3"></div>
           </div>
           <div class="data-card">
             <div class="card-header" data-en="Motivational Phrases" data-ar="إدارة العبارات التحفيزية">إدارة العبارات التحفيزية</div>
@@ -2565,6 +2597,10 @@
             <label class="block text-sm text-slate-400 mb-1" data-en="Role Name" data-ar="اسم الدور">Role Name</label>
             <input type="text" id="role-name" class="input-dark w-full">
           </div>
+          <div class="flex items-center gap-2">
+            <input type="checkbox" id="role-full-access" class="rounded bg-slate-700 border-slate-600 focus:ring-0">
+            <label for="role-full-access" class="text-sm text-slate-300" data-en="Admin Full Access (Allow all permissions)" data-ar="صلاحيات أدمن كاملة (السماح بكل الصلاحيات)">صلاحيات أدمن كاملة (السماح بكل الصلاحيات)</label>
+          </div>
           <div>
             <label class="block text-sm text-slate-400 mb-2" data-en="Permissions" data-ar="الصلاحيات">Permissions</label>
             <div class="grid grid-cols-2 gap-4" id="role-permissions-grid">
@@ -2675,7 +2711,8 @@
       var m = document.getElementById(id);
       if (m) {
         m.classList.remove('open');
-        m.style.display = 'none';
+        if (m.classList.contains('modal-overlay')) m.style.display = '';
+        else m.style.display = 'none';
       }
     };
 
@@ -2684,20 +2721,14 @@
       console.log('%c Version Check: You are viewing c:/Users/D/Documents/ops-dashboard', 'background: #222; color: #bada55; font-size: 16px; padding: 4px;');
       App.init('admin');
       (function(){
-        var ab = localStorage.getItem('api.base');
-        var origin = (function() {
-          const hostStr = window.location.host;
-          if (hostStr.includes(':8000')) {
-            return window.location.origin;
-          }
-          if (window.location.hostname === 'localhost') {
-            return 'http://127.0.0.1:8000';
-          }
-          return (window.location && window.location.origin && window.location.origin !== 'null') ? window.location.origin : 'http://127.0.0.1:8000';
-        })();
-        var fallback = origin + '/api';
-        if (!ab || /:9000\/api/.test(ab)) App.setApiBase(fallback);
-        else App.setApiBase(ab);
+        var resolved = '';
+        if (window.ApiRuntime && typeof window.ApiRuntime.resolveApiBase === 'function') {
+          resolved = window.ApiRuntime.resolveApiBase();
+        } else {
+          var ab = localStorage.getItem('api.base');
+          resolved = ab || '';
+        }
+        App.setApiBase(resolved);
       })();
     } else {
       console.error('App is not defined');
@@ -3652,6 +3683,7 @@
         ov.classList.remove('open');
       };
       clear.onclick = function(){ __attTemp = []; renderAttachmentsList(); };
+      ov.style.display = '';
       ov.classList.add('open');
     }
     function setUpdateSource(name) {
@@ -3777,12 +3809,41 @@
       window.location.href = 'login.html';
     };
     var sbToggle = document.getElementById('sidebar-toggle');
+    var sb = document.querySelector('.admin-sidebar');
+    var sbBackdrop = document.getElementById('sidebar-backdrop');
+    function isMobileSidebar(){ return window.innerWidth <= 768; }
+    function syncSidebarState(forceOpen) {
+      if (!sb) return;
+      if (!isMobileSidebar()) {
+        sb.classList.remove('collapsed');
+        if (sbBackdrop) sbBackdrop.classList.remove('open');
+        return;
+      }
+      if (typeof forceOpen === 'boolean') {
+        sb.classList.toggle('collapsed', !forceOpen);
+      }
+      if (sbBackdrop) sbBackdrop.classList.toggle('open', !sb.classList.contains('collapsed'));
+    }
     if (sbToggle) {
       sbToggle.onclick = function () {
-        var sb = document.querySelector('.admin-sidebar');
-        if (sb) sb.classList.toggle('collapsed');
+        if (!sb) return;
+        sb.classList.toggle('collapsed');
+        syncSidebarState();
       };
     }
+    if (sbBackdrop) {
+      sbBackdrop.onclick = function(){
+        if (!isMobileSidebar()) return;
+        syncSidebarState(false);
+      };
+    }
+    window.addEventListener('resize', function(){ syncSidebarState(); });
+    document.addEventListener('click', function(e){
+      var navItem = e.target && e.target.closest ? e.target.closest('.admin-sidebar .nav-item') : null;
+      if (!navItem || !isMobileSidebar()) return;
+      syncSidebarState(false);
+    });
+    syncSidebarState(!isMobileSidebar());
     function toggleSidebarGroup(id) {
       var g = document.getElementById(id);
       if (!g) return;
@@ -4137,6 +4198,7 @@
       pageRows.forEach(function(r, idx){
         var tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-800 transition-colors border-b border-slate-800';
+        tr.setAttribute('data-emp-id', String((r && r.id) == null ? '' : r.id));
         var dT = daysDiff(r.tcoeEnd||'');
         var dH = daysDiff(r.healthExpiry||'');
         var dP = daysDiff(r.permitExpiry||'');
@@ -4185,16 +4247,12 @@
           '</td>' +
           '<td class="p-4">' +
             '<div class="flex items-center gap-2">' +
-              '<button class="btn-delete p-2 bg-red-500/20 hover:bg-red-500/40 text-red-500 rounded transition" title="حذف">🗑</button>' +
-              '<button class="btn-edit p-2 bg-blue-500/20 hover:bg-blue-500/40 text-blue-500 rounded transition" title="تعديل">✏</button>' +
-              '<button class="btn-view p-2 bg-slate-500/20 hover:bg-slate-500/40 text-slate-400 rounded transition" title="عرض">👁</button>' +
+              '<button type="button" class="btn-delete p-2 bg-red-500/20 hover:bg-red-500/40 text-red-500 rounded transition" title="حذف">🗑</button>' +
+              '<button type="button" class="btn-edit p-2 bg-blue-500/20 hover:bg-blue-500/40 text-blue-500 rounded transition" title="تعديل">✏</button>' +
+              '<button type="button" class="btn-view p-2 bg-slate-500/20 hover:bg-slate-500/40 text-slate-400 rounded transition" title="عرض">👁</button>' +
             '</div>' +
           '</td>';
           
-        // Bind events
-        var btnDelete = tr.querySelector('.btn-delete');
-        var btnEdit = tr.querySelector('.btn-edit');
-        var btnView = tr.querySelector('.btn-view');
         var cb = tr.querySelector('.emp-select');
         if (cb) {
           cb.checked = !!__empSelect[r.id];
@@ -4208,34 +4266,6 @@
             }
           };
         }
-        
-        btnDelete.onclick = function() {
-           if (__pendingDeleteId === r.id) {
-             if (__pendingDeleteTimer) { clearTimeout(__pendingDeleteTimer); __pendingDeleteTimer = null; }
-             __pendingDeleteId = null;
-             App.store.remove('employees', r.id);
-             renderEmployeesCards();
-             toast('success','تم','تم الحذف بنجاح');
-             return;
-           }
-           __pendingDeleteId = r.id;
-           btnDelete.textContent = 'تأكيد';
-           btnDelete.classList.add('bg-red-500/40');
-           __pendingDeleteTimer = setTimeout(function(){
-             __pendingDeleteId = null;
-             btnDelete.textContent = '🗑';
-             btnDelete.classList.remove('bg-red-500/40');
-           }, 3000);
-        };
-        
-        btnEdit.onclick = function() {
-           openEmployeeModal(r);
-        };
-        
-        if (btnView) btnView.onclick = function() {
-          openEmployeeModal(r, true);
-        };
-        
         tbody.appendChild(tr);
 
         if (cardsBox && __empViewMode === 'cards') {
@@ -4321,10 +4351,60 @@
         deleteSelectedEmployeesFlow();
       });
     })();
+    (function(){
+      if (window.__employeeRowActionsBound) return;
+      window.__employeeRowActionsBound = true;
+      document.addEventListener('click', function(e){
+        var btn = e.target && e.target.closest ? e.target.closest('.btn-delete, .btn-edit, .btn-view') : null;
+        if (!btn) return;
+        var tr = btn.closest ? btn.closest('tr[data-emp-id]') : null;
+        if (!tr) return;
+        var tbody = document.getElementById('employees-table-body');
+        if (!tbody || !tbody.contains(tr)) return;
+        var rowId = String(tr.getAttribute('data-emp-id') || '');
+        var rows = App.store.list('employees') || [];
+        var row = rows.find(function(x){ return String((x && x.id) == null ? '' : x.id) === rowId; });
+        if (!row) return;
+        e.preventDefault();
+        if (btn.classList.contains('btn-edit')) {
+          try { openEmployeeModal(row); } catch(_){
+            var ov1 = document.getElementById('emp-modal');
+            if (ov1) { ov1.style.display = ''; ov1.classList.add('open'); }
+          }
+          return;
+        }
+        if (btn.classList.contains('btn-view')) {
+          try { openEmployeeModal(row, true); } catch(_){
+            var ov2 = document.getElementById('emp-modal');
+            if (ov2) { ov2.style.display = ''; ov2.classList.add('open'); }
+          }
+          return;
+        }
+        if (!btn.classList.contains('btn-delete')) return;
+        if (__pendingDeleteId === row.id) {
+          if (__pendingDeleteTimer) { clearTimeout(__pendingDeleteTimer); __pendingDeleteTimer = null; }
+          __pendingDeleteId = null;
+          App.store.remove('employees', row.id);
+          renderEmployeesCards();
+          toast('success','تم','تم الحذف بنجاح');
+          return;
+        }
+        __pendingDeleteId = row.id;
+        btn.textContent = 'تأكيد';
+        btn.classList.add('bg-red-500/40');
+        __pendingDeleteTimer = setTimeout(function(){
+          __pendingDeleteId = null;
+          btn.textContent = '🗑';
+          btn.classList.remove('bg-red-500/40');
+        }, 3000);
+      });
+    })();
 
     function openEmployeeModal(row, viewOnly) {
       var ov = document.getElementById('emp-modal');
       if (!ov) return;
+      ov.style.display = '';
+      ov.classList.add('open');
       
       var hdr = ov.querySelector('.modal-header');
       if (hdr) { hdr.style.background = getRandomRedGradient(); }
