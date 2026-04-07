@@ -13,9 +13,9 @@ if (typeof window.getBrandLogo !== 'function') {
       if (b === 'bk' || b.includes('burger') || b.includes('bk')) return 'logos/bk.png';
       if (b === 'tc' || b.includes('texas') || b.includes('tc')) return 'logos/texas.png';
       if (b === 'bww' || b.includes('buffalo') || b.includes('bww')) return 'logos/bww.png';
-      return '/logos/CompliQ.svg';
+      return 'logos/CompliQ1.png';
     } catch(_) {
-      return '/logos/CompliQ.svg';
+      return 'logos/CompliQ1.png';
     }
   };
 }
@@ -531,7 +531,7 @@ window.renderBranchesTableAPI = async function() {
           if (local && local.url) return local.url;
           if (b && b.logo) return b.logo;
           if (typeof window.getBrandLogo === 'function') return window.getBrandLogo(b && b.brand);
-          return '/logos/CompliQ.svg';
+          return 'logos/CompliQ1.png';
         };
         const kv = function(label, val){
           var v = (val == null || val === '') ? '-' : String(val);
@@ -660,7 +660,7 @@ window.renderBranchesTableAPI = async function() {
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                 <div style="display:flex;gap:10px;align-items:center;min-width:0">
                   <div style="width:44px;height:44px;border-radius:12px;background:rgba(2,6,23,0.45);border:1px solid rgba(148,163,184,0.18);display:flex;align-items:center;justify-content:center;overflow:hidden;flex:0 0 auto">
-                    <img src="${h(logoSrc)}" alt="" style="width:100%;height:100%;object-fit:contain;padding:6px" onerror="this.onerror=null; this.src='/logos/CompliQ.svg';">
+                    <img src="${h(logoSrc)}" alt="" style="width:100%;height:100%;object-fit:contain;padding:6px" onerror="this.onerror=null; this.src='logos/CompliQ1.png';">
                   </div>
                   <div style="min-width:0">
                     <div style="color:#e2e8f0;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h(b.name || '-')}</div>
@@ -879,7 +879,7 @@ if (typeof window.renderBranchesTable !== 'function') {
             if (local && local.url) return local.url;
             if (b && b.logo) return b.logo;
             if (typeof window.getBrandLogo === 'function') return window.getBrandLogo(b && b.brand);
-            return '/logos/CompliQ.svg';
+            return 'logos/CompliQ1.png';
           };
           const kv = function(label, val){
             var v = (val == null || val === '') ? '-' : String(val);
@@ -983,7 +983,7 @@ if (typeof window.renderBranchesTable !== 'function') {
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                   <div style="display:flex;gap:10px;align-items:center;min-width:0">
                     <div style="width:44px;height:44px;border-radius:12px;background:rgba(2,6,23,0.45);border:1px solid rgba(148,163,184,0.18);display:flex;align-items:center;justify-content:center;overflow:hidden;flex:0 0 auto">
-                      <img src="${h(logoSrc)}" alt="" style="width:100%;height:100%;object-fit:contain;padding:6px" onerror="this.onerror=null; this.src='/logos/CompliQ.svg';">
+                      <img src="${h(logoSrc)}" alt="" style="width:100%;height:100%;object-fit:contain;padding:6px" onerror="this.onerror=null; this.src='logos/CompliQ1.png';">
                     </div>
                     <div style="min-width:0">
                       <div style="color:#e2e8f0;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h(b.name || '-')}</div>
