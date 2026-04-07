@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="56" viewBox="0 0 220 56" fill="none">
+<defs>
+<linearGradient id="compliqBrandA" x1="10" y1="8" x2="54" y2="48" gradientUnits="userSpaceOnUse">
+<stop stop-color="#0D3B8E"/>
+<stop offset="1" stop-color="#19C2C8"/>
+</linearGradient>
+<linearGradient id="compliqBrandB" x1="26" y1="16" x2="43" y2="33" gradientUnits="userSpaceOnUse">
+<stop stop-color="#5FE1D2"/>
+<stop offset="1" stop-color="#16B7D1"/>
+</linearGradient>
+</defs>
+<g>
+<path d="M31.5 6C18.5213 6 8 16.5213 8 29.5C8 42.4787 18.5213 53 31.5 53C36.9462 53 41.9598 51.1475 45.9461 48.0372L50.5 53H59.5L52.1826 45.0242C54.7332 40.5671 56 35.7237 56 30.5C56 16.968 45.032 6 31.5 6ZM31.5 13.5C40.8898 13.5 48.5 21.1102 48.5 30.5C48.5 33.4049 47.7727 36.1399 46.4894 38.532L38.5 30.5L31 38L22.5 29.5L17.5 34.5L31 48L50.5 28.5C49.4966 20.0734 41.8702 13.5 31.5 13.5Z" fill="url(#compliqBrandA)"/>
+<path d="M23 28.8L31 36.8L45 22.8L39.6 17.4L31 26L28.4 23.4L23 28.8Z" fill="url(#compliqBrandB)"/>
+</g>
+<text x="70" y="38" fill="#FFFFFF" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="700">CompliQ</text>
+</svg>
