@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-en="Board Report" data-ar="تقرير الإدارة">تقرير الإدارة</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style-base.css">
+  <link rel="stylesheet" href="style-site.css">
+</head>
+<body class="en">
+  <canvas id="bg-canvas"></canvas>
+  <nav class="glass-nav">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <div class="text-lg font-bold" data-en="Operations Dashboard" data-ar="لوحة التشغيل">لوحة التشغيل</div>
+      <div class="space-x-4 space-x-reverse">
+        <a href="./index.html" class="text-gray-700 hover:text-indigo-600" data-en="Home" data-ar="الرئيسية">الرئيسية</a>
+        <a href="./violations.html" class="text-gray-700 hover:text-indigo-600" data-en="Violations" data-ar="المخالفات">المخالفات</a>
+        <a href="./training.html" class="text-gray-700 hover:text-indigo-600" data-en="Training" data-ar="التدريب">التدريب</a>
+        <a href="./branches.html" class="text-gray-700 hover:text-indigo-600" data-en="Branches" data-ar="الفروع">الفروع</a>
+        <a href="./reports.html" class="text-indigo-600 font-medium" data-en="Reports" data-ar="التقارير">التقارير</a>
+        <button class="lang-btn-mini" onclick="setLang('ar')">AR</button>
+        <button class="lang-btn-mini" onclick="setLang('en')">EN</button>
+        <div class="relative inline-block">
+          <div id="user-badge" class="user-badge">
+            <div class="user-avatar"></div>
+            <span id="user-badge-name"></span>
+          </div>
+          <div id="user-menu" class="user-menu">
+            <a href="#" data-en="My Profile" data-ar="ملفّي">ملفّي</a>
+            <button onclick="App.logout()" data-en="Logout" data-ar="تسجيل الخروج">تسجيل الخروج</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+  <main class="max-w-7xl mx-auto px-4 py-8">
+    <h1 class="text-2xl font-semibold mb-6" data-en="Executive Board Report" data-ar="تقرير الإدارة التنفيذي">تقرير الإدارة التنفيذي</h1>
+    <div class="glass-card p-4">
+      <div id="board-summary"></div>
+    </div>
+  </main>
+  <script src="app.js"></script>
+  <script>
+    function setLang(l){ App.setLang(l); document.body.className = l === 'ar' ? 'ar' : 'en'; }
+    App.init('reports');
+    if (window.App && typeof window.App.renderBoardBox === 'function') window.App.renderBoardBox();
+  </script>
+</body>
+</html>

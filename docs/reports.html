@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-en="Reports" data-ar="التقارير">التقارير</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <link rel="stylesheet" href="style-base.css">
+  <link rel="stylesheet" href="style-site.css">
+  <style>
+    .reports-shell {
+      display: grid;
+      gap: 24px;
+    }
+    .reports-hero {
+      position: relative;
+      overflow: hidden;
+      padding: 28px;
+      border-radius: 24px;
+      background:
+        radial-gradient(circle at top right, rgba(59,130,246,0.22), transparent 34%),
+        radial-gradient(circle at bottom left, rgba(168,85,247,0.18), transparent 30%),
+        rgba(15, 23, 42, 0.72);
+      border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 30px 80px rgba(15, 23, 42, 0.22);
+    }
+    .reports-hero::after {
+      content: "";
+      position: absolute;
+      inset-inline: 24px;
+      bottom: 0;
+      height: 4px;
+      border-radius: 999px 999px 0 0;
+      background: linear-gradient(90deg, rgba(56,189,248,0.95), rgba(99,102,241,0.95), rgba(168,85,247,0.95));
+      opacity: 0.9;
+    }
+    .reports-kpi-grid,
+    .reports-module-grid {
+      display: grid;
+      gap: 16px;
+    }
+    .reports-kpi-grid {
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+    .reports-module-grid {
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+    .report-kpi,
+    .report-module,
+    .report-alerts,
+    .report-export-box {
+      position: relative;
+      overflow: hidden;
+      border-radius: 20px;
+      background: rgba(15, 23, 42, 0.68);
+      border: 1px solid rgba(255,255,255,0.12);
+      backdrop-filter: blur(16px);
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.22);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .report-kpi:hover,
+    .report-module:hover,
+    .report-alerts:hover,
+    .report-export-box:hover {
+      transform: translateY(-3px);
+      border-color: rgba(255,255,255,0.18);
+      box-shadow: 0 25px 60px rgba(15, 23, 42, 0.28);
+    }
+    .report-kpi {
+      padding: 18px;
+    }
+    .report-kpi-value {
+      font-size: 1.9rem;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1;
+    }
+    .report-kpi-label {
+      color: #93c5fd;
+      font-size: 0.86rem;
+      margin-top: 6px;
+    }
+    .report-kpi-sub {
+      color: #94a3b8;
+      font-size: 0.78rem;
+      margin-top: 8px;
+    }
+    .report-module {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+    }
+    .report-module:hover {
+      transform: translateY(-3px);
+      border-color: rgba(96,165,250,0.3);
+      box-shadow: 0 22px 54px rgba(37,99,235,0.15);
+    }
+    .report-module-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .report-module-title {
+      font-weight: 700;
+      color: #fff;
+      font-size: 1rem;
+    }
+    .report-module-desc {
+      color: #94a3b8;
+      font-size: 0.82rem;
+      line-height: 1.7;
+      margin-top: 4px;
+    }
+    .report-chip {
+      white-space: nowrap;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(59,130,246,0.14);
+      border: 1px solid rgba(59,130,246,0.22);
+      color: #bfdbfe;
+      font-size: 0.74rem;
+      font-weight: 700;
+    }
+    .report-module-stats {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .report-mini-stat {
+      flex: 1 1 110px;
+      min-width: 110px;
+      border-radius: 14px;
+      padding: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .report-mini-stat b {
+      display: block;
+      color: #fff;
+      font-size: 1.1rem;
+    }
+    .report-mini-stat span {
+      display: block;
+      color: #94a3b8;
+      font-size: 0.74rem;
+      margin-top: 2px;
+    }
+    .report-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: auto;
+    }
+    .report-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 18px;
+      border-radius: 14px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      text-decoration: none;
+      min-width: 120px;
+    }
+    .report-btn:hover {
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+    .report-btn:active {
+      transform: translateY(0) scale(0.98);
+    }
+    .report-btn-primary {
+      background: linear-gradient(135deg, rgba(59,130,246,0.95), rgba(79,70,229,0.95));
+      color: #fff;
+      border: 1px solid rgba(147,197,253,0.25);
+      box-shadow: 0 4px 15px rgba(59,130,246,0.3);
+    }
+    .report-btn-primary:hover {
+      background: linear-gradient(135deg, rgba(59,130,246,1), rgba(79,70,229,1));
+      box-shadow: 0 8px 30px rgba(59,130,246,0.4);
+    }
+    .report-btn-secondary {
+      background: linear-gradient(135deg, rgba(15,23,42,0.7), rgba(30,41,59,0.7));
+      color: #e0f2fe;
+      border: 1px solid rgba(148,163,184,0.25);
+      box-shadow: 0 4px 15px rgba(15,23,42,0.2);
+    }
+    .report-btn-secondary:hover {
+      background: linear-gradient(135deg, rgba(15,23,42,0.85), rgba(30,41,59,0.85));
+      box-shadow: 0 8px 25px rgba(15,23,42,0.3);
+      color: #ffffff;
+    }
+    .report-alerts,
+    .report-export-box {
+      padding: 20px;
+    }
+    .report-section-title {
+      color: #fff;
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+    .report-alert-list {
+      display: grid;
+      gap: 12px;
+      max-height: 720px;
+      overflow-y: auto;
+      padding-inline-end: 6px;
+    }
+    .report-alert-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .report-alert-title {
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.92rem;
+    }
+    .report-alert-meta {
+      color: #94a3b8;
+      font-size: 0.78rem;
+      margin-top: 3px;
+    }
+    .report-alert-days {
+      white-space: nowrap;
+      padding: 7px 11px;
+      border-radius: 999px;
+      font-size: 0.77rem;
+      font-weight: 700;
+      border: 1px solid transparent;
+    }
+    .report-alert-days.is-expired {
+      color: #fecaca;
+      background: rgba(239,68,68,0.14);
+      border-color: rgba(239,68,68,0.24);
+    }
+    .report-alert-days.is-warning {
+      color: #fde68a;
+      background: rgba(245,158,11,0.14);
+      border-color: rgba(245,158,11,0.24);
+    }
+    .report-alert-days.is-safe {
+      color: #bbf7d0;
+      background: rgba(34,197,94,0.12);
+      border-color: rgba(34,197,94,0.22);
+    }
+    .report-empty {
+      color: #94a3b8;
+      font-size: 0.88rem;
+      padding: 12px 0;
+    }
+    .nav-link {
+      position: relative;
+      padding: 8px 16px;
+      border-radius: 10px;
+      color: #64748b;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid transparent;
+    }
+    .nav-link:hover {
+      color: #3b82f6;
+      background: rgba(59,130,246,0.08);
+      border-color: rgba(59,130,246,0.15);
+      transform: translateY(-1px);
+    }
+    .nav-link.active {
+      color: #3b82f6;
+      background: rgba(59,130,246,0.12);
+      border-color: rgba(59,130,246,0.2);
+      box-shadow: 0 4px 12px rgba(59,130,246,0.15);
+    }
+    .btn-loading {
+      position: relative;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .btn-loading::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      animation: btnLoading 1.5s infinite;
+    }
+    @keyframes btnLoading {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    .report-export-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    @media (max-width: 768px) {
+      .reports-hero {
+        padding: 22px;
+      }
+      .report-alert-item {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .report-alert-days {
+        align-self: flex-start;
+      }
+    }
+  </style>
+</head>
+<body class="en">
+  <canvas id="bg-canvas"></canvas>
+  <nav class="glass-nav">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <div class="text-lg font-bold" data-en="Operations Dashboard" data-ar="لوحة التشغيل">لوحة التشغيل</div>
+      <div class="space-x-4 space-x-reverse">
+        <a href="./index.html" class="nav-link" data-en="Home" data-ar="الرئيسية">الرئيسية</a>
+        <a href="./employees.html" class="nav-link" data-en="Employees" data-ar="الموظفون">الموظفون</a>
+        <a href="./branches.html" class="nav-link" data-en="Branches" data-ar="الفروع">الفروع</a>
+        <a href="./licenses.html" class="nav-link" data-en="Licenses & Contracts" data-ar="الرخص والعقود">الرخص والعقود</a>
+        <a href="./violations.html" class="nav-link" data-en="Violations" data-ar="المخالفات">المخالفات</a>
+        <a href="./housings.html" class="nav-link" data-en="Housings" data-ar="السكنات">السكنات</a>
+        <a href="./transports.html" class="nav-link" data-en="Transports" data-ar="المواصلات">المواصلات</a>
+        <a href="./reports.html" class="nav-link active" data-en="Reports" data-ar="التقارير">التقارير</a>
+        <button class="lang-btn-mini" onclick="setLang('ar')">AR</button>
+        <button class="lang-btn-mini" onclick="setLang('en')">EN</button>
+        <div class="relative inline-block">
+          <div id="user-badge" class="user-badge">
+            <div class="user-avatar"></div>
+            <span id="user-badge-name"></span>
+          </div>
+          <div id="user-menu" class="user-menu">
+            <a href="#" data-en="My Profile" data-ar="ملفّي">ملفّي</a>
+            <button onclick="App.logout()" data-en="Logout" data-ar="تسجيل الخروج">تسجيل الخروج</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+  <main class="max-w-7xl mx-auto px-4 py-8">
+    <div class="reports-shell">
+      <section class="reports-hero">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div class="max-w-3xl">
+            <div class="text-sky-300 text-sm font-semibold mb-2" data-en="Control Center Reports" data-ar="تقارير مركز التحكم">تقارير مركز التحكم</div>
+            <h1 class="text-3xl font-bold text-white mb-3" data-en="Professional Reports Dashboard" data-ar="لوحة التقارير الاحترافية">لوحة التقارير الاحترافية</h1>
+            <p class="text-slate-300 leading-8" data-en="A unified view for employees, branches, licenses, violations, housing, transport, training, and tasks with quick export and direct access." data-ar="عرض موحد للموظفين والفروع والرخص والمخالفات والسكن والنقل والتدريب والمهام مع تصدير سريع ووصول مباشر.">عرض موحد للموظفين والفروع والرخص والمخالفات والسكن والنقل والتدريب والمهام مع تصدير سريع ووصول مباشر.</p>
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <button id="btn-print-dashboard-report" class="report-btn report-btn-primary" data-en="Print Dashboard Summary" data-ar="طباعة ملخص اللوحة">طباعة ملخص اللوحة</button>
+            <button id="btn-export-dashboard-json" class="report-btn report-btn-secondary" data-en="Export Full Snapshot" data-ar="تصدير نسخة كاملة">تصدير نسخة كاملة</button>
+            <a href="./board.html" class="report-btn report-btn-secondary" data-en="Open Board Report" data-ar="فتح تقرير الإدارة">فتح تقرير الإدارة</a>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="reports-kpi-grid" id="reports-kpis"></div>
+      </section>
+
+      <section class="report-export-box">
+        <div class="report-section-title" data-en="Reports Hub" data-ar="مركز التقارير">مركز التقارير</div>
+        <div class="reports-module-grid" id="reports-modules"></div>
+      </section>
+
+      <section class="grid grid-cols-1 xl:grid-cols-[1.2fr_0.8fr] gap-6">
+        <div class="report-alerts">
+          <div class="report-section-title" data-en="Upcoming Expirations &amp; Risks" data-ar="الانتهاءات والمخاطر القريبة">الانتهاءات والمخاطر القريبة</div>
+          <div id="reports-alerts" class="report-alert-list app-scrollbar"></div>
+        </div>
+        <div class="report-export-box">
+          <div class="report-section-title" data-en="Quick Exports" data-ar="تصدير سريع">تصدير سريع</div>
+          <div class="report-export-grid">
+            <button class="report-btn report-btn-secondary" data-export="csv" data-collection="employees" data-en="Employees CSV" data-ar="CSV الموظفين">CSV الموظفين</button>
+            <button class="report-btn report-btn-secondary" data-export="csv" data-collection="branches" data-en="Branches CSV" data-ar="CSV الفروع">CSV الفروع</button>
+            <button class="report-btn report-btn-secondary" data-export="csv" data-collection="licenses" data-en="Licenses CSV" data-ar="CSV الرخص">CSV الرخص</button>
+            <button class="report-btn report-btn-secondary" data-export="csv" data-collection="violations" data-en="Violations CSV" data-ar="CSV المخالفات">CSV المخالفات</button>
+            <button class="report-btn report-btn-secondary" data-export="csv" data-collection="housings" data-en="Housing CSV" data-ar="CSV السكن">CSV السكن</button>
+            <button class="report-btn report-btn-secondary" data-export="csv" data-collection="transports" data-en="Transport CSV" data-ar="CSV النقل">CSV النقل</button>
+            <button class="report-btn report-btn-secondary" data-export="csv" data-collection="training" data-en="Training CSV" data-ar="CSV التدريب">CSV التدريب</button>
+            <button class="report-btn report-btn-secondary" data-export="csv" data-collection="tasks" data-en="Tasks CSV" data-ar="CSV المهام">CSV المهام</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div class="report-export-box">
+          <div class="report-section-title" data-en="Excel Exports" data-ar="تصدير Excel">تصدير Excel</div>
+          <div class="report-export-grid">
+            <button class="report-btn report-btn-secondary" data-export="excel" data-collection="employees" data-en="Employees Excel" data-ar="Excel الموظفين">Excel الموظفين</button>
+            <button class="report-btn report-btn-secondary" data-export="excel" data-collection="branches" data-en="Branches Excel" data-ar="Excel الفروع">Excel الفروع</button>
+            <button class="report-btn report-btn-secondary" data-export="excel" data-collection="licenses" data-en="Licenses Excel" data-ar="Excel الرخص">Excel الرخص</button>
+            <button class="report-btn report-btn-secondary" data-export="excel" data-collection="violations" data-en="Violations Excel" data-ar="Excel المخالفات">Excel المخالفات</button>
+            <button class="report-btn report-btn-secondary" data-export="excel" data-collection="housings" data-en="Housing Excel" data-ar="Excel السكن">Excel السكن</button>
+            <button class="report-btn report-btn-secondary" data-export="excel" data-collection="transports" data-en="Transport Excel" data-ar="Excel النقل">Excel النقل</button>
+            <button class="report-btn report-btn-secondary" data-export="excel" data-collection="training" data-en="Training Excel" data-ar="Excel التدريب">Excel التدريب</button>
+            <button class="report-btn report-btn-secondary" data-export="excel" data-collection="tasks" data-en="Tasks Excel" data-ar="Excel المهام">Excel المهام</button>
+          </div>
+        </div>
+
+        <div class="report-export-box">
+          <div class="report-section-title" data-en="PDF Reports" data-ar="تقارير PDF">تقارير PDF</div>
+          <div class="report-export-grid">
+            <button class="report-btn report-btn-secondary" data-export="pdf" data-collection="employees" data-en="Employees PDF" data-ar="PDF الموظفين">PDF الموظفين</button>
+            <button class="report-btn report-btn-secondary" data-export="pdf" data-collection="branches" data-en="Branches PDF" data-ar="PDF الفروع">PDF الفروع</button>
+            <button class="report-btn report-btn-secondary" data-export="pdf" data-collection="licenses" data-en="Licenses PDF" data-ar="PDF الرخص">PDF الرخص</button>
+            <button class="report-btn report-btn-secondary" data-export="pdf" data-collection="violations" data-en="Violations PDF" data-ar="PDF المخالفات">PDF المخالفات</button>
+            <button class="report-btn report-btn-secondary" data-export="pdf" data-collection="housings" data-en="Housing PDF" data-ar="PDF السكن">PDF السكن</button>
+            <button class="report-btn report-btn-secondary" data-export="pdf" data-collection="transports" data-en="Transport PDF" data-ar="PDF النقل">PDF النقل</button>
+            <button class="report-btn report-btn-secondary" data-export="pdf" data-collection="training" data-en="Training PDF" data-ar="PDF التدريب">PDF التدريب</button>
+            <button class="report-btn report-btn-secondary" data-export="pdf" data-collection="tasks" data-en="Tasks PDF" data-ar="PDF المهام">PDF المهام</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+  <script src="app.js"></script>
+  <script>
+    function setLang(l){ App.setLang(l); document.body.className = l === 'ar' ? 'ar' : 'en'; }
+    App.init('reports');
+    function safeList(name) {
+      try {
+        var rows = App.store.list(name);
+        return Array.isArray(rows) ? rows : [];
+      } catch (_) {
+        return [];
+      }
+    }
+    async function fetchApiList(name) {
+      if (!window.BASE_URL) return safeList(name);
+      try {
+        var response = await fetch(window.BASE_URL + '/' + name, {
+          headers: { 'Accept': 'application/json' }
+        });
+        if (!response.ok) throw new Error('Request failed');
+        var rows = await response.json();
+        return Array.isArray(rows) ? rows : safeList(name);
+      } catch (_) {
+        return safeList(name);
+      }
+    }
+    async function getCollectionRows(name) {
+      if (name === 'licenses' || name === 'contracts') {
+        return fetchApiList(name);
+      }
+      return safeList(name);
+    }
+    function buildCsvFromRows(rows) {
+      if (!rows || !rows.length) return '';
+      var keys = Object.keys(rows.reduce(function(acc, row){
+        Object.keys(row || {}).forEach(function(key){
+          if (typeof row[key] !== 'object' || row[key] == null) acc[key] = true;
+        });
+        return acc;
+      }, {}));
+      var escapeCell = function(value) {
+        var text = value == null ? '' : String(value);
+        if (/[",\n]/.test(text)) return '"' + text.replace(/"/g, '""') + '"';
+        return text;
+      };
+      var lines = [keys.map(escapeCell).join(',')];
+      rows.forEach(function(row){
+        lines.push(keys.map(function(key){ return escapeCell(row[key]); }).join(','));
+      });
+      return lines.join('\n');
+    }
+    function parseAnyDate(value) {
+      if (!value) return null;
+      var text = String(value).trim().replace(/[٠-٩]/g, function(d){ return '٠١٢٣٤٥٦٧٨٩'.indexOf(d); }).replace(/\//g, '-');
+      var date = new Date(text);
+      if (!isNaN(date.getTime())) return date;
+      var match = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+      if (!match) return null;
+      var d = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+      return isNaN(d.getTime()) ? null : d;
+    }
+    function diffDays(date) {
+      if (!date) return null;
+      var today = new Date();
+      today = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      return Math.ceil((date.getTime() - today.getTime()) / 86400000);
+    }
+    function formatDateValue(value) {
+      var date = parseAnyDate(value);
+      if (!date) return '—';
+      var yyyy = date.getFullYear();
+      var mm = String(date.getMonth() + 1).padStart(2, '0');
+      var dd = String(date.getDate()).padStart(2, '0');
+      return yyyy + '/' + mm + '/' + dd;
+    }
+    function downloadText(filename, content, mime) {
+      var blob = new Blob([content], { type: mime || 'text/plain;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    }
+    function getModuleConfigs(data) {
+      return [
+        { key: 'employees', label: 'الموظفين', desc: 'ملفات الموظفين، الحالات، والمرفقات', href: './employees.html', total: data.employees.length, sub: data.employeeExpiring.length, subLabel: 'قريب الانتهاء' },
+        { key: 'branches', label: 'الفروع', desc: 'الفروع والتصاريح والرخص المرتبطة', href: './branches.html', total: data.branches.length, sub: data.branchExpiring.length, subLabel: 'تواريخ حساسة' },
+        { key: 'licenses', label: 'الرخص والعقود', desc: 'الرخص والعقود وتواريخ الاستحقاق', href: './licenses.html', total: data.licenses.length + data.contracts.length, sub: data.licenseExpiring.length + data.contractExpiring.length, subLabel: 'قريب الانتهاء' },
+        { key: 'violations', label: 'المخالفات', desc: 'حالة المخالفات والمتابعة والدفعات', href: './violations.html', total: data.violations.length, sub: data.openViolations, subLabel: 'قيد المتابعة' },
+        { key: 'housings', label: 'السكن', desc: 'وحدات السكن والرخص المرتبطة بها', href: './housings.html', total: data.housings.length, sub: data.housingExpiring.length, subLabel: 'رخص قريبة' },
+        { key: 'transports', label: 'النقل', desc: 'المركبات والمتابعة التشغيلية', href: './transports.html', total: data.transports.length, sub: data.transportExpiring.length, subLabel: 'عناصر حساسة' },
+        { key: 'training', label: 'التدريب', desc: 'التدريب وسجلات الإكمال والتواريخ', href: './training.html', total: data.training.length, sub: data.trainingExpiring.length, subLabel: 'قريب الانتهاء' },
+        { key: 'tasks', label: 'المهام', desc: 'مهام الفريق والتنفيذ والمراجعة', href: './tasks.html', total: data.tasks.length, sub: data.pendingTasks, subLabel: 'قيد التنفيذ' }
+      ];
+    }
+    function collectDateAlerts(list, entries) {
+      var alerts = [];
+      (list || []).forEach(function(item){
+        entries.forEach(function(entry){
+          var raw = item && item[entry.field];
+          var date = parseAnyDate(raw);
+          if (!date) return;
+          var days = diffDays(date);
+          alerts.push({
+            module: entry.module,
+            title: (item && (item.name || item.title || item.branch || item.license_number || item.vehicle_no || item.plate_no || item.code)) || entry.label,
+            label: entry.label,
+            date: formatDateValue(raw),
+            days: days
+          });
+        });
+      });
+      return alerts;
+    }
+    async function buildDashboardData() {
+      var employees = safeList('employees').filter(function(row){ return row && row.archived !== true; });
+      var employeeMeta = safeList('employee_meta');
+      var branches = safeList('branches');
+      var violations = safeList('violations');
+      var housings = safeList('housings');
+      var transports = safeList('transports');
+      var training = safeList('training');
+      var tasks = safeList('tasks');
+      var fetchedLists = await Promise.all([
+        fetchApiList('licenses'),
+        fetchApiList('contracts')
+      ]);
+      var licenses = fetchedLists[0];
+      var contracts = fetchedLists[1];
+      var employeeMap = {};
+      employees.forEach(function(emp){
+        var extra = employeeMeta.find(function(meta){ return String(meta.employeeId || '') === String(emp.id || ''); }) || {};
+        employeeMap[String(emp.id || '')] = Object.assign({}, emp, extra);
+      });
+      var mergedEmployees = employees.map(function(emp){ return employeeMap[String(emp.id || '')] || emp; });
+      var employeeExpiring = collectDateAlerts(mergedEmployees, [
+        { field: 'tcoeEnd', label: 'انتهاء التدريب العملي', module: 'الموظفين' },
+        { field: 'healthCardExp', label: 'انتهاء البطاقة الصحية', module: 'الموظفين' },
+        { field: 'airportPermitExp', label: 'انتهاء تصريح المطار', module: 'الموظفين' }
+      ]);
+      var branchExpiring = collectDateAlerts(branches, [
+        { field: 'store_license_expiry', label: 'انتهاء رخصة المتجر', module: 'الفروع' },
+        { field: 'civil_defense_expiry', label: 'انتهاء الدفاع المدني', module: 'الفروع' },
+        { field: 'delivery_permit_expiry', label: 'انتهاء تصريح التوصيل', module: 'الفروع' },
+        { field: 'outdoor_permit_expiry', label: 'انتهاء التصريح الخارجي', module: 'الفروع' }
+      ]);
+      var licenseExpiring = collectDateAlerts(licenses, [
+        { field: 'expiryDate', label: 'انتهاء الرخصة', module: 'الرخص' },
+        { field: 'expiry_date', label: 'انتهاء الرخصة', module: 'الرخص' },
+        { field: 'endDate', label: 'انتهاء الرخصة', module: 'الرخص' },
+        { field: 'end_date', label: 'انتهاء الرخصة', module: 'الرخص' }
+      ]);
+      var contractExpiring = collectDateAlerts(contracts, [
+        { field: 'endDate', label: 'انتهاء العقد', module: 'العقود' },
+        { field: 'end_date', label: 'انتهاء العقد', module: 'العقود' },
+        { field: 'expiryDate', label: 'انتهاء العقد', module: 'العقود' }
+      ]);
+      var housingExpiring = collectDateAlerts(housings, [
+        { field: 'license_expiry', label: 'انتهاء رخصة السكن', module: 'السكن' },
+        { field: 'civil_defense_expiry', label: 'انتهاء الدفاع المدني', module: 'السكن' },
+        { field: 'municipality_expiry', label: 'انتهاء البلدية', module: 'السكن' }
+      ]);
+      var transportExpiring = collectDateAlerts(transports, [
+        { field: 'expiryDate', label: 'انتهاء المركبة', module: 'النقل' },
+        { field: 'expiry_date', label: 'انتهاء المركبة', module: 'النقل' },
+        { field: 'insuranceExpiry', label: 'انتهاء التأمين', module: 'النقل' },
+        { field: 'insurance_expiry', label: 'انتهاء التأمين', module: 'النقل' }
+      ]);
+      var trainingExpiring = collectDateAlerts(training, [
+        { field: 'expiryDate', label: 'انتهاء التدريب', module: 'التدريب' },
+        { field: 'expiry_date', label: 'انتهاء التدريب', module: 'التدريب' },
+        { field: 'endDate', label: 'انتهاء التدريب', module: 'التدريب' }
+      ]);
+      return {
+        employees: mergedEmployees,
+        branches: branches,
+        licenses: licenses,
+        contracts: contracts,
+        violations: violations,
+        housings: housings,
+        transports: transports,
+        training: training,
+        tasks: tasks,
+        employeeExpiring: employeeExpiring.filter(function(item){ return item.days !== null && item.days <= 60; }),
+        branchExpiring: branchExpiring.filter(function(item){ return item.days !== null && item.days <= 60; }),
+        licenseExpiring: licenseExpiring.filter(function(item){ return item.days !== null && item.days <= 60; }),
+        contractExpiring: contractExpiring.filter(function(item){ return item.days !== null && item.days <= 60; }),
+        housingExpiring: housingExpiring.filter(function(item){ return item.days !== null && item.days <= 60; }),
+        transportExpiring: transportExpiring.filter(function(item){ return item.days !== null && item.days <= 60; }),
+        trainingExpiring: trainingExpiring.filter(function(item){ return item.days !== null && item.days <= 60; }),
+        openViolations: violations.filter(function(item){
+          var status = String((item && (item.status || item.payment_status || item.appeal_status)) || '').toLowerCase();
+          return !status || (status.indexOf('paid') === -1 && status.indexOf('closed') === -1 && status.indexOf('resolved') === -1);
+        }).length,
+        pendingTasks: tasks.filter(function(item){
+          var status = String((item && item.status) || '').toLowerCase();
+          return status && status !== 'completed';
+        }).length
+      };
+    }
+    function renderKpis(data) {
+      var root = document.getElementById('reports-kpis');
+      if (!root) return;
+      var totalSoon = data.employeeExpiring.length + data.branchExpiring.length + data.licenseExpiring.length + data.contractExpiring.length + data.housingExpiring.length + data.transportExpiring.length + data.trainingExpiring.length;
+      var allModules = [data.employees.length, data.branches.length, data.licenses.length + data.contracts.length, data.violations.length, data.housings.length, data.transports.length, data.training.length, data.tasks.length];
+      var totalRecords = allModules.reduce(function(sum, n){ return sum + n; }, 0);
+      var kpis = [
+        { value: totalRecords, label: 'إجمالي السجلات', sub: 'جميع أعمال لوحة التحكم' },
+        { value: data.employees.length, label: 'الموظفون', sub: data.employeeExpiring.length + ' قريب الانتهاء' },
+        { value: data.branches.length, label: 'الفروع', sub: data.branchExpiring.length + ' تاريخ حساس' },
+        { value: data.tasks.length, label: 'المهام', sub: data.pendingTasks + ' قيد التنفيذ' },
+        { value: data.violations.length, label: 'المخالفات', sub: data.openViolations + ' مفتوحة' },
+        { value: totalSoon, label: 'تنبيهات قريبة', sub: 'خلال 60 يوم' }
+      ];
+      root.innerHTML = kpis.map(function(kpi){
+        return '<div class="report-kpi">'
+          + '<div class="report-kpi-value">' + kpi.value + '</div>'
+          + '<div class="report-kpi-label">' + kpi.label + '</div>'
+          + '<div class="report-kpi-sub">' + kpi.sub + '</div>'
+          + '</div>';
+      }).join('');
+    }
+    function renderModules(data) {
+      var root = document.getElementById('reports-modules');
+      if (!root) return;
+      var modules = getModuleConfigs(data);
+      root.innerHTML = modules.map(function(module){
+        return '<article class="report-module">'
+          + '<div class="report-module-top">'
+          + '<div><div class="report-module-title">' + module.label + '</div><div class="report-module-desc">' + module.desc + '</div></div>'
+          + '<div class="report-chip">' + module.total + ' سجل</div>'
+          + '</div>'
+          + '<div class="report-module-stats">'
+          + '<div class="report-mini-stat"><b>' + module.total + '</b><span>إجمالي البيانات</span></div>'
+          + '<div class="report-mini-stat"><b>' + module.sub + '</b><span>' + module.subLabel + '</span></div>'
+          + '</div>'
+          + '<div class="report-actions">'
+          + '<a href="' + module.href + '" class="report-btn report-btn-primary">فتح القسم</a>'
+          + '<button class="report-btn report-btn-secondary" data-export="csv" data-collection="' + module.key + '">تصدير CSV</button>'
+          + '</div>'
+          + '</article>';
+      }).join('');
+    }
+    function renderAlerts(data) {
+      var root = document.getElementById('reports-alerts');
+      if (!root) return;
+      var alerts = []
+        .concat(data.branchExpiring)
+        .concat(data.licenseExpiring)
+        .concat(data.contractExpiring)
+        .sort(function(a, b){ return Number(a.days) - Number(b.days); })
+        .slice(0, 15);
+      if (!alerts.length) {
+        root.innerHTML = '<div class="report-empty">لا توجد تواريخ حرجة حالياً.</div>';
+        return;
+      }
+      root.innerHTML = alerts.map(function(item){
+        var daysClass = item.days < 0 ? 'is-expired' : (item.days <= 30 ? 'is-warning' : 'is-safe');
+        var daysText = item.days < 0 ? ('منتهي منذ ' + Math.abs(item.days) + ' يوم') : ('متبقي ' + item.days + ' يوم');
+        return '<div class="report-alert-item">'
+          + '<div>'
+          + '<div class="report-alert-title">' + item.title + '</div>'
+          + '<div class="report-alert-meta">' + item.module + ' • ' + item.label + ' • ' + item.date + '</div>'
+          + '</div>'
+          + '<div class="report-alert-days ' + daysClass + '">' + daysText + '</div>'
+          + '</div>';
+      }).join('');
+    }
+    async function exportCollection(collection, type) {
+      var lang = App.getLang ? App.getLang() : 'ar';
+      if (collection === 'employees') collection = 'employees';
+      if (collection === 'tasks') collection = 'tasks';
+      var rows = await getCollectionRows(collection);
+      if (!rows.length) {
+        if (typeof toast === 'function') toast('warning', lang === 'ar' ? 'تنبيه' : 'Notice', lang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export');
+        return;
+      }
+      if (type === 'csv') {
+        var csv = buildCsvFromRows(rows);
+        if (!csv) {
+          if (typeof toast === 'function') toast('warning', lang === 'ar' ? 'تنبيه' : 'Notice', lang === 'ar' ? 'تعذر تجهيز الملف' : 'Unable to build file');
+          return;
+        }
+        downloadText('report-' + collection + '.csv', csv, 'text/csv;charset=utf-8');
+      } else if (type === 'json') {
+        downloadText('report-' + collection + '.json', JSON.stringify(rows, null, 2), 'application/json;charset=utf-8');
+      } else if (type === 'excel') {
+        exportToExcel(collection, rows);
+      } else if (type === 'pdf') {
+        exportToPDF(collection, rows);
+      }
+      if (typeof toast === 'function' && type !== 'excel' && type !== 'pdf') {
+        toast('success', lang === 'ar' ? 'تم' : 'Done', lang === 'ar' ? 'تم تجهيز ملف التصدير' : 'Export file is ready');
+      }
+    }
+    function exportToExcel(collection, rows) {
+      var lang = App.getLang ? App.getLang() : 'ar';
+      if (!rows.length) {
+        if (typeof toast === 'function') toast('warning', lang === 'ar' ? 'تنبيه' : 'Notice', lang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export');
+        return;
+      }
+      
+      try {
+        var worksheet = XLSX.utils.json_to_sheet(rows);
+        var workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
+        
+        var excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+        var blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        var url = URL.createObjectURL(blob);
+        
+        var link = document.createElement('a');
+        link.href = url;
+        link.download = 'report-' + collection + '.xlsx';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        
+        setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+        if (typeof toast === 'function') toast('success', lang === 'ar' ? 'تم' : 'Done', lang === 'ar' ? 'تم تصدير ملف Excel' : 'Excel file exported');
+      } catch (error) {
+        console.error('Excel export error:', error);
+        if (typeof toast === 'function') toast('error', lang === 'ar' ? 'خطأ' : 'Error', lang === 'ar' ? 'تعذر تصدير ملف Excel' : 'Failed to export Excel file');
+      }
+    }
+    function exportToPDF(collection, rows) {
+      var lang = App.getLang ? App.getLang() : 'ar';
+      if (!rows.length) {
+        if (typeof toast === 'function') toast('warning', lang === 'ar' ? 'تنبيه' : 'Notice', lang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export');
+        return;
+      }
+      
+      try {
+        var doc = new jspdf.jsPDF();
+        
+        doc.setFontSize(16);
+        doc.text(lang === 'ar' ? 'تقرير ' + collection : collection + ' Report', 14, 15);
+        
+        doc.setFontSize(10);
+        var date = new Date().toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US');
+        doc.text(lang === 'ar' ? 'تاريخ التصدير: ' + date : 'Export Date: ' + date, 14, 25);
+        
+        var tableColumn = [];
+        var tableRows = [];
+        
+        if (rows.length > 0) {
+          tableColumn = Object.keys(rows[0]);
+          tableRows = rows.map(function(item){
+            return tableColumn.map(function(key){ return item[key] || ''; });
+          });
+        }
+        
+        doc.autoTable({
+          head: [tableColumn],
+          body: tableRows,
+          startY: 35,
+          theme: 'grid',
+          styles: { fontSize: 8, cellPadding: 2 },
+          headStyles: { fillColor: [59, 130, 246] }
+        });
+        
+        doc.save('report-' + collection + '.pdf');
+        if (typeof toast === 'function') toast('success', lang === 'ar' ? 'تم' : 'Done', lang === 'ar' ? 'تم تصدير ملف PDF' : 'PDF file exported');
+      } catch (error) {
+        console.error('PDF export error:', error);
+        if (typeof toast === 'function') toast('error', lang === 'ar' ? 'خطأ' : 'Error', lang === 'ar' ? 'تعذر تصدير ملف PDF' : 'Failed to export PDF file');
+      }
+    }
+    function printDashboardReport(data) {
+      var alerts = []
+        .concat(data.employeeExpiring)
+        .concat(data.branchExpiring)
+        .concat(data.licenseExpiring)
+        .concat(data.contractExpiring)
+        .concat(data.housingExpiring)
+        .concat(data.transportExpiring)
+        .concat(data.trainingExpiring)
+        .sort(function(a, b){ return Number(a.days) - Number(b.days); })
+        .slice(0, 12);
+      var rows = getModuleConfigs(data).map(function(module){
+        return '<tr><td>' + module.label + '</td><td>' + module.total + '</td><td>' + module.sub + '</td></tr>';
+      }).join('');
+      var alertRows = alerts.map(function(item){
+        return '<tr><td>' + item.module + '</td><td>' + item.title + '</td><td>' + item.label + '</td><td>' + item.date + '</td><td>' + (item.days < 0 ? ('منتهي منذ ' + Math.abs(item.days) + ' يوم') : ('متبقي ' + item.days + ' يوم')) + '</td></tr>';
+      }).join('');
+      var win = window.open('', '_blank', 'noopener,noreferrer,width=1200,height=900');
+      if (!win) return;
+      win.document.write('<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>Dashboard Report</title><style>body{font-family:Tahoma,Arial,sans-serif;padding:32px;color:#0f172a}h1,h2{margin:0 0 16px}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border:1px solid #cbd5e1;padding:10px;text-align:right}th{background:#eff6ff}tbody tr:nth-child(even){background:#f8fafc}.meta{color:#475569;margin-bottom:24px}</style></head><body><h1>ملخص لوحة التحكم</h1><div class="meta">تاريخ الطباعة: ' + new Date().toLocaleString('ar-SA') + '</div><h2>ملخص الأقسام</h2><table><thead><tr><th>القسم</th><th>إجمالي السجلات</th><th>الحالات المهمة</th></tr></thead><tbody>' + rows + '</tbody></table><h2 style="margin-top:28px">أقرب التنبيهات</h2><table><thead><tr><th>المجال</th><th>العنصر</th><th>النوع</th><th>التاريخ</th><th>الحالة</th></tr></thead><tbody>' + (alertRows || '<tr><td colspan="5">لا توجد تنبيهات حالياً</td></tr>') + '</tbody></table></body></html>');
+      win.document.close();
+      win.focus();
+      win.print();
+    }
+    function exportFullSnapshot(data) {
+      var snapshot = {
+        exportedAt: new Date().toISOString(),
+        summary: {
+          employees: data.employees.length,
+          branches: data.branches.length,
+          licenses: data.licenses.length,
+          contracts: data.contracts.length,
+          violations: data.violations.length,
+          housings: data.housings.length,
+          transports: data.transports.length,
+          training: data.training.length,
+          tasks: data.tasks.length
+        },
+        collections: {
+          employees: data.employees,
+          branches: data.branches,
+          licenses: data.licenses,
+          contracts: data.contracts,
+          violations: data.violations,
+          housings: data.housings,
+          transports: data.transports,
+          training: data.training,
+          tasks: data.tasks
+        }
+      };
+      downloadText('dashboard-snapshot.json', JSON.stringify(snapshot, null, 2), 'application/json;charset=utf-8');
+      if (typeof toast === 'function') toast('success', 'تم', 'تم تصدير نسخة لوحة التحكم');
+    }
+    async function renderReportsPage() {
+      var data = await buildDashboardData();
+      renderKpis(data);
+      renderModules(data);
+      renderAlerts(data);
+      return data;
+    }
+    var currentReportData = null;
+    renderReportsPage().then(function(data){
+      currentReportData = data;
+    });
+    document.getElementById('btn-export-dashboard-json').onclick = function(){
+      this.classList.add('btn-loading');
+      setTimeout(async function(){
+        currentReportData = await renderReportsPage();
+        exportFullSnapshot(currentReportData);
+        document.getElementById('btn-export-dashboard-json').classList.remove('btn-loading');
+      }, 300);
+    };
+    document.getElementById('btn-print-dashboard-report').onclick = function(){
+      this.classList.add('btn-loading');
+      setTimeout(async function(){
+        currentReportData = await renderReportsPage();
+        printDashboardReport(currentReportData);
+        document.getElementById('btn-print-dashboard-report').classList.remove('btn-loading');
+      }, 300);
+    };
+    document.addEventListener('click', async function(e){
+      var btn = e.target && e.target.closest ? e.target.closest('[data-export]') : null;
+      if (!btn) return;
+      e.preventDefault();
+      await exportCollection(btn.getAttribute('data-collection'), btn.getAttribute('data-export'));
+    });
+    window.addEventListener('storage', async function(){
+      currentReportData = await renderReportsPage();
+    });
+  </script>
+</body>
+</html>

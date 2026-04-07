@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>المواصلات</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style-base.css">
+  <link rel="stylesheet" href="style-site.css">
+</head>
+<body class="transports-theme">
+  <canvas id="bg-canvas"></canvas>
+  <nav class="glass-nav">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <div class="text-lg font-bold">لوحة التشغيل</div>
+      <div class="flex items-center gap-4">
+        <a href="./index.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.home">الرئيسية</a>
+        <a href="./employees.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.employees">الموظفون</a>
+        <a href="./branches.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.branches">الفروع</a>
+        <a href="./licenses.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.licenses">الرخص والعقود</a>
+        <a href="./violations.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.violations">المخالفات</a>
+        <a href="./housings.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.housings">السكنات</a>
+        <a href="./transports.html" class="text-indigo-600 font-medium" data-i18n="nav.transports">المواصلات</a>
+        <a href="./reports.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.reports">التقارير</a>
+        <a href="./login.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.login">تسجيل الدخول</a>
+        <button id="help-toggle" class="px-3 py-1 rounded bg-gray-100 text-gray-800"></button>
+        <button id="lang-toggle" class="px-3 py-1 rounded bg-indigo-600 text-white"></button>
+        <div class="relative inline-block">
+          <div id="user-badge" class="user-badge">
+            <div class="user-avatar"></div>
+            <span id="user-badge-name"></span>
+          </div>
+          <div id="user-menu" class="user-menu">
+            <a href="#" data-en="My Profile" data-ar="ملفّي">My Profile</a>
+            <button onclick="App.logout()" data-en="Logout" data-ar="تسجيل الخروج">Logout</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+  <main class="max-w-7xl mx-auto px-4 py-8">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+      <h1 class="text-2xl font-bold text-slate-100">سجلات الفروع والمصاريف</h1>
+      <div class="flex items-center gap-2">
+        <input id="excel-input" type="file" accept=".xlsx,.xls,.csv" class="hidden">
+        <button id="btn-import" class="px-3 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">رفع Excel</button>
+        <button id="btn-add" class="px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">+ إضافة سجل</button>
+        <div class="inline-flex p-0.5 rounded-lg view-toggle">
+          <button id="view-table" class="px-3 py-2 rounded-md text-slate-700 hover:bg-slate-50">جدول</button>
+          <button id="view-cards" class="px-3 py-2 rounded-md text-slate-700 hover:bg-slate-50">كروت</button>
+          <button id="view-both" class="px-3 py-2 rounded-md text-slate-700 hover:bg-slate-50">كلاهما</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass-card p-3 mb-4">
+      <div class="grid grid-cols-1 md:grid-cols-8 gap-2">
+        <input id="q" type="text" placeholder="بحث سريع" class="col-span-2 px-3 py-2 rounded border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+        <select id="f-region" class="px-3 py-2 rounded border border-slate-200"><option value="all">المنطقة: الكل</option></select>
+        <select id="f-city" class="px-3 py-2 rounded border border-slate-200"><option value="all">المدينة: الكل</option></select>
+        <select id="f-brand" class="px-3 py-2 rounded border border-slate-200"><option value="all">العلامة: الكل</option></select>
+        <select id="f-year" class="px-3 py-2 rounded border border-slate-200"><option value="all">السنة: الكل</option></select>
+        <select id="f-month" class="px-3 py-2 rounded border border-slate-200"><option value="all">الشهر: الكل</option></select>
+        <select id="sort" class="px-3 py-2 rounded border border-slate-200">
+          <option value="date_desc">الأحدث</option>
+          <option value="expense_desc">الأعلى مصروف</option>
+          <option value="buses_desc">الأعلى باصات</option>
+          <option value="date_asc">الأقدم</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="bulk-bar" class="hidden mb-3 p-2 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 flex items-center justify-between">
+      <div id="bulk-count" class="font-semibold"></div>
+      <div class="flex items-center gap-2">
+        <button id="bulk-delete" class="px-3 py-1.5 rounded bg-rose-600 text-white hover:bg-rose-700">حذف المحدد</button>
+        <button id="bulk-cancel" class="px-3 py-1.5 rounded border border-rose-300 text-rose-700 hover:bg-white">إلغاء التحديد</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div id="table-wrap" class="glass-card overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-2 py-2"><input id="chk-all" type="checkbox"></th>
+                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Date</th>
+                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Year</th>
+                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Month</th>
+                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Branch Name</th>
+                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Brand</th>
+                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">City</th>
+                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Region</th>
+                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">No of Buses</th>
+                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Employees</th>
+                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Monthly Expense</th>
+                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="records-tbody" class="bg-white divide-y divide-gray-200"></tbody>
+          </table>
+        </div>
+        <div class="flex items-center justify-between p-2 border-t border-slate-100">
+          <div id="table-pagestat" class="text-xs text-slate-500"></div>
+          <div class="flex items-center gap-2">
+            <button id="p-prev" class="px-2 py-1 rounded border border-slate-200">السابق</button>
+            <span id="p-info" class="text-xs text-slate-600"></span>
+            <button id="p-next" class="px-2 py-1 rounded border border-slate-200">التالي</button>
+          </div>
+        </div>
+      </div>
+      <div id="cards-wrap">
+        <div id="cards-grid" class="grid sm:grid-cols-2 gap-3"></div>
+      </div>
+    </div>
+  </main>
+  <script src="js/api-client.js?v=202602071015"></script>
+  <script src="app.js?v=202602071015"></script>
+  <script>
+    var __records = [];
+    var __selected = new Set();
+    var __view = 'both';
+    var __page = 1;
+    var __size = 10;
+    var __filters = { q:'', region:'all', city:'all', brand:'all', year:'all', month:'all', sort:'date_desc' };
+    function idGen(){ return 'rec_'+Date.now()+'_'+Math.random().toString(16).slice(2); }
+    function fmtCurrency(n){ var x=Number(n||0); return x.toLocaleString('en-US'); }
+    function ensureXLSX(cb){ if(window.XLSX){ cb(); return; } var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'; s.onload=function(){ cb(); }; document.head.appendChild(s); }
+    function parseMonth(v){ if(v==null||v==='') return null; var m=String(v).trim(); var map={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12,'يناير':1,'فبراير':2,'مارس':3,'أبريل':4,'ابريل':4,'مايو':5,'يونيو':6,'يوليو':7,'أغسطس':8,'اغسطس':8,'سبتمبر':9,'أكتوبر':10,'اكتوبر':10,'نوفمبر':11,'ديسمبر':12}; var k=m.toLowerCase().slice(0,3); if(map[m]!=null) return map[m]; if(map[k]!=null) return map[k]; var n=parseInt(m,10); if(!isNaN(n)&&n>=1&&n<=12) return n; return null; }
+    function normalizeRow(r){ var out={}; var g=function(){ return (new Date()).toISOString(); }; var d=r['Date']||r['date']||''; var y=r['Year']||r['year']||''; var mo=r['Month']||r['month']||''; out.id=idGen(); out.date=d?String(d):''; out.year=y?parseInt(y,10):null; out.month=parseMonth(mo); out.branchName=r['Branch Name']||r['branchName']||r['branch_name']||''; out.brand=r['Brand']||r['brand']||''; out.city=r['City']||r['city']||''; out.region=r['Region']||r['region']||''; out.noOfBuses=parseInt(r['No of Buses']||r['noOfBuses']||r['buses']||0,10)||0; out.employees=parseInt(r['Employees']||r['employees']||0,10)||0; var me=r['Monthly Expense']||r['monthlyExpense']||0; out.monthlyExpense=parseFloat(String(me).replace(/[, ]/g,''))||0; out.createdAt=g(); return out; }
+    function validRow(o){ if(!o.branchName||!o.date) return false; if(o.month!=null&&(o.month<1||o.month>12)) return false; if(o.noOfBuses<0||o.employees<0||o.monthlyExpense<0) return false; return true; }
+    function saveAll(arr){ arr.forEach(function(x){ App.store.create('branch_monthly_records', x); }); }
+    function loadAll(){ __records = App.store.list('branch_monthly_records')||[]; }
+    function setView(v){ __view=v; document.getElementById('view-table').classList.toggle('bg-slate-100', v==='table'); document.getElementById('view-cards').classList.toggle('bg-slate-100', v==='cards'); document.getElementById('view-both').classList.toggle('bg-slate-100', v==='both'); document.getElementById('table-wrap').style.display = (v==='cards')?'none':''; document.getElementById('cards-wrap').style.display = (v==='table')?'none':''; }
+    function compute(){ var list=__records.slice(); var q=__filters.q.toLowerCase().trim(); if(q){ list=list.filter(function(r){ var hay=[r.branchName,r.brand,r.city,r.region,String(r.year||''),String(r.month||''),r.date].join(' ').toLowerCase(); return hay.indexOf(q)>=0; }); } if(__filters.region!=='all') list=list.filter(function(r){ return String(r.region||'')===__filters.region; }); if(__filters.city!=='all') list=list.filter(function(r){ return String(r.city||'')===__filters.city; }); if(__filters.brand!=='all') list=list.filter(function(r){ return String(r.brand||'')===__filters.brand; }); if(__filters.year!=='all') list=list.filter(function(r){ return String(r.year||'')===String(__filters.year); }); if(__filters.month!=='all') list=list.filter(function(r){ return String(r.month||'')===String(__filters.month); }); if(__filters.sort==='expense_desc') list.sort(function(a,b){ return (b.monthlyExpense||0)-(a.monthlyExpense||0); }); else if(__filters.sort==='buses_desc') list.sort(function(a,b){ return (b.noOfBuses||0)-(a.noOfBuses||0); }); else if(__filters.sort==='date_asc') list.sort(function(a,b){ return String(a.date||'').localeCompare(String(b.date||'')); }); else list.sort(function(a,b){ return String(b.date||'').localeCompare(String(a.date||'')); }); return list; }
+    function renderFilters(list){ var u=function(arr,key){ return Array.from(new Set(arr.map(function(x){ return String(x[key]||''); }).filter(function(v){ return v&&v!=='undefined'; }))).sort(); }; var rs=u(list,'region'), cs=u(list,'city'), bs=u(list,'brand'), ys=u(list,'year'), ms=[1,2,3,4,5,6,7,8,9,10,11,12]; var fill=function(id,vals,allLabel){ var el=document.getElementById(id); if(!el) return; var v=__filters[id.split('-')[1]]||'all'; var opts=['<option value="all">'+allLabel+'</option>'].concat(vals.map(function(x){ return '<option value="'+x+'">'+x+'</option>'; })).join(''); el.innerHTML=opts; el.value=v; }; fill('f-region',rs,'المنطقة: الكل'); fill('f-city',cs,'المدينة: الكل'); fill('f-brand',bs,'العلامة: الكل'); fill('f-year',ys,'السنة: الكل'); var mEl=document.getElementById('f-month'); mEl.innerHTML='<option value="all">الشهر: الكل</option>'+ms.map(function(x){ return '<option value="'+x+'">'+String(x).padStart(2,'0')+'</option>'; }).join(''); mEl.value=__filters.month; }
+    function paginate(list){ var total=list.length; var pages=Math.max(1, Math.ceil(total/__size)); if(__page>pages) __page=pages; var s=(__page-1)*__size; var chunk=list.slice(s, s+__size); var info=document.getElementById('p-info'); if(info) info.textContent=__page+' / '+pages; var st=document.getElementById('table-pagestat'); if(st) st.textContent=total?('عرض '+(s+1)+'-'+(s+chunk.length)+' من '+total):'لا توجد سجلات'; return {rows:chunk,total:total,pages:pages}; }
+    function renderTable(list){ var tbody=document.getElementById('records-tbody'); if(!tbody) return; tbody.innerHTML=''; if(!list.length){ tbody.innerHTML='<tr><td colspan="12" class="px-6 py-8 text-center text-gray-500 text-sm">لا توجد سجلات</td></tr>'; return; } var L=currentLang(); var TL=I18N[L]; list.forEach(function(r){ var tr=document.createElement('tr'); tr.className='hover:bg-gray-50'; var chk='<input type="checkbox" data-id=\"'+r.id+'\" class=\"row-chk\">'; var icons={ preview:'<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"w-4 h-4\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M15 12a3 3 0 11-6 0 3 3 0 016 0z\"/><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z\"/></svg>', print:'<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"w-4 h-4\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M6 9V2h12v7\"/><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2\"/><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M8 18h8v4H8z\"/></svg>', edit:'<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"w-4 h-4\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M11 4h2m-1 1v2m0 4v9m7-12l-9 9-4 1 1-4 9-9 2 2z\"/></svg>', delete:'<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"w-4 h-4\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M6 7h12M9 7V5h6v2M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12\"/></svg>' }; var act='\
+<div class=\"flex items-center gap-1\">\
+<button class=\"p-1.5 rounded border border-slate-200 text-slate-700\" data-act=\"preview\" title=\"'+(TL.preview)+'\" data-id=\"'+r.id+'\">'+icons.preview+'</button>\
+<button class=\"p-1.5 rounded border border-slate-200 text-slate-700\" data-act=\"print\" title=\"'+(TL.print)+'\" data-id=\"'+r.id+'\">'+icons.print+'</button>\
+<button class=\"p-1.5 rounded border border-amber-300 text-amber-700\" data-act=\"edit\" title=\"'+(TL.edit)+'\" data-id=\"'+r.id+'\">'+icons.edit+'</button>\
+<button class=\"p-1.5 rounded border border-rose-300 text-rose-700\" data-act=\"delete\" title=\"'+(TL.delete)+'\" data-id=\"'+r.id+'\">'+icons.delete+'</button>\
+</div>'; var branchLink='<a href=\"./branches.html?branch='+encodeURIComponent(r.branchName||'')+'\" class=\"underline decoration-dotted\" title=\"'+(TL.openBranch)+'\">'+(r.branchName||'-')+'</a>'; tr.innerHTML='\
+<td class=\"px-2 py-2\">'+chk+'</td>\
+<td class=\"px-3 py-2 text-sm\">'+(r.date||'-')+'</td>\
+<td class=\"px-3 py-2 text-sm\">'+(r.year||'-')+'</td>\
+<td class=\"px-3 py-2 text-sm\">'+(r.month!=null?String(r.month).padStart(2,'0'):'-')+'</td>\
+<td class=\"px-3 py-2 text-sm\">'+branchLink+'</td>\
+<td class=\"px-3 py-2 text-sm\">'+(r.brand||'-')+'</td>\
+<td class=\"px-3 py-2 text-sm\">'+(r.city||'-')+'</td>\
+<td class=\"px-3 py-2 text-sm\">'+(r.region||'-')+'</td>\
+<td class=\"px-3 py-2 text-sm\">'+(r.noOfBuses||0)+'</td>\
+<td class=\"px-3 py-2 text-sm\">'+(r.employees||0)+'</td>\
+<td class=\"px-3 py-2 text-sm\">'+fmtCurrency(r.monthlyExpense||0)+'</td>\
+<td class=\"px-3 py-2\">'+act+'</td>'; tbody.appendChild(tr); }); bindRowEvents(); }
+    function renderCards(list){ var grid=document.getElementById('cards-grid'); if(!grid) return; grid.innerHTML=''; if(!list.length){ grid.innerHTML='<div class="text-center text-slate-500 p-4">لا توجد سجلات</div>'; return; } var L=currentLang(); var TL=I18N[L]; var icons={ preview:'<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"w-4 h-4\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M15 12a3 3 0 11-6 0 3 3 0 016 0z\"/><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z\"/></svg>', print:'<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"w-4 h-4\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M6 9V2h12v7\"/><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2\"/><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M8 18h8v4H8z\"/></svg>', edit:'<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"w-4 h-4\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M11 4h2m-1 1v2m0 4v9m7-12l-9 9-4 1 1-4 9-9 2 2z\"/></svg>', delete:'<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"w-4 h-4\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M6 7h12M9 7V5h6v2M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12\"/></svg>' }; list.forEach(function(r){ var card=document.createElement('div'); card.className='p-3 rounded-xl border border-slate-200 bg-white'; var titleHtml='<a href=\"./branches.html?branch='+encodeURIComponent(r.branchName||'')+'\" class=\"text-lg font-semibold text-slate-800 underline decoration-dotted\" title=\"'+(TL.openBranch)+'\">'+((r.branchName||'-')+' — '+(r.city||'-'))+'</a>'; var badges='<div class=\"flex flex-wrap gap-1 text-[11px] text-slate-600 mt-1\"><span class=\"px-2 py-0.5 rounded bg-slate-100 border border-slate-200\">Year: '+(r.year||'-')+'</span><span class=\"px-2 py-0.5 rounded bg-slate-100 border border-slate-200\">Month: '+(r.month!=null?String(r.month).padStart(2,'0'):'-')+'</span><span class=\"px-2 py-0.5 rounded bg-slate-100 border border-slate-200\">Brand: '+(r.brand||'-')+'</span><span class=\"px-2 py-0.5 rounded bg-slate-100 border border-slate-200\">Region: '+(r.region||'-')+'</span></div>'; var nums='<div class=\"mt-2 grid grid-cols-3 gap-2 text-sm\"><div class=\"p-2 rounded-lg bg-slate-50 border border-slate-200\">🚌 '+(r.noOfBuses||0)+'</div><div class=\"p-2 rounded-lg bg-slate-50 border border-slate-200\">👥 '+(r.employees||0)+'</div><div class=\"p-2 rounded-lg bg-slate-50 border border-slate-200\">💰 '+fmtCurrency(r.monthlyExpense||0)+'</div></div>'; var act='<div class=\"flex items-center justify-between mt-2\"><div class=\"flex items-center gap-1\"><button class=\"p-1.5 rounded border border-slate-200 text-slate-700\" data-act=\"preview\" title=\"'+(TL.preview)+'\" data-id=\"'+r.id+'\">'+icons.preview+'</button><button class=\"p-1.5 rounded border border-slate-200 text-slate-700\" data-act=\"print\" title=\"'+(TL.print)+'\" data-id=\"'+r.id+'\">'+icons.print+'</button><button class=\"p-1.5 rounded border border-amber-300 text-amber-700\" data-act=\"edit\" title=\"'+(TL.edit)+'\" data-id=\"'+r.id+'\">'+icons.edit+'</button><button class=\"p-1.5 rounded border border-rose-300 text-rose-700\" data-act=\"delete\" title=\"'+(TL.delete)+'\" data-id=\"'+r.id+'\">'+icons.delete+'</button></div><input type=\"checkbox\" class=\"row-chk\" data-id=\"'+r.id+'\"></div>'; card.innerHTML=titleHtml+badges+nums+act; grid.appendChild(card); }); bindRowEvents(); }
+    function bindRowEvents(){ Array.from(document.querySelectorAll('.row-chk')).forEach(function(el){ el.onchange=function(e){ var id=e.target.getAttribute('data-id'); if(e.target.checked){ __selected.add(id); } else { __selected.delete(id); } updateBulkBar(); }; }); Array.from(document.querySelectorAll('[data-act]')).forEach(function(el){ el.onclick=function(){ var id=this.getAttribute('data-id'); var act=this.getAttribute('data-act'); var r=__records.find(function(x){ return x.id===id; }); if(act==='preview') openPreview(r); else if(act==='print') printRecord(r); else if(act==='edit') openForm(r); else if(act==='delete') removeRecord(id); }; }); }
+    function updateBulkBar(){ var bar=document.getElementById('bulk-bar'); var c=document.getElementById('bulk-count'); if(__selected.size>0){ bar.classList.remove('hidden'); c.textContent='تم تحديد ('+__selected.size+')'; } else { bar.classList.add('hidden'); } }
+    function openPreview(r){ if(!r) return; var html='<div class="p-4"><div class="text-xl font-bold mb-1">'+(r.branchName||'-')+'</div><div class="text-slate-600 mb-3">'+(r.city||'-')+' • '+(r.region||'-')+'</div><div class="grid grid-cols-2 gap-2 text-sm"><div class="p-2 rounded border border-slate-200 bg-slate-50">Date: '+(r.date||'-')+'</div><div class="p-2 rounded border border-slate-200 bg-slate-50">Year: '+(r.year||'-')+'</div><div class="p-2 rounded border border-slate-200 bg-slate-50">Month: '+(r.month||'-')+'</div><div class="p-2 rounded border border-slate-200 bg-slate-50">Brand: '+(r.brand||'-')+'</div><div class="p-2 rounded border border-slate-200 bg-slate-50">No of Buses: '+(r.noOfBuses||0)+'</div><div class="p-2 rounded border border-slate-200 bg-slate-50">Employees: '+(r.employees||0)+'</div><div class="p-2 rounded border border-slate-200 bg-slate-50 col-span-2">Monthly Expense: '+fmtCurrency(r.monthlyExpense||0)+'</div></div><div class="mt-3 text-right"><button id="prev-print" class="px-3 py-1.5 rounded bg-indigo-600 text-white">طباعة</button></div></div>'; showModal(html,function(){ var b=document.getElementById('prev-print'); if(b) b.onclick=function(){ printRecord(r); }; }); }
+    function printRecord(r){ if(!r) return; var html='\
+<html dir=\"rtl\"><head><meta charset=\"utf-8\"><title>طباعة سجل</title><style>body{font-family:system-ui,Segoe UI,Arial;padding:16px;color:#0f172a}h2{margin:0 0 12px} .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px} .cell{border:1px solid #e2e8f0;border-radius:10px;padding:8px} .label{font-size:12px;color:#64748b} .val{font-weight:600} @media print{.btn{display:none}}</style></head><body>\
+<h2>'+ (r.branchName||'-') +'</h2>\
+<div class=\"grid\">\
+<div class=\"cell\"><div class=\"label\">Date</div><div class=\"val\">'+(r.date||'-')+'</div></div>\
+<div class=\"cell\"><div class=\"label\">Year</div><div class=\"val\">'+(r.year||'-')+'</div></div>\
+<div class=\"cell\"><div class=\"label\">Month</div><div class=\"val\">'+(r.month||'-')+'</div></div>\
+<div class=\"cell\"><div class=\"label\">Brand</div><div class=\"val\">'+(r.brand||'-')+'</div></div>\
+<div class=\"cell\"><div class=\"label\">City</div><div class=\"val\">'+(r.city||'-')+'</div></div>\
+<div class=\"cell\"><div class=\"label\">Region</div><div class=\"val\">'+(r.region||'-')+'</div></div>\
+<div class=\"cell\"><div class=\"label\">No of Buses</div><div class=\"val\">'+(r.noOfBuses||0)+'</div></div>\
+<div class=\"cell\"><div class=\"label\">Employees</div><div class=\"val\">'+(r.employees||0)+'</div></div>\
+<div class=\"cell\" style=\"grid-column:1/-1\"><div class=\"label\">Monthly Expense</div><div class=\"val\">'+fmtCurrency(r.monthlyExpense||0)+'</div></div>\
+</div><button class=\"btn\" onclick=\"window.print()\">طباعة</button></body></html>'; var w=window.open('','_blank'); if(!w) return; w.document.open(); w.document.write(html); w.document.close(); }
+    function openForm(r){ var isEdit=!!(r&&r.id); var v=r||{date:'',year:'',month:'',branchName:'',brand:'',city:'',region:'',noOfBuses:0,employees:0,monthlyExpense:0}; var html='\
+<div class=\"p-4\">\
+<div class=\"text-lg font-semibold mb-3\">'+(isEdit?'تعديل سجل':'إضافة سجل')+'</div>\
+<div class=\"grid grid-cols-2 gap-3\">\
+<div class=\"flex flex-col\"><label class=\"text-xs text-slate-300 mb-1\">Date</label><input id=\"f-date\" type=\"date\" value=\"'+(v.date||'')+'\" class=\"px-3 py-2 rounded border border-slate-200\"></div>\
+<div class=\"flex flex-col\"><label class=\"text-xs text-slate-300 mb-1\">Year</label><input id=\"f-year\" type=\"number\" placeholder=\"Year\" value=\"'+(v.year||'')+'\" class=\"px-3 py-2 rounded border border-slate-200\"></div>\
+<div class=\"flex flex-col\"><label class=\"text-xs text-slate-300 mb-1\">Month</label><input id=\"f-month\" type=\"number\" placeholder=\"Month (1-12)\" value=\"'+(v.month||'')+'\" class=\"px-3 py-2 rounded border border-slate-200\"></div>\
+<div class=\"flex flex-col col-span-2\"><label class=\"text-xs text-slate-300 mb-1\">Branch Name</label><input id=\"f-branch\" type=\"text\" placeholder=\"Branch Name\" value=\"'+(v.branchName||'')+'\" class=\"px-3 py-2 rounded border border-slate-200\"></div>\
+<div class=\"flex flex-col\"><label class=\"text-xs text-slate-300 mb-1\">Brand</label><input id=\"f-brand\" type=\"text\" placeholder=\"Brand\" value=\"'+(v.brand||'')+'\" class=\"px-3 py-2 rounded border border-slate-200\"></div>\
+<div class=\"flex flex-col\"><label class=\"text-xs text-slate-300 mb-1\">City</label><input id=\"f-city\" type=\"text\" placeholder=\"City\" value=\"'+(v.city||'')+'\" class=\"px-3 py-2 rounded border border-slate-200\"></div>\
+<div class=\"flex flex-col\"><label class=\"text-xs text-slate-300 mb-1\">Region</label><input id=\"f-region\" type=\"text\" placeholder=\"Region\" value=\"'+(v.region||'')+'\" class=\"px-3 py-2 rounded border border-slate-200\"></div>\
+<div class=\"flex flex-col\"><label class=\"text-xs text-slate-300 mb-1\">No of Buses</label><input id=\"f-buses\" type=\"number\" placeholder=\"No of Buses\" value=\"'+(v.noOfBuses||0)+'\" class=\"px-3 py-2 rounded border border-slate-200\"></div>\
+<div class=\"flex flex-col\"><label class=\"text-xs text-slate-300 mb-1\">Employees</label><input id=\"f-emps\" type=\"number\" placeholder=\"Employees\" value=\"'+(v.employees||0)+'\" class=\"px-3 py-2 rounded border border-slate-200\"></div>\
+<div class=\"flex flex-col col-span-2\"><label class=\"text-xs text-slate-300 mb-1\">Monthly Expense</label><input id=\"f-exp\" type=\"number\" step=\"0.01\" placeholder=\"Monthly Expense\" value=\"'+(v.monthlyExpense||0)+'\" class=\"px-3 py-2 rounded border border-slate-200\"></div>\
+</div>\
+<div class=\"mt-3 text-right\"><button id=\"fm-save\" class=\"px-3 py-1.5 rounded bg-emerald-600 text-white\">حفظ</button></div></div>'; showModal(html,function(hide){ var s=document.getElementById('fm-save'); if(s) s.onclick=function(){ var o={ date:document.getElementById('f-date').value, year:parseInt(document.getElementById('f-year').value||0,10)||null, month:parseInt(document.getElementById('f-month').value||0,10)||null, branchName:document.getElementById('f-branch').value.trim(), brand:document.getElementById('f-brand').value.trim(), city:document.getElementById('f-city').value.trim(), region:document.getElementById('f-region').value.trim(), noOfBuses:parseInt(document.getElementById('f-buses').value||0,10)||0, employees:parseInt(document.getElementById('f-emps').value||0,10)||0, monthlyExpense:parseFloat(document.getElementById('f-exp').value||0)||0 }; if(!o.branchName||!o.date|| (o.month&& (o.month<1||o.month>12))){ if(typeof showToast==='function') showToast('الحقول غير صحيحة','error'); else alert('الحقول غير صحيحة'); return; } if(isEdit){ App.store.update('branch_monthly_records', r.id, o); if(typeof showToast==='function') showToast('تم التحديث','success'); } else { o.id=idGen(); o.createdAt=(new Date()).toISOString(); App.store.create('branch_monthly_records', o); if(typeof showToast==='function') showToast('تمت الإضافة','success'); } hide(); refresh(); }; }); }
+    function removeRecord(id){ var go=function(){ App.store.remove('branch_monthly_records', id); __selected.delete(id); refresh(); if(typeof showToast==='function') showToast('تم الحذف','info'); }; if(typeof confirmDialog==='function'){ confirmDialog({message:'تأكيد الحذف؟'}).then(function(ok){ if(ok) go(); }); } else { if(confirm('تأكيد الحذف؟')) go(); } }
+    function removeSelected(){ if(__selected.size===0) return; var go=function(){ Array.from(__selected).forEach(function(id){ App.store.remove('branch_monthly_records', id); }); __selected.clear(); refresh(); if(typeof showToast==='function') showToast('تم حذف المحدد','info'); }; if(typeof confirmDialog==='function'){ confirmDialog({message:'حذف جميع المحدد؟'}).then(function(ok){ if(ok) go(); }); } else { if(confirm('حذف جميع المحدد؟')) go(); } }
+    function showModal(inner, onReady){ var ov=document.createElement('div'); ov.className='fixed inset-0 bg-black/40 flex items-center justify-center z-50'; var box=document.createElement('div'); box.className='bg-white rounded-xl shadow-xl w-full max-w-2xl relative'; box.innerHTML=inner; var closeBtn=document.createElement('button'); closeBtn.className='absolute top-2 left-2 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center'; closeBtn.innerHTML='<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"w-5 h-5\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M6 18L18 6M6 6l12 12\"/></svg>'; box.appendChild(closeBtn); ov.appendChild(box); document.body.appendChild(ov); var hide=function(){ if(ov && ov.parentNode) ov.parentNode.removeChild(ov); }; closeBtn.onclick=function(){ hide(); }; ov.onclick=function(e){ if(e.target===ov) hide(); }; if(onReady) onReady(hide); }
+    function refresh(){ loadAll(); var list=compute(); renderFilters(__records); var pg=paginate(list); renderTable(pg.rows); if(__view!=='table'){ renderCards(pg.rows); } updateBulkBar(); var chkAll=document.getElementById('chk-all'); if(chkAll){ chkAll.checked=false; chkAll.onchange=function(){ var rows=document.querySelectorAll('#records-tbody .row-chk'); rows.forEach(function(el){ el.checked=chkAll.checked; var id=el.getAttribute('data-id'); if(chkAll.checked) __selected.add(id); else __selected.delete(id); }); updateBulkBar(); }; } }
+    var I18N={ ar:{ title:'سجلات الفروع والمصاريف', import:'رفع Excel', add:'+ إضافة سجل', view_table:'جدول', view_cards:'كروت', view_both:'كلاهما', preview:'معاينة', print:'طباعة', edit:'تعديل', delete:'حذف', openBranch:'فتح الفرع' }, en:{ title:'Branch Monthly Records', import:'Import Excel', add:'+ Add Record', view_table:'Table', view_cards:'Cards', view_both:'Both', preview:'Preview', print:'Print', edit:'Edit', delete:'Delete', openBranch:'Open Branch' } };
+    function currentLang(){ var l=document.documentElement.lang||'ar'; l=l.toLowerCase(); return (l.startsWith('en')?'en':'ar'); }
+    function applyI18N(){ var L=currentLang(); var TL=I18N[L]; var el; el=document.querySelector('h1'); if(el) el.textContent=TL.title; el=document.getElementById('btn-import'); if(el) el.textContent=TL.import; el=document.getElementById('btn-add'); if(el) el.textContent=TL.add; el=document.getElementById('view-table'); if(el) el.textContent=TL.view_table; el=document.getElementById('view-cards'); if(el) el.textContent=TL.view_cards; el=document.getElementById('view-both'); if(el) el.textContent=TL.view_both; }
+    document.addEventListener('DOMContentLoaded', function(){ App.init('transports'); loadAll(); applyI18N(); setView('both'); refresh(); document.getElementById('view-table').onclick=function(){ setView('table'); }; document.getElementById('view-cards').onclick=function(){ setView('cards'); }; document.getElementById('view-both').onclick=function(){ setView('both'); }; ['f-region','f-city','f-brand','f-year','f-month','sort'].forEach(function(id){ var el=document.getElementById(id); if(!el) return; el.onchange=function(){ var key=(id==='sort')?'sort':id.split('-')[1]; __filters[key]=el.value; __page=1; refresh(); }; }); var q=document.getElementById('q'); if(q) q.oninput=function(){ __filters.q=q.value; __page=1; refresh(); }; document.getElementById('p-prev').onclick=function(){ if(__page>1){ __page--; refresh(); } }; document.getElementById('p-next').onclick=function(){ __page++; refresh(); }; document.getElementById('bulk-delete').onclick=function(){ removeSelected(); }; document.getElementById('bulk-cancel').onclick=function(){ __selected.clear(); refresh(); }; document.getElementById('btn-add').onclick=function(){ openForm(null); }; document.getElementById('btn-import').onclick=function(){ var fi=document.getElementById('excel-input'); fi.value=''; fi.click(); }; document.getElementById('excel-input').onchange=function(e){ var f=e.target.files&&e.target.files[0]; if(!f) return; ensureXLSX(function(){ var reader=new FileReader(); reader.onload=function(ev){ try{ var wb=XLSX.read(ev.target.result, f.name.toLowerCase().endsWith('.csv')?{type:'string'}:{type:'array'}); var ws=wb.Sheets[wb.SheetNames[0]]; var rows=XLSX.utils.sheet_to_json(ws); var ok=[], bad=[]; rows.forEach(function(r){ var o=normalizeRow(r); if(validRow(o)) ok.push(o); else bad.push(r); }); if(ok.length) saveAll(ok); var msg='✅ تم إدخال '+ok.length; if(bad.length) msg+=' • ⚠️ تم تجاهل '+bad.length; if(typeof showToast==='function') showToast(msg, bad.length?'warning':'success'); else alert(msg); refresh(); } catch(err){ if(typeof showToast==='function') showToast('خطأ في الاستيراد','error'); else alert('خطأ في الاستيراد'); } }; if(f.name.toLowerCase().endsWith('.csv')) reader.readAsText(f); else reader.readAsArrayBuffer(f); }); }; });
+  </script>
+
+</body>
+</html>

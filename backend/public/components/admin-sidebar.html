@@ -1,0 +1,189 @@
+<!-- Admin Sidebar Component -->
+<aside class="admin-sidebar">
+  <div class="sidebar-header">
+    <div class="hamburger-icon" id="sidebar-toggle" style="min-width: 24px; margin-inline-end: 12px; cursor: pointer; display: flex; flex-direction: column; gap: 5px;">
+        <span style="display: block; width: 24px; height: 2px; background-color: #fff;"></span>
+        <span style="display: block; width: 24px; height: 2px; background-color: #fff;"></span>
+        <span style="display: block; width: 24px; height: 2px; background-color: #fff;"></span>
+    </div>
+    <img src="/logos/CompliQ.svg" class="sidebar-logo" alt="CompliQ" style="display: none;">
+    <span class="sidebar-brand" data-en="Admin Panel" data-ar="لوحة التحكم">Admin Panel</span>
+  </div>
+  
+  <nav class="sidebar-nav">
+    <!-- Group 1: Leadership & Analytics -->
+    <div class="nav-group active" id="group-leadership">
+      <div class="nav-group-header" onclick="toggleSidebarGroup('group-leadership')">
+        <span class="flex items-center gap-2">
+          <span class="text-lg">📊</span> 
+          <span data-en="Leadership & Analytics" data-ar="القيادة والتحليل">Leadership & Analytics</span>
+        </span>
+        <i class="arrow-icon">▶</i>
+      </div>
+      <div class="nav-group-content">
+        <a href="#" class="nav-item active" id="nav-dashboard" onclick="showSection('dashboard'); return false;">
+          <span class="w-6 text-center">🏠</span> 
+          <span data-en="Dashboard" data-ar="الرئيسية">Dashboard</span>
+        </a>
+        <a href="#" class="nav-item" id="nav-analytics" onclick="showSection('analytics'); return false;">
+          <span class="w-6 text-center">🧠</span> 
+          <span data-en="AI Analysis" data-ar="التحليل الاستراتيجي (AI)">AI Analysis</span>
+        </a>
+        <a href="#" class="nav-item" id="nav-tasks" onclick="showSection('tasks'); return false;">
+          <span class="w-6 text-center">✅</span> 
+          <span data-en="Tasks" data-ar="المهام">المهام</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Group 2: Data Management -->
+    <div class="nav-group" id="group-data">
+      <div class="nav-group-header" onclick="toggleSidebarGroup('group-data')">
+        <span class="flex items-center gap-2">
+          <span class="text-lg">🗄️</span> 
+          <span data-en="Data Management" data-ar="إدارة البيانات">Data Management</span>
+        </span>
+        <i class="arrow-icon">▶</i>
+      </div>
+      <div class="nav-group-content">
+        <a href="#" class="nav-item" id="nav-master-data" onclick="showSection('master-data'); return false;">
+          <span class="w-6 text-center">📋</span> 
+          <span data-en="Master Data" data-ar="البيانات الرئيسية">Master Data</span>
+        </a>
+        <a href="#" class="nav-item" id="nav-employees" onclick="showSection('employees'); return false;">
+          <span class="w-6 text-center">👥</span> 
+          <span data-en="Employees" data-ar="الموظفون">الموظفون</span>
+        </a>
+        <a href="#" class="nav-item" id="nav-violations" onclick="showSection('violations'); return false;">
+          <span class="w-6 text-center">⚠️</span> 
+          <span data-en="Violations" data-ar="المخالفات">المخالفات</span>
+        </a>
+        <a href="#" class="nav-item" id="nav-training" onclick="showSection('training'); return false;">
+          <span class="w-6 text-center">🎓</span> 
+          <span data-en="Training" data-ar="التدريب">التدريب</span>
+        </a>
+        <a href="#" class="nav-item" id="nav-branches" onclick="showSection('branches'); return false;">
+          <span class="w-6 text-center">🏢</span> 
+          <span data-en="Branches" data-ar="الفروع">الفروع</span>
+        </a>
+        <a href="#" class="nav-item" id="nav-licenses" onclick="showSection('licenses'); return false;">
+          <span class="w-6 text-center">📜</span> 
+          <span data-en="Licenses" data-ar="الرخص">الرخص</span>
+        </a>
+        <a href="#" class="nav-item" id="nav-housings" onclick="showSection('housings'); return false;">
+          <span class="w-6 text-center">🏠</span> 
+          <span data-en="Housings" data-ar="السكنات">السكنات</span>
+        </a>
+        <a href="#" class="nav-item" id="nav-transports" onclick="showSection('transports'); return false;">
+          <span class="w-6 text-center">🚗</span> 
+          <span data-en="Transports" data-ar="المواصلات">المواصلات</span>
+        </a>
+        <a href="#" class="nav-item" id="nav-files" onclick="showSection('files'); return false;">
+          <span class="w-6 text-center">📁</span> 
+          <span data-en="Files" data-ar="الملفات">الملفات</span>
+        </a>
+        <a href="#" class="nav-item" id="nav-reports" onclick="showSection('reports'); return false;">
+          <span class="w-6 text-center">📄</span> 
+          <span data-en="Reports" data-ar="التقارير">التقارير</span>
+        </a>
+        <a href="#" class="nav-item" id="nav-calendar" onclick="showSection('calendar'); return false;">
+          <span class="w-6 text-center">📅</span> 
+          <span data-en="Calendar" data-ar="التقويم">التقويم</span>
+        </a>
+        <a href="#" class="nav-item" id="nav-advanced" onclick="showSection('advanced'); return false;">
+          <span class="w-6 text-center">🔬</span> 
+          <span data-en="Advanced" data-ar="متقدم">متقدم</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Group 3: User Management -->
+    <div class="nav-group" id="group-users">
+      <div class="nav-group-header" onclick="toggleSidebarGroup('group-users')">
+        <span class="flex items-center gap-2">
+          <span class="text-lg">👤</span> 
+          <span data-en="User Management" data-ar="إدارة المستخدمين">User Management</span>
+        </span>
+        <i class="arrow-icon">▶</i>
+      </div>
+      <div class="nav-group-content">
+        <a href="#" class="nav-item" id="nav-members" onclick="showSection('members'); return false;">
+          <span class="w-6 text-center">👨‍💼</span> 
+          <span data-en="Members" data-ar="الأعضاء">الأعضاء</span>
+        </a>
+        <a href="#" class="nav-item" id="nav-roles" onclick="showSection('roles'); return false;">
+          <span class="w-6 text-center">🔐</span> 
+          <span data-en="Roles & Permissions" data-ar="الأدوار والصلاحيات">الأدوار والصلاحيات</span>
+        </a>
+        <a href="#" class="nav-item" id="nav-messages" onclick="showSection('messages'); return false;">
+          <span class="w-6 text-center">💬</span> 
+          <span data-en="Messages" data-ar="الرسائل">الرسائل</span>
+        </a>
+        <a href="#" class="nav-item" id="nav-activity" onclick="showSection('activity'); return false;">
+          <span class="w-6 text-center">📈</span> 
+          <span data-en="Activity Log" data-ar="سجل النشاطات">سجل النشاطات</span>
+        </a>
+        <a href="#" class="nav-item" id="nav-complaints" onclick="showSection('complaints'); return false;">
+          <span class="w-6 text-center">📝</span> 
+          <span data-en="Complaints" data-ar="الشكاوى">الشكاوى</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Group 4: Access & External Links -->
+    <div class="nav-group" id="group-access">
+      <div class="nav-group-header" onclick="toggleSidebarGroup('group-access')">
+        <span class="flex items-center gap-2">
+          <span class="text-lg">🌐</span> 
+          <span data-en="Access & Reports" data-ar="الوصول والتقارير">Access & Reports</span>
+        </span>
+        <i class="arrow-icon">▶</i>
+      </div>
+      <div class="nav-group-content">
+        <a href="/public" class="nav-item">
+          <span class="w-6 text-center">🏠</span> 
+          <span data-en="Main Dashboard" data-ar="لوحة التحكم الرئيسية">الرئيسية</span>
+        </a>
+        <a href="/public/management-report" class="nav-item">
+          <span class="w-6 text-center">📊</span> 
+          <span data-en="Management Report" data-ar="تقرير الإدارة">تقرير الإدارة</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Group 5: Settings -->
+    <div class="nav-group" id="group-settings">
+      <div class="nav-group-header" onclick="toggleSidebarGroup('group-settings')">
+        <span class="flex items-center gap-2">
+          <span class="text-lg">⚙️</span> 
+          <span data-en="Settings" data-ar="الإعدادات">الإعدادات</span>
+        </span>
+        <i class="arrow-icon">▶</i>
+      </div>
+      <div class="nav-group-content">
+        <a href="#" class="nav-item" id="nav-settings" onclick="showSection('settings'); return false;">
+          <span class="w-6 text-center">🔧</span> 
+          <span data-en="General Settings" data-ar="الإعدادات العامة">الإعدادات العامة</span>
+        </a>
+        <a href="#" class="nav-item" id="nav-advanced-settings" onclick="showSection('advanced-settings'); return false;">
+          <span class="w-6 text-center">⚙️</span> 
+          <span data-en="Advanced Settings" data-ar="الإعدادات المتقدمة">الإعدادات المتقدمة</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+  
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar"></div>
+      <div class="user-details">
+        <span class="user-name" id="admin-user-name">مدير النظام</span>
+        <span class="user-role">Admin</span>
+      </div>
+    </div>
+    <button onclick="App.logout()" class="logout-btn">
+      <span>🚪</span>
+      <span data-en="Logout" data-ar="تسجيل الخروج">خروج</span>
+    </button>
+  </div>
+</aside>

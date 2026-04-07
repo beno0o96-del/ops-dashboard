@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>التدريب والكروت الصحية</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="style-base.css">
+  <link rel="stylesheet" href="style-site.css">
+  <style>
+    /* Custom ECG Animation */
+    .ecg-container {
+        position: relative;
+        overflow: hidden;
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(79, 172, 254, 0.25);
+        border-radius: 1rem;
+    }
+    .ecg-line {
+        fill: none;
+        stroke: #4facfe;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-dasharray: 1000;
+        stroke-dashoffset: 1000;
+        animation: ecgDash 3s linear infinite;
+    }
+    @keyframes ecgDash {
+        0% { stroke-dashoffset: 1000; }
+        100% { stroke-dashoffset: 0; }
+    }
+    .live-dot {
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        background: #10b981;
+        box-shadow: 0 0 8px #10b981;
+        animation: blink 1s infinite;
+    }
+    @keyframes blink { 50% { opacity: 0.5; } }
+  </style>
+</head>
+<body class="text-white">
+  <canvas id="bg-canvas"></canvas>
+  
+  <!-- Navigation -->
+  <nav class="glass-nav sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <div class="flex items-center gap-3">
+        <img src="/logos/CompliQ.svg" alt="Logo" class="h-8">
+        <div class="text-lg font-bold hidden sm:block">لوحة التشغيل</div>
+      </div>
+      
+      <div class="hidden md:flex items-center gap-4 text-sm font-medium">
+        <a href="./index.html" class="text-gray-300 hover:text-white transition-colors">الرئيسية</a>
+        <a href="./employees.html" class="text-gray-300 hover:text-white transition-colors">الموظفون</a>
+        <a href="./violations.html" class="text-gray-300 hover:text-white transition-colors">المخالفات</a>
+        <a href="./training.html" class="text-blue-400 border-b-2 border-blue-400 pb-1">التدريب</a>
+        <a href="./housings.html" class="text-gray-300 hover:text-white transition-colors">السكنات</a>
+        <a href="./transports.html" class="text-gray-300 hover:text-white transition-colors">المواصلات</a>
+        <a href="./branches.html" class="text-gray-300 hover:text-white transition-colors">الفروع</a>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button onclick="setLang('ar')" class="px-3 py-1.5 rounded-lg border border-white/15 text-xs text-slate-200 hover:bg-white/10">AR</button>
+        <button onclick="setLang('en')" class="px-3 py-1.5 rounded-lg border border-white/15 text-xs text-slate-200 hover:bg-white/10">EN</button>
+        <button onclick="document.getElementById('upload-excel').click()" class="btn-primary px-4 py-1.5 rounded-lg text-sm flex items-center gap-2">
+            <span>رفع Excel</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+        </button>
+        <input type="file" id="upload-excel" class="hidden" accept=".xlsx, .xls" onchange="handleFileUpload(this)">
+        
+        <button onclick="App.logout()" class="text-gray-400 hover:text-white transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
+    
+    <!-- KPI Section -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- KPI 1 -->
+        <div class="glass-card p-6 relative overflow-hidden group">
+            <div class="absolute -right-4 -top-4 bg-blue-500/10 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+            <div class="relative z-10">
+                <h3 class="text-gray-400 text-sm mb-2">إجمالي المتدربين</h3>
+                <div class="text-3xl font-bold text-white">1,245</div>
+                <div class="text-emerald-400 text-xs mt-2 flex items-center gap-1">
+                    <span>+12%</span>
+                    <span>عن الشهر الماضي</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI 2 -->
+        <div class="glass-card p-6 relative overflow-hidden group">
+            <div class="absolute -right-4 -top-4 bg-purple-500/10 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+            <div class="relative z-10">
+                <h3 class="text-gray-400 text-sm mb-2">الكروت الصحية النشطة</h3>
+                <div class="text-3xl font-bold text-white">856</div>
+                <div class="text-emerald-400 text-xs mt-2 flex items-center gap-1">
+                    <span>98%</span>
+                    <span>نسبة الامتثال</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI 3 -->
+        <div class="glass-card p-6 relative overflow-hidden group">
+            <div class="absolute -right-4 -top-4 bg-orange-500/10 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+            <div class="relative z-10">
+                <h3 class="text-gray-400 text-sm mb-2">منتهية الصلاحية</h3>
+                <div class="text-3xl font-bold text-white">24</div>
+                <div class="text-red-400 text-xs mt-2 flex items-center gap-1">
+                    <span>يرجى التجديد فوراً</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI 4 -->
+        <div class="glass-card p-6 relative overflow-hidden group">
+            <div class="absolute -right-4 -top-4 bg-pink-500/10 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+            <div class="relative z-10">
+                <h3 class="text-gray-400 text-sm mb-2">الدورات القادمة</h3>
+                <div class="text-3xl font-bold text-white">5</div>
+                <div class="text-blue-400 text-xs mt-2 flex items-center gap-1">
+                    <span>خلال 7 أيام</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts & ECG Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Main Chart -->
+        <div class="glass-card p-6 lg:col-span-2">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-semibold">أداء التدريب الشهري</h3>
+                <select class="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs">
+                    <option>2025</option>
+                    <option>2024</option>
+                </select>
+            </div>
+            <div class="h-64">
+                <canvas id="trainingChart"></canvas>
+            </div>
+        </div>
+
+        <!-- ECG / Live Status -->
+        <div class="glass-card p-0 flex flex-col h-full overflow-hidden">
+            <div class="p-4 border-b border-white/10 bg-white/5 flex justify-between items-center">
+                <h3 class="text-lg font-semibold">حالة النظام</h3>
+                <div class="live-dot"></div>
+            </div>
+            
+            <div class="ecg-container h-32 w-full relative">
+                <!-- SVG Grid Background -->
+                <svg width="100%" height="100%" class="absolute inset-0 opacity-20">
+                    <defs>
+                        <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="white" stroke-width="0.5"/>
+                        </pattern>
+                    </defs>
+                    <rect width="100%" height="100%" fill="url(#grid)" />
+                </svg>
+                <!-- ECG Line -->
+                <svg width="100%" height="100%" class="absolute inset-0">
+                    <path class="ecg-line" d="M0,64 L50,64 L60,40 L70,80 L80,64 L150,64 L160,20 L170,100 L180,64 L250,64 L260,40 L270,80 L280,64 L350,64 L360,20 L370,100 L380,64 L500,64" />
+                </svg>
+            </div>
+
+            <div class="p-4 space-y-4 flex-1">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-400 text-sm">المزامنة</span>
+                    <span class="text-emerald-400 text-sm font-bold">نشط</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-400 text-sm">آخر تحديث</span>
+                    <span class="text-white text-sm">منذ دقيقة</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-400 text-sm">API Status</span>
+                    <span class="text-blue-400 text-sm font-mono">200 OK</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="glass-card overflow-hidden">
+        <div class="p-6 border-b border-white/10 flex justify-between items-center">
+            <h3 class="text-lg font-semibold">سجل الشهادات الأخير</h3>
+            <button class="text-sm text-blue-400 hover:text-blue-300">عرض الكل</button>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-right">
+                <thead class="bg-white/5 text-gray-400 text-sm">
+                    <tr>
+                        <th class="p-4 font-medium">الموظف</th>
+                        <th class="p-4 font-medium">الفرع</th>
+                        <th class="p-4 font-medium">نوع الشهادة</th>
+                        <th class="p-4 font-medium">تاريخ الإصدار</th>
+                        <th class="p-4 font-medium">تاريخ الانتهاء</th>
+                        <th class="p-4 font-medium">الحالة</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5 text-sm" id="certificates-table-body">
+                    <!-- Populated by JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+  </main>
+
+  <script src="js/api-client.js"></script>
+  <script src="app.js"></script>
+  <script>
+    function setLang(lang) {
+        if (window.App && typeof App.setLang === 'function') {
+            App.setLang(lang);
+        } else {
+            localStorage.setItem('lang', lang);
+            document.documentElement.lang = lang;
+            document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+        }
+        applyTrainingTranslations();
+    }
+    function applyTrainingTranslations() {
+        const lang = (window.App && typeof App.getLang === 'function') ? App.getLang() : (localStorage.getItem('lang') || 'ar');
+        const isAr = lang === 'ar';
+        document.documentElement.lang = isAr ? 'ar' : 'en';
+        document.documentElement.dir = isAr ? 'rtl' : 'ltr';
+        document.body.setAttribute('dir', isAr ? 'rtl' : 'ltr');
+        const map = [
+            ['title', 'التدريب والكروت الصحية', 'Training & Health Cards'],
+            ['nav .text-lg.font-bold.hidden.sm\\:block', 'لوحة التشغيل', 'Operations Dashboard'],
+            ['a[href="./index.html"]', 'الرئيسية', 'Home'],
+            ['a[href="./employees.html"]', 'الموظفون', 'Employees'],
+            ['a[href="./violations.html"]', 'المخالفات', 'Violations'],
+            ['a[href="./training.html"]', 'التدريب', 'Training'],
+            ['a[href="./housings.html"]', 'السكنات', 'Housings'],
+            ['a[href="./transports.html"]', 'المواصلات', 'Transports'],
+            ['a[href="./branches.html"]', 'الفروع', 'Branches'],
+            ['button[onclick*="upload-excel"] span', 'رفع Excel', 'Upload Excel'],
+            ['.grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-4.gap-6 .glass-card:nth-child(1) h3', 'إجمالي المتدربين', 'Total Trainees'],
+            ['.grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-4.gap-6 .glass-card:nth-child(1) .text-emerald-400 span:last-child', 'عن الشهر الماضي', 'vs last month'],
+            ['.grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-4.gap-6 .glass-card:nth-child(2) h3', 'الكروت الصحية النشطة', 'Active Health Cards'],
+            ['.grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-4.gap-6 .glass-card:nth-child(2) .text-emerald-400 span:last-child', 'نسبة الامتثال', 'Compliance Rate'],
+            ['.grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-4.gap-6 .glass-card:nth-child(3) h3', 'منتهية الصلاحية', 'Expired'],
+            ['.grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-4.gap-6 .glass-card:nth-child(3) .text-red-400 span', 'يرجى التجديد فوراً', 'Renew immediately'],
+            ['.grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-4.gap-6 .glass-card:nth-child(4) h3', 'الدورات القادمة', 'Upcoming Courses'],
+            ['.grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-4.gap-6 .glass-card:nth-child(4) .text-blue-400 span:last-child', 'خلال 7 أيام', 'Within 7 days'],
+            ['.glass-card.p-6.lg\\:col-span-2 h3', 'أداء التدريب الشهري', 'Monthly Training Performance'],
+            ['.glass-card.p-0 .p-4.border-b h3', 'حالة النظام', 'System Status'],
+            ['.glass-card.p-0 .p-4.space-y-4 .flex:nth-child(1) > span:first-child', 'المزامنة', 'Sync'],
+            ['.glass-card.p-0 .p-4.space-y-4 .flex:nth-child(1) > span:last-child', 'نشط', 'Active'],
+            ['.glass-card.p-0 .p-4.space-y-4 .flex:nth-child(2) > span:first-child', 'آخر تحديث', 'Last Update'],
+            ['.glass-card.p-0 .p-4.space-y-4 .flex:nth-child(2) > span:last-child', 'منذ دقيقة', '1 minute ago'],
+            ['.glass-card.overflow-hidden .p-6.border-b h3', 'سجل الشهادات الأخير', 'Recent Certificates'],
+            ['.glass-card.overflow-hidden .p-6.border-b button', 'عرض الكل', 'View All'],
+            ['#certificates-table-body', '', '']
+        ];
+        map.forEach(function(item){
+            if (!item[0]) return;
+            var el = document.querySelector(item[0]);
+            if (!el) return;
+            if (item[0] === 'title') {
+                document.title = isAr ? item[1] : item[2];
+                return;
+            }
+            if (item[1] || item[2]) el.textContent = isAr ? item[1] : item[2];
+        });
+        document.querySelectorAll('#certificates-table-body').forEach(function(){});
+        document.querySelectorAll('thead th').forEach(function(th){
+            var ar = ['الموظف','الفرع','نوع الشهادة','تاريخ الإصدار','تاريخ الانتهاء','الحالة'];
+            var en = ['Employee','Branch','Certificate Type','Issue Date','Expiry Date','Status'];
+            var idx = Array.prototype.indexOf.call(th.parentElement.children, th);
+            if (idx >= 0 && idx < ar.length) th.textContent = isAr ? ar[idx] : en[idx];
+        });
+    }
+    function tt(ar, en) {
+        const lang = (window.App && typeof App.getLang === 'function') ? App.getLang() : (localStorage.getItem('lang') || 'ar');
+        return lang === 'ar' ? ar : en;
+    }
+    // State
+    let employees = [];
+    let trainingStats = {
+        total: 0,
+        active: 0,
+        expired: 0,
+        upcoming: 0
+    };
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        // Initialize App
+        if(window.App) App.init('training');
+        applyTrainingTranslations();
+
+        // Load Data
+        await loadData();
+    });
+    document.addEventListener('app:lang', applyTrainingTranslations);
+
+    async function loadData() {
+        try {
+            // Fetch employees from API
+            employees = await APIClient.employees.list();
+            
+            // Process Stats
+            calculateStats();
+            
+            // Render UI
+            updateKPIs();
+            renderTable();
+            renderChart();
+            
+        } catch (error) {
+            console.error('Failed to load data:', error);
+            // Fallback to local storage if API fails
+            const localData = localStorage.getItem('employees_data');
+            if (localData) {
+                employees = JSON.parse(localData);
+                calculateStats();
+                updateKPIs();
+                renderTable();
+                renderChart();
+            }
+        }
+    }
+
+    function calculateStats() {
+        trainingStats = { total: 0, active: 0, expired: 0, upcoming: 0 };
+        const now = new Date();
+        const nextWeek = new Date();
+        nextWeek.setDate(now.getDate() + 7);
+
+        employees.forEach(emp => {
+            if (emp.training_data && Array.isArray(emp.training_data)) {
+                emp.training_data.forEach(record => {
+                    trainingStats.total++;
+                    
+                    const expiry = new Date(record.expiryDate);
+                    if (expiry < now) {
+                        trainingStats.expired++;
+                    } else {
+                        trainingStats.active++;
+                        if (expiry <= nextWeek) {
+                            trainingStats.upcoming++;
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    function updateKPIs() {
+        // Update DOM elements (IDs need to be added to HTML)
+        // For now, using querySelector with assumptions or updating the specific text nodes if possible
+        // But better to rebuild the HTML of KPIs or add IDs to the KPI values.
+        
+        // Since I didn't add IDs in the previous step, I will re-render the whole KPI section or use specific selectors.
+        // Let's use selectors based on the text context or index.
+        const kpiValues = document.querySelectorAll('.glass-card .text-3xl');
+        if(kpiValues.length >= 4) {
+            kpiValues[0].textContent = trainingStats.total.toLocaleString();
+            kpiValues[1].textContent = trainingStats.active.toLocaleString();
+            kpiValues[2].textContent = trainingStats.expired.toLocaleString();
+            kpiValues[3].textContent = trainingStats.upcoming.toLocaleString();
+        }
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('certificates-table-body');
+        if (!tbody) return;
+
+        // Flatten training records for the table
+        let rows = [];
+        employees.forEach(emp => {
+            if (emp.training_data && Array.isArray(emp.training_data)) {
+                emp.training_data.forEach(record => {
+                    rows.push({
+                        name: emp.name,
+                        branch: emp.branch || '-',
+                        type: record.type,
+                        issueDate: record.issueDate,
+                        expiryDate: record.expiryDate,
+                        status: getStatusFromDate(record.expiryDate)
+                    });
+                });
+            }
+        });
+
+        // Sort by expiry date (soonest first)
+        rows.sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+
+        // Limit to last 10 for "Latest Certificates"
+        const displayRows = rows.slice(0, 10);
+
+        if (displayRows.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-gray-400">لا توجد بيانات تدريب مسجلة</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = displayRows.map(item => `
+            <tr class="hover:bg-white/5 transition-colors">
+                <td class="p-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold border border-blue-400">
+                            ${item.name.charAt(0)}
+                        </div>
+                        <span class="font-medium text-white">${item.name}</span>
+                    </div>
+                </td>
+                <td class="p-4 text-gray-300">${item.branch}</td>
+                <td class="p-4 text-gray-300">${item.type}</td>
+                <td class="p-4 text-gray-300">${item.issueDate}</td>
+                <td class="p-4 text-gray-300">${item.expiryDate}</td>
+                <td class="p-4">
+                    <span class="px-2 py-1 rounded-full text-xs font-medium ${getStatusClass(item.status)}">
+                        ${getStatusLabel(item.status)}
+                    </span>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function getStatusFromDate(dateStr) {
+        const expiry = new Date(dateStr);
+        const now = new Date();
+        const nextMonth = new Date();
+        nextMonth.setDate(now.getDate() + 30);
+
+        if (expiry < now) return 'expired';
+        if (expiry < nextMonth) return 'expiring';
+        return 'valid';
+    }
+
+    function getStatusClass(status) {
+        switch(status) {
+            case 'valid': return 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+            case 'expiring': return 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30';
+            case 'expired': return 'bg-red-500/20 text-red-400 border border-red-500/30';
+            default: return 'bg-gray-500/20 text-gray-400';
+        }
+    }
+
+    function getStatusLabel(status) {
+        switch(status) {
+            case 'valid': return tt('ساري', 'Valid');
+            case 'expiring': return tt('ينتهي قريباً', 'Expiring Soon');
+            case 'expired': return tt('منتهي', 'Expired');
+            default: return status;
+        }
+    }
+
+    function renderChart() {
+        const ctx = document.getElementById('trainingChart');
+        if (!ctx) return;
+        
+        // Group by month (mock logic for now as we might not have enough historical data)
+        // Ideally we process 'rows' to count per month
+        
+        // Re-using the chart instance if exists?
+        // Simple create for now
+        
+        new Chart(ctx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: tt(
+                    ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو'],
+                    ['January', 'February', 'March', 'April', 'May', 'June']
+                ),
+                datasets: [{
+                    label: tt('عدد المتدربين', 'Number of Trainees'),
+                    data: [trainingStats.total > 0 ? trainingStats.total : 0, 0, 0, 0, 0, 0], // Placeholder
+                    backgroundColor: 'rgba(79, 172, 254, 0.6)',
+                    borderColor: '#4facfe',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: '#94a3b8' } }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        ticks: { color: '#94a3b8' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#94a3b8' }
+                    }
+                }
+            }
+        });
+    }
+
+    // Excel Upload Handler
+    async function handleFileUpload(input) {
+        if (!input.files || !input.files[0]) return;
+
+        const file = input.files[0];
+        const reader = new FileReader();
+
+        reader.onload = async function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+            console.log('Excel Data:', jsonData);
+            await processExcelData(jsonData);
+        };
+
+        reader.readAsArrayBuffer(file);
+    }
+
+    async function processExcelData(data) {
+        let updatedCount = 0;
+        let notFoundCount = 0;
+        let createdCount = 0;
+
+        // Show loading state
+        const btn = document.querySelector('button[onclick="document.getElementById(\'upload-excel\').click()"]');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span>' + tt('جاري المعالجة...', 'Processing...') + '</span>';
+        btn.disabled = true;
+
+        try {
+            for (const row of data) {
+                // Flexible Key Matching
+                const id = row['Employee ID'] || row['رقم الهوية'] || row['ID'] || row['Iqama ID'];
+                const name = row['Name'] || row['الاسم'] || row['Employee Name'];
+                const costCenter = row['Cost Center'] || row['الكوست سنتر'] || row['مركز التكلفة'] || row['CC'];
+                
+                // Training Info
+                const type = row['Training Type'] || row['نوع التدريب'] || row['Certificate'] || 'General';
+                const issueDate = formatDate(row['Issue Date'] || row['تاريخ الإصدار']);
+                const expiryDate = formatDate(row['Expiry Date'] || row['تاريخ الانتهاء']);
+                const status = row['Status'] || row['الحالة'] || 'valid';
+
+                if (!id && !name) continue; // Skip invalid rows
+
+                // Find Employee
+                let employee = employees.find(emp => 
+                    (id && emp.id_number == id) || 
+                    (name && emp.name.toLowerCase().includes(name.toLowerCase()))
+                );
+
+                const trainingRecord = {
+                    type: type,
+                    issueDate: issueDate,
+                    expiryDate: expiryDate,
+                    status: status,
+                    source: 'excel_upload',
+                    updatedAt: new Date().toISOString()
+                };
+
+                if (employee) {
+                    // Update existing employee
+                    let changes = false;
+                    let trainingData = employee.training_data || [];
+                    
+                    // Check if similar training exists to avoid duplicates
+                    const existingIndex = trainingData.findIndex(t => t.type === type && t.expiryDate === expiryDate);
+                    if (existingIndex >= 0) {
+                        trainingData[existingIndex] = trainingRecord; // Update
+                    } else {
+                        trainingData.push(trainingRecord); // Add
+                    }
+
+                    // Update Cost Center if provided and missing/different
+                    if (costCenter && employee.cost_center !== costCenter) {
+                        employee.cost_center = costCenter;
+                        changes = true;
+                    }
+
+                    // Update ID if provided and missing
+                    if (id && !employee.id_number) {
+                        employee.id_number = id;
+                        changes = true;
+                    }
+
+                    // Always update training data
+                    employee.training_data = trainingData;
+                    
+                    await APIClient.employees.update(employee.id, {
+                        ...employee,
+                        training_data: trainingData,
+                        cost_center: employee.cost_center,
+                        id_number: employee.id_number
+                    });
+                    
+                    updatedCount++;
+                } else {
+                    // Create new employee if not found
+                    const newEmployee = {
+                        name: name || 'Unknown',
+                        id_number: id || '',
+                        cost_center: costCenter || '',
+                        role: 'employee',
+                        branch: 'General', // Default
+                        status: 'active',
+                        training_data: [trainingRecord]
+                    };
+
+                    await APIClient.employees.create(newEmployee);
+                    createdCount++;
+                }
+            }
+
+            // Reload data to reflect changes
+            await loadData();
+            
+            alert(tt('تمت المعالجة بنجاح!', 'Processing completed successfully!')
+                + '\n' + tt('تم تحديث', 'Updated') + ': ' + updatedCount + ' ' + tt('موظف', 'employees')
+                + '\n' + tt('تم إضافة', 'Added') + ': ' + createdCount + ' ' + tt('موظف جديد', 'new employees'));
+
+        } catch (error) {
+            console.error('Error processing Excel:', error);
+            alert(tt('حدث خطأ أثناء معالجة الملف: ', 'An error occurred while processing the file: ') + error.message);
+        } finally {
+            if (btn) {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+            document.getElementById('upload-excel').value = ''; // Reset input
+        }
+    }
+
+    function formatDate(dateVal) {
+        if (!dateVal) return null;
+        // Handle Excel numeric date
+        if (typeof dateVal === 'number') {
+            const date = new Date(Math.round((dateVal - 25569) * 86400 * 1000));
+            return date.toISOString().split('T')[0];
+        }
+        // Handle string date (try to parse)
+        try {
+            const date = new Date(dateVal);
+            if (!isNaN(date)) return date.toISOString().split('T')[0];
+        } catch (e) { }
+        return dateVal; // Return as is if parsing fails
+    }
+  </script>
+</body>
+</html>

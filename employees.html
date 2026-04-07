@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>الموظفون</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style-base.css">
+  <link rel="stylesheet" href="style-site.css">
+</head>
+<body>
+  <canvas id="bg-canvas"></canvas>
+  <nav class="glass-nav">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <div class="text-lg font-bold">لوحة التشغيل</div>
+      <div class="flex items-center gap-4">
+        <a href="./index.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.home">الرئيسية</a>
+        <a href="./employees.html" class="text-indigo-600 font-medium" data-i18n="nav.employees">الموظفون</a>
+        <a href="./branches.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.branches">الفروع</a>
+        <a href="./licenses.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.licenses">الرخص والعقود</a>
+        <a href="./violations.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.violations">المخالفات</a>
+        <a href="./housings.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.housings">السكنات</a>
+        <a href="./transports.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.transports">المواصلات</a>
+        <a href="./reports.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.reports">التقارير</a>
+        <a href="./login.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.login">تسجيل الدخول</a>
+        <a href="mailto:b1.ahmed@olayanfood.com" class="text-gray-700 hover:text-indigo-600">الدعم</a>
+        <button id="help-toggle" class="px-3 py-1 rounded bg-gray-100 text-gray-800"></button>
+        <button id="lang-toggle" class="px-3 py-1 rounded bg-indigo-600 text-white"></button>
+        <div class="relative inline-block">
+          <div id="user-badge" class="user-badge">
+            <div class="user-avatar"></div>
+            <span id="user-badge-name"></span>
+          </div>
+          <div id="user-menu" class="user-menu">
+            <a href="#" data-en="My Profile" data-ar="ملفّي">My Profile</a>
+            <button onclick="App.logout()" data-en="Logout" data-ar="تسجيل الخروج">Logout</button>
+          </div>
+        </div>
+        <button class="logout-btn" onclick="App.logout()" data-en="Logout" data-ar="تسجيل الخروج">Logout</button>
+      </div>
+    </div>
+  </nav>
+  <main class="max-w-7xl mx-auto px-4 py-8">
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-semibold" data-i18n="employees.title">الموظفون</h1>
+      <button id="open-add-emp" class="btn-primary text-white px-4 py-2 rounded">إضافة موظف</button>
+    </div>
+    <div id="emp-grid" class="emp-grid"></div>
+  </main>
+  <div id="emp-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <img id="m-photo" class="modal-photo" src="" alt="">
+        <div>
+          <div id="m-name" style="font-weight:700; font-size:1.2rem;"></div>
+          <div id="m-branch" style="color:#94a3b8;"></div>
+        </div>
+        <button id="m-close" class="logout-btn" style="margin-inline-start:auto;">إغلاق</button>
+      </div>
+      <div style="display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap:16px;">
+        <div>
+          <div class="file-upload-box" id="upload-box">
+            <input id="m-file" type="file" style="display:none">
+            <div>إرفاق ملف للموظف</div>
+          </div>
+          <div style="margin-top:12px; display:grid; gap:12px;">
+            <div class="glass-card" style="padding:12px;">
+              <div style="font-weight:600; margin-bottom:8px;">عقد الإيجار</div>
+              <form id="rent-form" style="display:grid; gap:8px;">
+                <input class="form-control rounded px-3 py-2" name="expiresAt" placeholder="تاريخ الانتهاء">
+                <div id="rent-days" style="color:#94a3b8; font-size:0.85rem;"></div>
+                <div style="display:flex; gap:8px;">
+                  <button class="btn-primary text-white px-4 py-2 rounded" type="submit">حفظ</button>
+                </div>
+              </form>
+            </div>
+            <div class="glass-card" style="padding:12px;">
+              <div style="font-weight:600; margin-bottom:8px;">رخصة البناء</div>
+              <form id="build-form" style="display:grid; gap:8px;">
+                <input class="form-control rounded px-3 py-2" name="expiresAt" placeholder="تاريخ الانتهاء">
+                <div id="build-days" style="color:#94a3b8; font-size:0.85rem;"></div>
+                <div style="display:flex; gap:8px;">
+                  <button class="btn-primary text-white px-4 py-2 rounded" type="submit">حفظ</button>
+                </div>
+              </form>
+            </div>
+            <div class="glass-card" style="padding:12px;">
+              <div style="font-weight:600; margin-bottom:8px;">عقد النظافة</div>
+              <form id="clean-form" style="display:grid; gap:8px;">
+                <input class="form-control rounded px-3 py-2" name="number" placeholder="رقم العقد">
+                <input class="form-control rounded px-3 py-2" name="expiresAt" placeholder="تاريخ الانتهاء">
+                <div id="clean-days" style="color:#94a3b8; font-size:0.85rem;"></div>
+                <div style="display:flex; gap:8px;">
+                  <button class="btn-primary text-white px-4 py-2 rounded" type="submit">حفظ</button>
+                </div>
+              </form>
+            </div>
+            <div class="glass-card" style="padding:12px;">
+              <div style="font-weight:600; margin-bottom:8px;">مستندات أخرى</div>
+              <form id="misc-form" style="display:grid; gap:8px;">
+                <input class="form-control rounded px-3 py-2" name="title" placeholder="عنوان المستند">
+                <input class="form-control rounded px-3 py-2" name="description" placeholder="وصف المستند">
+                <input class="form-control rounded px-3 py-2" name="expiresAt" placeholder="تاريخ الانتهاء (اختياري)">
+                <div style="display:flex; gap:8px;">
+                  <button class="btn-primary text-white px-4 py-2 rounded" type="submit">حفظ</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="font-weight:600; margin-bottom:8px;">المستندات</div>
+          <div id="m-docs" style="max-height:360px; overflow:auto;"></div>
+        </div>
+        <div>
+          <div style="font-weight:600; margin-bottom:8px;">التفاصيل المهمة</div>
+          <form id="m-meta-form" style="display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap:8px;">
+            <input class="form-control rounded px-3 py-2" name="sapId" placeholder="SAP ID">
+            <input class="form-control rounded px-3 py-2" name="opsBand" placeholder="Band / OPS">
+            <input class="form-control rounded px-3 py-2" name="healthCardNo" placeholder="رقم البطاقة الصحية">
+            <input class="form-control rounded px-3 py-2" name="healthCardStatus" placeholder="حالة البطاقة الصحية">
+            <input class="form-control rounded px-3 py-2" name="healthCardExp" placeholder="Health Card Expiry">
+            <input class="form-control rounded px-3 py-2" name="trainingL1" placeholder="Training L1 Date">
+            <input class="form-control rounded px-3 py-2" name="trainingL2" placeholder="Training L2 Date">
+            <input class="form-control rounded px-3 py-2" name="airportPermitNo" placeholder="رقم تصريح المطار">
+            <input class="form-control rounded px-3 py-2" name="airportPermitStatus" placeholder="حالة تصريح المطار">
+            <input class="form-control rounded px-3 py-2" name="airportPermitExp" placeholder="Permit Expiry Date">
+            <textarea class="form-control rounded px-3 py-2" name="notes" placeholder="ملاحظات" style="grid-column:1/-1;"></textarea>
+            <button class="btn-primary text-white px-4 py-2 rounded" type="submit" style="grid-column:1/-1;">حفظ التفاصيل</button>
+          </form>
+        </div>
+      </div>
+      <div style="margin-top:16px; display:flex; gap:8px;">
+        <button id="m-archive" class="btn-primary text-white px-4 py-2 rounded">أرشفة الموظف</button>
+        <button id="m-restore" class="btn-primary text-white px-4 py-2 rounded">استعادة</button>
+      </div>
+    </div>
+  </div>
+  <div id="add-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div style="font-weight:700; margin-bottom:10px;">إضافة موظف</div>
+      <form id="emp-add-form">
+        <input class="form-control w-full rounded px-3 py-2" name="name" placeholder="الاسم">
+        <input class="form-control w-full rounded px-3 py-2" name="branch" placeholder="الفرع">
+        <input class="form-control w-full rounded px-3 py-2" name="role" placeholder="المسمى الوظيفي">
+        <button class="btn-primary text-white px-4 py-2 rounded" type="submit">حفظ</button>
+        <button id="add-close" class="logout-btn" type="button" style="margin-inline-start:8px;">إلغاء</button>
+      </form>
+    </div>
+  </div>
+  <script src="app.js"></script>
+  <script>
+    App.init('employees');
+    var grid = document.getElementById('emp-grid');
+    var mOverlay = document.getElementById('emp-modal');
+    var aOverlay = document.getElementById('add-modal');
+    var selectedId = null;
+    function initials(name){ var s=(name||'').trim(); if(!s) return 'NA'; var parts=s.split(' '); var i1=parts[0]?parts[0][0]:'N'; var i2=parts[1]?parts[1][0]:'A'; return (i1+i2).toUpperCase(); }
+    function hueFromString(str){ var h=0; for(var i=0;i<(str||'').length;i++){ h=(h*31+str.charCodeAt(i))%360; } return h; }
+    function avatarStyle(name){ var h=hueFromString(name||''); var h2=(h+45)%360; return 'display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,hsl('+h+',70%,45%),hsl('+h2+',70%,30%));color:#fff;font-weight:700;font-size:1.2rem;'; }
+    function seed() {
+      var list = App.store.list('employees');
+      if (list.length) return;
+      App.store.create('employees', { name: 'أحمد محمد', branch: 'الرياض', role: 'مشرف' });
+      App.store.create('employees', { name: 'سارة علي', branch: 'جدة', role: 'موظفة' });
+    }
+    function renderGrid() {
+      var rows = App.store.list('employees', { archived: false });
+      grid.innerHTML = '';
+      rows.forEach(function (r) {
+        var card = document.createElement('div');
+        card.className = 'emp-card';
+        var img = document.createElement('div');
+        img.className = 'emp-photo';
+        img.setAttribute('style', avatarStyle(r.name));
+        img.textContent = initials(r.name);
+        var name = document.createElement('div');
+        name.className = 'emp-name';
+        name.textContent = r.name || '';
+        var role = document.createElement('div');
+        role.className = 'emp-role';
+        role.textContent = r.role || '';
+        var det = document.createElement('div');
+        det.className = 'emp-detail';
+        det.innerHTML = '<span>الفرع</span><span>' + (r.branch || '') + '</span>';
+        var st = document.createElement('div');
+        st.className = 'status-badge status-valid';
+        st.textContent = 'ساري';
+        card.appendChild(img);
+        card.appendChild(name);
+        card.appendChild(role);
+        card.appendChild(det);
+        card.appendChild(st);
+        card.onclick = function () { openModal(r.id); };
+        grid.appendChild(card);
+      });
+    }
+    function openModal(id) {
+      selectedId = id;
+      var r = App.store.get('employees', id);
+      if (!r) return;
+      var ph = document.getElementById('m-photo');
+      ph.outerHTML = '<div id="m-photo" class="modal-photo" style="'+avatarStyle(r.name)+'">'+initials(r.name)+'</div>';
+      document.getElementById('m-name').textContent = r.name || '';
+      document.getElementById('m-branch').textContent = r.branch || '';
+      renderDocs();
+      renderMeta();
+      mOverlay.classList.add('open');
+    }
+    function closeModal() { mOverlay.classList.remove('open'); selectedId = null; }
+    document.getElementById('m-close').onclick = closeModal;
+    document.getElementById('upload-box').onclick = function () { document.getElementById('m-file').click(); };
+    document.getElementById('m-file').addEventListener('change', function (e) {
+      var file = e.target.files && e.target.files[0];
+      if (!file || !selectedId) return;
+      if (App.api && App.api.employees) {
+        App.api.employees.attach(selectedId, file, {}).then(function (resp) {
+          App.store.create('employee_docs', { employeeId: selectedId, title: file.name, apiId: resp && resp.id });
+          renderDocs();
+        }).catch(function () {
+          App.store.create('employee_docs', { employeeId: selectedId, title: file.name });
+          renderDocs();
+        });
+      } else {
+        App.store.create('employee_docs', { employeeId: selectedId, title: file.name });
+        renderDocs();
+      }
+      e.target.value = '';
+    });
+    function daysLeft(dateStr){ if(!dateStr) return ''; var d=new Date(dateStr); if(isNaN(d.getTime())) return ''; var diff=d.getTime()-Date.now(); return Math.ceil(diff/86400000); }
+    function renderDocs() {
+      var box = document.getElementById('m-docs');
+      var docs = App.store.list('employee_docs').filter(function (d) { return d.employeeId === selectedId; });
+      box.innerHTML = docs.map(function (d) {
+        var dl = daysLeft(d.expiresAt);
+        var cat = d.category || 'عام';
+        var info = [];
+        if (d.number) info.push('رقم: '+d.number);
+        if (d.expiresAt) info.push('انتهاء: '+d.expiresAt);
+        if (dl!=='' ) info.push('متبقي: '+dl+' يوم');
+        var actions = '<div style="display:flex; gap:8px; margin-top:6px;"><button class="btn-primary text-white px-3 py-1 rounded" data-archive="'+d.id+'">'+(d.archived?'استعادة':'أرشفة')+'</button><button class="logout-btn px-3 py-1 rounded" data-delete="'+d.id+'">حذف</button></div>';
+        return '<div class="glass-card" style="padding:10px; margin-bottom:10px;"><div style="font-weight:600;">'+cat+'</div><div style="color:#cbd5e1; font-size:0.9rem;">'+(d.title||'')+'</div><div style="color:#94a3b8; font-size:0.85rem;">'+info.join(' | ')+'</div>'+actions+'</div>';
+      }).join('');
+      Array.prototype.forEach.call(box.querySelectorAll('[data-archive]'), function(btn){
+        btn.onclick = function(){
+          var id = btn.getAttribute('data-archive');
+          var rec = App.store.get('employee_docs', id);
+          if(!rec) return;
+          App.store.update('employee_docs', id, { archived: !rec.archived });
+          renderDocs();
+        };
+      });
+      Array.prototype.forEach.call(box.querySelectorAll('[data-delete]'), function(btn){
+        btn.onclick = function(){
+          var id = btn.getAttribute('data-delete');
+          confirmDialog({
+            title: 'تأكيد الحذف',
+            message: 'سيتم حذف هذا المستند من سجل الموظف. هل أنت متأكد؟'
+          }).then(function(yes){
+            if (!yes) return;
+            App.store.remove('employee_docs', id);
+            renderDocs();
+          });
+        };
+      });
+    }
+    function renderMeta(){
+      var f = document.getElementById('m-meta-form');
+      if(!f || !selectedId) return;
+      var rec = App.store.list('employee_meta').find(function(m){ return m.employeeId === selectedId; }) || {};
+      ['sapId','opsBand','healthCardNo','healthCardStatus','healthCardExp','trainingL1','trainingL2','airportPermitNo','airportPermitStatus','airportPermitExp','notes'].forEach(function(k){
+        if(f[k]) f[k].value = rec[k] || '';
+      });
+    }
+    (function(){
+      var mdoc = document.getElementById('m-doc-form');
+      if (mdoc) {
+        mdoc.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var f = e.target;
+          var title = (f.title && f.title.value || '').trim();
+          var type = (f.type && f.type.value || '').trim();
+          var expiresAt = (f.expiresAt && f.expiresAt.value || '').trim();
+          if (!selectedId) return;
+          App.store.create('employee_docs', { employeeId: selectedId, title: title, type: type, expiresAt: expiresAt });
+          renderDocs();
+          f.reset();
+        });
+      }
+    })();
+    var rentForm = document.getElementById('rent-form');
+    if (rentForm) rentForm.addEventListener('submit', function(e){
+      e.preventDefault();
+      if(!selectedId) return;
+      var ex = e.target.expiresAt.value.trim();
+      var dl = daysLeft(ex);
+      App.store.create('employee_docs', { employeeId: selectedId, category:'عقد الإيجار', title:'عقد الإيجار', expiresAt: ex, daysLeft: dl });
+      renderDocs();
+      e.target.reset();
+      document.getElementById('rent-days').textContent = '';
+    });
+    var buildForm = document.getElementById('build-form');
+    if (buildForm) buildForm.addEventListener('submit', function(e){
+      e.preventDefault();
+      if(!selectedId) return;
+      var ex = e.target.expiresAt.value.trim();
+      var dl = daysLeft(ex);
+      App.store.create('employee_docs', { employeeId: selectedId, category:'رخصة البناء', title:'رخصة البناء', expiresAt: ex, daysLeft: dl });
+      renderDocs();
+      e.target.reset();
+      document.getElementById('build-days').textContent = '';
+    });
+    var cleanForm = document.getElementById('clean-form');
+    if (cleanForm) cleanForm.addEventListener('submit', function(e){
+      e.preventDefault();
+      if(!selectedId) return;
+      var num = e.target.number.value.trim();
+      var ex = e.target.expiresAt.value.trim();
+      var dl = daysLeft(ex);
+      App.store.create('employee_docs', { employeeId: selectedId, category:'عقد النظافة', title:'عقد النظافة', number: num, expiresAt: ex, daysLeft: dl });
+      renderDocs();
+      e.target.reset();
+      document.getElementById('clean-days').textContent = '';
+    });
+    var miscForm = document.getElementById('misc-form');
+    if (miscForm) miscForm.addEventListener('submit', function(e){
+      e.preventDefault();
+      if(!selectedId) return;
+      var t = e.target.title.value.trim();
+      var d = e.target.description.value.trim();
+      var ex = e.target.expiresAt.value.trim();
+      var dl = daysLeft(ex);
+      App.store.create('employee_docs', { employeeId: selectedId, category:'أخرى', title: t, description: d, expiresAt: ex, daysLeft: dl });
+      renderDocs();
+      e.target.reset();
+    });
+    if (rentForm && rentForm.expiresAt) rentForm.expiresAt.oninput = function(){ var v=this.value.trim(); var dl=daysLeft(v); document.getElementById('rent-days').textContent = dl!=='' ? ('المتبقي: '+dl+' يوم') : ''; };
+    if (buildForm && buildForm.expiresAt) buildForm.expiresAt.oninput = function(){ var v=this.value.trim(); var dl=daysLeft(v); document.getElementById('build-days').textContent = dl!=='' ? ('المتبقي: '+dl+' يوم') : ''; };
+    if (cleanForm && cleanForm.expiresAt) cleanForm.expiresAt.oninput = function(){ var v=this.value.trim(); var dl=daysLeft(v); document.getElementById('clean-days').textContent = dl!=='' ? ('المتبقي: '+dl+' يوم') : ''; };
+    document.getElementById('m-archive').onclick = function () {
+      if (!selectedId) return;
+      App.store.archive('employees', selectedId);
+      closeModal();
+      renderGrid();
+    };
+    document.getElementById('m-restore').onclick = function () {
+      if (!selectedId) return;
+      App.store.restore('employees', selectedId);
+      closeModal();
+      renderGrid();
+    };
+    document.getElementById('open-add-emp').onclick = function () { aOverlay.classList.add('open'); };
+    document.getElementById('add-close').onclick = function () { aOverlay.classList.remove('open'); };
+    App.bindForm('emp-add-form', {
+      collection: 'employees',
+      api: { group: 'employees', action: 'create' },
+      validate: function (d) { return !!d.name; },
+      onSaved: function () { aOverlay.classList.remove('open'); renderGrid(); }
+    });
+    document.getElementById('m-meta-form').addEventListener('submit', function(e){
+      e.preventDefault();
+      if(!selectedId) return;
+      var f = e.target;
+      var data = {
+        employeeId: selectedId,
+        sapId: f.sapId.value.trim(),
+        opsBand: f.opsBand.value.trim(),
+        healthCardNo: f.healthCardNo.value.trim(),
+        healthCardStatus: f.healthCardStatus.value.trim(),
+        healthCardExp: f.healthCardExp.value.trim(),
+        trainingL1: f.trainingL1.value.trim(),
+        trainingL2: f.trainingL2.value.trim(),
+        airportPermitNo: f.airportPermitNo.value.trim(),
+        airportPermitStatus: f.airportPermitStatus.value.trim(),
+        airportPermitExp: f.airportPermitExp.value.trim(),
+        notes: f.notes.value.trim()
+      };
+      var existing = App.store.list('employee_meta').find(function(m){ return m.employeeId === selectedId; });
+      if(existing){ App.store.update('employee_meta', existing.id, data); }
+      else { App.store.create('employee_meta', data); }
+      renderMeta();
+    });
+    seed();
+    renderGrid();
+  </script>
+</body>
+</html>

@@ -1,0 +1,2846 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-en="Admin Panel" data-ar="لوحة الإدارة">لوحة الإدارة</title>
+  <link rel="stylesheet" href="style-admin.css">
+  <link rel="icon" type="image/svg+xml" href="olayan-mark.svg">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+  <script>
+    (function(){
+      function load(src, cb){ var s=document.createElement('script'); s.src=src; s.onload=function(){ cb(true); }; s.onerror=function(){ cb(false); }; document.head.appendChild(s); }
+      function ensureXLSX(){
+        if (window.XLSX) return;
+        var sources=[
+          'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
+          'https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js'
+        ];
+        var i=0; (function next(){ if (window.XLSX || i>=sources.length) return; load(sources[i++], next); })();
+      }
+      if (!window.XLSX) ensureXLSX();
+      window.addEventListener('load', ensureXLSX);
+    })();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <style>
+    .apexcharts-flip-y {
+      transform: scaleY(-1) translateY(-100%);
+      transform-origin: top;
+      transform-box: fill-box;
+    }
+    .apexcharts-flip-x {
+      transform: scaleX(-1);
+      transform-origin: center;
+      transform-box: fill-box;
+    }
+    .apexcharts-legend {
+      display: flex;
+      overflow: auto;
+      padding: 0 10px;
+    }
+    .apexcharts-legend.apexcharts-legend-group-horizontal {
+      flex-direction: column;
+    }
+    .apexcharts-legend-group {
+      display: flex;
+    }
+    .apexcharts-legend-group-vertical {
+      flex-direction: column-reverse;
+    }
+    .apexcharts-legend.apx-legend-position-bottom, .apexcharts-legend.apx-legend-position-top {
+      flex-wrap: wrap;
+    }
+    .apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {
+      flex-direction: column;
+      bottom: 0;
+    }
+    .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-left, .apexcharts-legend.apx-legend-position-top.apexcharts-align-left, .apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {
+      justify-content: flex-start;
+      align-items: flex-start;
+    }
+    .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-center, .apexcharts-legend.apx-legend-position-top.apexcharts-align-center {
+      justify-content: center;
+      align-items: center;
+    }
+    .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-right, .apexcharts-legend.apx-legend-position-top.apexcharts-align-right {
+      justify-content: flex-end;
+      align-items: flex-end;
+    }
+    .apexcharts-legend-series {
+      cursor: pointer;
+      line-height: normal;
+      display: flex;
+      align-items: center;
+    }
+    .apexcharts-legend-text {
+      position: relative;
+      font-size: 14px;
+    }
+    .apexcharts-legend-text *, .apexcharts-legend-marker * {
+      pointer-events: none;
+    }
+    .apexcharts-legend-marker {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      margin-right: 1px;
+    }
+    .apexcharts-legend-series.apexcharts-no-click {
+      cursor: auto;
+    }
+    .apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series {
+      display: none !important;
+    }
+    .apexcharts-inactive-legend {
+      opacity: 0.45;
+    }
+    #vio-page-size {
+      background: rgba(15, 23, 42, 0.9);
+      color: #cbd5e1;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 10px;
+      padding: 6px 10px;
+    }
+    #vio-page-size option {
+      background: #0b1020;
+      color: #cbd5e1;
+    }
+    .charts-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+    }
+    .chart-container {
+      min-height: 220px;
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+    .chart-container:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(15,23,42,.6);
+    }
+  </style>
+</head>
+<body class="ar">
+  <canvas id="bg-canvas"></canvas>
+  <div id="toast-container"></div>
+  <div id="confirm-overlay" class="modal-overlay">
+    <div class="modal-content" style="max-width:420px;">
+      <div class="modal-header">
+        <div style="flex-grow:1; text-align:right;">
+          <span id="confirm-title" class="text-sm text-slate-200">تأكيد</span>
+        </div>
+      </div>
+      <div class="modal-body">
+        <p id="confirm-message" class="text-slate-200 text-sm"></p>
+      </div>
+      <div class="modal-footer">
+        <button id="confirm-cancel" class="btn bg-slate-700 hover:bg-slate-600 text-white">إلغاء</button>
+        <button id="confirm-ok" class="btn bg-red-600 hover:bg-red-500 text-white">تأكيد الحذف</button>
+      </div>
+    </div>
+  </div>
+  <div id="quote-edit-overlay" class="modal-overlay">
+    <div class="modal-content" style="max-width:560px;">
+      <div class="modal-header">
+        <div style="flex-grow:1; text-align:right;">
+          <span class="text-sm text-slate-200">تحرير العبارة</span>
+        </div>
+        <button id="quote-edit-close" class="modal-close" style="position:absolute;left:12px;top:12px;">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="grid md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-400 text-xs mb-1">العربية</label>
+            <input id="quote-edit-ar" class="form-control" placeholder="اكتب العبارة بالعربية">
+          </div>
+          <div>
+            <label class="block text-slate-400 text-xs mb-1">English</label>
+            <input id="quote-edit-en" class="form-control" placeholder="Write the phrase in English">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="quote-edit-cancel" class="btn bg-slate-700 hover:bg-slate-600 text-white">إلغاء</button>
+        <button id="quote-edit-save" class="btn bg-blue-600 hover:bg-blue-500 text-white">حفظ</button>
+      </div>
+    </div>
+  </div>
+  <!-- Login Section Removed: Unified in login.html -->
+  <div id="admin-content" class="admin-layout" style="display:none;">
+    <aside class="admin-sidebar">
+      <div class="sidebar-header">
+        <img src="olayan-mark.svg" class="sidebar-logo" alt="Logo">
+        <span class="sidebar-brand" data-en="Admin Panel" data-ar="لوحة التحكم">Admin Panel</span>
+      </div>
+      <nav class="sidebar-nav">
+        <!-- Group 1: Leadership & Analysis -->
+        <div class="nav-group active" id="group-leadership">
+          <div class="nav-group-header" onclick="toggleSidebarGroup('group-leadership')">
+            <span class="flex items-center gap-2"><span class="text-lg">📊</span> <span data-en="Leadership & Analytics" data-ar="القيادة والتحليل">Leadership & Analytics</span></span>
+            <i class="arrow-icon">▶</i>
+          </div>
+          <div class="nav-group-content">
+            <a href="#" class="nav-item active" id="nav-dashboard" onclick="showSection('dashboard');return false;">
+              <span class="w-6 text-center">🏠</span> <span data-en="Dashboard" data-ar="الرئيسية">Dashboard</span>
+            </a>
+            <a href="#" class="nav-item" onclick="toast('info', 'AI', 'التحليل الاستراتيجي قيد التطوير');return false;">
+              <span class="w-6 text-center">🧠</span> <span data-en="AI Analysis" data-ar="التحليل الاستراتيجي (AI)">AI Analysis</span>
+            </a>
+            <a href="tasks.html" class="nav-item">
+              <span class="w-6 text-center">✅</span> <span data-en="Tasks" data-ar="المهام">المهام</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Group 2: Data Management -->
+        <div class="nav-group" id="group-data">
+          <div class="nav-group-header" onclick="toggleSidebarGroup('group-data')">
+            <span class="flex items-center gap-2"><span class="text-lg">📁</span> <span data-en="Data Management" data-ar="إدارة البيانات">Data Management</span></span>
+            <i class="arrow-icon">▶</i>
+          </div>
+          <div class="nav-group-content">
+            <a href="#" class="nav-item" onclick="toast('info', 'Master Data', 'إدارة البيانات الرئيسية');return false;">
+              <span class="w-6 text-center">🗄️</span> <span data-en="Master Data" data-ar="إدارة البيانات (Master)">Master Data</span>
+            </a>
+            <a href="#" class="nav-item" id="nav-employees" onclick="showSection('employees');return false;">
+              <span class="w-6 text-center">👥</span> <span data-en="Employees" data-ar="الموظفين">Employees</span>
+            </a>
+            <a href="#" class="nav-item" id="nav-violations" onclick="showSection('violations');return false;">
+              <span class="w-6 text-center">⚠️</span> <span data-en="Violations" data-ar="المخالفات">Violations</span>
+            </a>
+            <a href="training.html" target="_blank" class="nav-item">
+              <span class="w-6 text-center">🎓</span> <span data-en="Training" data-ar="التدريب">Training</span>
+            </a>
+            <a href="#" class="nav-item" id="nav-branches" onclick="showSection('branches');return false;">
+              <span class="w-6 text-center">🏢</span> <span data-en="Branches" data-ar="الفروع">Branches</span>
+            </a>
+            <a href="#" class="nav-item" id="nav-licenses" onclick="showSection('licenses');return false;">
+              <span class="w-6 text-center">📜</span> <span data-en="Licenses" data-ar="التراخيص">Licenses</span>
+            </a>
+            <a href="housings.html" target="_blank" class="nav-item">
+              <span class="w-6 text-center">🏘️</span> <span data-en="Housings" data-ar="السكنات">Housings</span>
+            </a>
+            <a href="transports.html" target="_blank" class="nav-item">
+              <span class="w-6 text-center">🚚</span> <span data-en="Transports" data-ar="المواصلات">Transports</span>
+            </a>
+            <a href="#" class="nav-item" onclick="toast('info', 'Advanced', 'البيانات المتقدمة');return false;">
+              <span class="w-6 text-center">📈</span> <span data-en="Advanced Data" data-ar="البيانات المتقدمة">Advanced Data</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Group 3: Users & Complaints -->
+        <div class="nav-group" id="group-users">
+          <div class="nav-group-header" onclick="toggleSidebarGroup('group-users')">
+            <span class="flex items-center gap-2"><span class="text-lg">👥</span> <span data-en="Users & Complaints" data-ar="المستخدمين والشكاوى">Users & Complaints</span></span>
+            <i class="arrow-icon">▶</i>
+          </div>
+          <div class="nav-group-content">
+            <a href="#" class="nav-item" onclick="toast('info', 'Members', 'إدارة الأعضاء');return false;">
+              <span class="w-6 text-center">👤</span> <span data-en="Members" data-ar="الأعضاء">Members</span>
+            </a>
+            <a href="#" class="nav-item" id="nav-roles" onclick="showSection('roles');return false;">
+              <span class="w-6 text-center">🛡️</span> <span data-en="Roles & Permissions" data-ar="الأدوار والصلاحيات">Roles</span>
+            </a>
+            <a href="#" class="nav-item" onclick="toast('info', 'Messages', 'الرسائل والأرشفة');return false;">
+              <span class="w-6 text-center">💬</span> <span data-en="Messages" data-ar="الرسائل والأرشفة">Messages</span>
+            </a>
+            <a href="#" class="nav-item" onclick="toast('info', 'Logs', 'سجل النشاطات');return false;">
+              <span class="w-6 text-center">📜</span> <span data-en="Activity Log" data-ar="سجل النشاطات">Activity Log</span>
+            </a>
+            <a href="#" class="nav-item" onclick="toast('info', 'Complaints', 'الشكاوى والطلبات');return false;">
+              <span class="w-6 text-center">📥</span> <span data-en="Complaints" data-ar="الشكاوى والطلبات">Complaints</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Group 4: Quick Access -->
+        <div class="nav-group" id="group-access">
+          <div class="nav-group-header" onclick="toggleSidebarGroup('group-access')">
+            <span class="flex items-center gap-2"><span class="text-lg">🚀</span> <span data-en="Quick Access" data-ar="وصول سريع">Quick Access</span></span>
+            <i class="arrow-icon">▶</i>
+          </div>
+          <div class="nav-group-content">
+            <a href="index.html" target="_blank" class="nav-item">
+              <span class="w-6 text-center">🌐</span> <span data-en="Public Site" data-ar="الموقع الرئيسي (Public)">Public Site</span>
+            </a>
+            <a href="reports.html" target="_blank" class="nav-item">
+              <span class="w-6 text-center">📊</span> <span data-en="Board Report" data-ar="تقرير الإدارة (Public)">Board Report</span>
+            </a>
+            <div id="quick-access-branches"></div>
+          </div>
+        </div>
+
+        <!-- Group 5: Settings (Collapsed by default, simple link or group) -->
+        <div class="nav-group" id="group-settings">
+          <div class="nav-group-header" onclick="toggleSidebarGroup('group-settings')">
+            <span class="flex items-center gap-2"><span class="text-lg">⚙️</span> <span data-en="System Settings" data-ar="اعدادات النظام">System Settings</span></span>
+            <i class="arrow-icon">▶</i>
+          </div>
+           <div class="nav-group-content">
+            <a href="#" class="nav-item" onclick="toast('info', 'Settings', 'الإعدادات العامة');return false;">
+              <span class="w-6 text-center">🔧</span> <span data-en="General Settings" data-ar="الإعدادات العامة">General</span>
+            </a>
+            <a href="#" class="nav-item" id="nav-settings" onclick="showSection('settings');return false;">
+              <span class="w-6 text-center">🧩</span> <span data-en="Advanced Settings" data-ar="الإعدادات المتقدمة">Advanced Settings</span>
+            </a>
+          </div>
+        </div>
+
+      </nav>
+      <div style="padding:16px; margin-top: auto;">
+        <button id="logout" class="btn btn-danger w-full justify-center" data-en="Logout" data-ar="تسجيل خروج">تسجيل خروج</button>
+        <div class="text-xs text-center text-slate-500 mt-4">
+          <div data-en="All rights reserved Olayan 2025" data-ar="جميع الحقوق محفوظة لدى شركة العليان للخدمات الغذائية © 2025">جميع الحقوق محفوظة لدى شركة العليان للخدمات الغذائية © 2025</div>
+          <div class="mt-1 text-blue-400" data-en="Dev by Bandar A." data-ar="Developed by Bandar A. Abdulwahab">Developed by Bandar A. Abdulwahab</div>
+        </div>
+      </div>
+    </aside>
+    <main class="admin-main">
+      <header class="admin-header">
+        <div class="header-title" id="page-title" data-en="Admin Dashboard" data-ar="لوحة التحكم">
+          <button id="sidebar-toggle" class="sidebar-toggle">☰</button>
+          <span data-en="Admin Dashboard" data-ar="لوحة التحكم">لوحة التحكم</span>
+        </div>
+        <div class="header-actions">
+          <div class="lang-switch inline-flex items-center gap-2">
+            <button class="btn btn-secondary" onclick="setLang('en')">EN</button>
+            <span class="text-slate-500">/</span>
+            <button class="btn btn-secondary" onclick="setLang('ar')">AR</button>
+          </div>
+          <div class="status-pill" id="phrase-generator"><span>💡</span><span data-en="Inspiration" data-ar="إلهام">إلهام</span></div>
+          <div class="status-pill" id="update-source-indicator"><span>📊</span><span data-en="Last Update: Excel" data-ar="آخر تحديث: Excel" data-bi="1">Last Update: Excel</span></div>
+          <div class="ai-command-bar">
+            <input id="ai-command-input" class="ai-command-input" type="text" data-i18n-ph="ai.placeholder" placeholder="اكتب: أظهر المخالفات، تحليل، فروع الرياض" />
+            <button class="ai-command-btn" type="button" onclick="smartReplyFromInput('ai-command-input')">
+              <span>🤖</span><span data-en="AI" data-ar="ذكاء">AI</span>
+            </button>
+          </div>
+          <button class="btn btn-secondary" onclick="App.logout()" data-en="Logout" data-ar="تسجيل الخروج">Logout</button>
+        </div>
+      </header>
+      <div class="admin-content-wrapper">
+        <section id="section-dashboard">
+          <div class="kpis-grid">
+            <div class="kpi-card">
+              <div class="kpi-label" data-en="HEALTH CARDS COMPLIANCE" data-ar="نسبة التزام الكروت الصحية">HEALTH CARDS COMPLIANCE</div>
+              <div class="kpi-value" id="kpi-health" style="color:#4facfe;">74%</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label" data-en="TOTAL FINES (SAR)" data-ar="إجمالي الغرامات (ريال)">TOTAL FINES (SAR)</div>
+              <div class="kpi-value" id="kpi-fines" style="color:#f87171;">335,150</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label" data-en="CLOSED VIOLATIONS" data-ar="مخالفات مغلقة">CLOSED VIOLATIONS</div>
+              <div class="kpi-value" id="kpi-closed" style="color:#34d399;">128</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label" data-en="OPEN VIOLATIONS" data-ar="مخالفات مفتوحة">OPEN VIOLATIONS</div>
+              <div class="kpi-value" id="kpi-open" style="color:#fbbf24;">15</div>
+            </div>
+          </div>
+          <div class="data-card">
+            <div class="card-header" data-en="Executive Board Report" data-ar="تقرير الإدارة التنفيذي" data-bi="1">Executive Board Report</div>
+            <div id="board-summary"></div>
+            <div id="section-analytics-inner" style="margin-bottom: 30px;">
+              <div class="section-header">
+                <span class="section-title" data-en="Strategic Analytics (AI)" data-ar="التحليل الاستراتيجي (AI)" data-bi="1">Strategic Analytics (AI)</span>
+                <div style="display:flex; gap:10px; align-items:center;">
+                  <select id="ai-year-filter" class="form-control" style="width:180px;">
+                    <option value="all" data-en="All Years" data-ar="كل السنوات">كل السنوات</option>
+                    <option value="2022">2022</option>
+                    <option value="2023">2023</option>
+                    <option value="2024">2024</option>
+                    <option value="2025">2025</option>
+                    <option value="2026">2026</option>
+                    <option value="2027">2027</option>
+                    <option value="2028">2028</option>
+                  </select>
+                  <input type="date" id="ai-date-from" class="form-control" style="width:150px" data-en="From" data-ar="من">
+                  <input type="date" id="ai-date-to" class="form-control" style="width:150px" data-en="To" data-ar="إلى">
+                  <button class="btn btn-secondary" onclick="generateStrategicReport()" data-en="Apply Filters" data-ar="تطبيق الفلاتر">تطبيق الفلاتر</button>
+                  <button class="btn btn-primary" id="ai-refresh" onclick="generateStrategicReport()" data-en="Refresh Analysis" data-ar="تحديث التحليل">🔄 تحديث التحليل</button>
+                </div>
+              </div>
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:20px; margin: 16px;">
+                <div class="stat-card" style="border-right: 4px solid #10b981;">
+                  <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                    <h3 data-en="Operational Efficiency" data-ar="الكفاءة التشغيلية" data-bi="1">Operational Efficiency</h3>
+                    <span style="font-size:1.4rem;">⚙️</span>
+                  </div>
+                  <p id="ai-insight-ops" style="color:#cbd5e1; line-height:1.6; font-size:0.9rem;">…</p>
+                </div>
+                <div class="stat-card" style="border-right: 4px solid #ef4444;">
+                  <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                    <h3 data-en="Financial Risks" data-ar="المخاطر المالية" data-bi="1">Financial Risks</h3>
+                    <span style="font-size:1.4rem;">📉</span>
+                  </div>
+                  <p id="ai-insight-risk" style="color:#cbd5e1; line-height:1.6; font-size:0.9rem;">…</p>
+                </div>
+                <div class="stat-card" style="border-right: 4px solid #3b82f6;">
+                  <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                    <h3 data-en="Workforce Stability" data-ar="استقرار القوى العاملة" data-bi="1">Workforce Stability</h3>
+                    <span style="font-size:1.4rem;">👥</span>
+                  </div>
+                  <p id="ai-insight-hr" style="color:#cbd5e1; line-height:1.6; font-size:0.95rem;">…</p>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%); border:1px solid rgba(245, 158, 11, 0.3);">
+                  <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                    <h3 data-en="AI Recommendation" data-ar="توصية الذكاء الاصطناعي" data-bi="1">AI Recommendation</h3>
+                  </div>
+                  <p id="ai-recommendation" style="color:#fff; font-weight:bold; line-height:1.6; font-size:0.95rem;">…</p>
+                </div>
+              </div>
+              <div style="display:grid; grid-template-columns: 2fr 1fr; gap:20px; margin: 16px;">
+                <div class="stat-card">
+                  <h3 data-en="Risk Map (Violations by City/Region)" data-ar="خارطة المخاطر (المخالفات حسب المدن/المناطق)" data-bi="1">Risk Map (Violations by City/Region)</h3>
+                  <p style="color:#94a3b8; font-size:0.8rem; margin-bottom:12px;" data-en="Distribution of violations by most impacted areas" data-ar="توزيع المخالفات حسب المدن والمناطق الأكثر تضرراً" data-bi="1">Distribution of violations by most impacted areas</p>
+                  <div id="chart-ai-risk-map" style="height: 300px;"></div>
+                </div>
+                <div class="stat-card">
+                  <h3 data-en="Violations Trend" data-ar="اتجاه المخالفات" data-bi="1">Violations Trend</h3>
+                  <p style="color:#94a3b8; font-size:0.8rem; margin-bottom:12px;" data-en="Temporal pattern of violations" data-ar="تحليل نمط المخالفات الزمني" data-bi="1">Temporal pattern of violations</p>
+                  <div id="chart-ai-trend" style="height: 300px;"></div>
+                </div>
+              </div>
+              <div style="margin:16px;">
+                <div class="stat-card">
+                  <h3 data-en="Top Repeat Offenders" data-ar="أعلى الفروع تكراراً للمخالفات" data-bi="1">Top Repeat Offenders</h3>
+                  <div id="ai-top-offenders-table" style="overflow-x:auto;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="data-card">
+            <div class="card-header" data-en="Training Status" data-ar="حالة التدريب" data-bi="1">Training Status</div>
+            <div id="training-progress"></div>
+          </div>
+          <div class="data-card">
+            <div class="card-header" data-en="Violations by Branch" data-ar="المخالفات حسب الفرع" data-bi="1">Violations by Branch</div>
+            <div class="chart-container" id="chart-violations"></div>
+          </div>
+          <div class="data-card">
+            <div class="card-header" data-en="Import Excel" data-ar="استيراد Excel" data-bi="1">Import Excel</div>
+            <input type="file" id="excel-input" accept=".xlsx,.xls,.csv" class="form-control">
+            <div class="text-sm text-slate-300 mt-2">
+              <span id="excel-file-name"></span>
+              <span id="excel-import-count" style="margin-right:8px;"></span>
+            </div>
+          </div>
+          <div class="data-card" id="dev-tools-card" style="display:none;">
+            <div class="card-header" data-en="Developer Tools" data-ar="أدوات المطوّر">أدوات المطوّر</div>
+            <div class="flex items-center gap-3 flex-wrap">
+              <button id="dev-backup" class="btn btn-primary" data-en="Backup (JSON)" data-ar="نسخ احتياطي (JSON)">نسخ احتياطي (JSON)</button>
+              <label for="dev-restore-file" class="btn btn-secondary" style="cursor:pointer;" data-en="Restore Backup" data-ar="استعادة النسخ الاحتياطي">استعادة النسخ الاحتياطي</label>
+              <input type="file" id="dev-restore-file" accept=".json" style="display:none;">
+              <button id="dev-purge" class="btn btn-danger" data-en="Purge Local Data" data-ar="تفريغ البيانات المحلية">تفريغ البيانات المحلية</button>
+              <span class="text-sm text-slate-300" data-en="Visible to developer only" data-ar="مرئي للمطوّر فقط">مرئي للمطوّر فقط</span>
+            </div>
+          </div>
+        </section>
+        <section id="section-tasks" style="display:none;">
+          <div class="data-card">
+            <div class="card-header" data-en="Tasks Management" data-ar="إدارة المهام" data-bi="1">Tasks Management</div>
+            <div class="kpi-grid">
+              <div class="kpi-card"><div class="kpi-label" data-en="Completed" data-ar="مكتملة">مكتملة</div><div class="kpi-value" id="task-kpi-done">0</div></div>
+              <div class="kpi-card"><div class="kpi-label" data-en="In Progress" data-ar="جاري العمل">جاري العمل</div><div class="kpi-value" id="task-kpi-progress">0</div></div>
+              <div class="kpi-card"><div class="kpi-label" data-en="Pending" data-ar="قيد الانتظار">قيد الانتظار</div><div class="kpi-value" id="task-kpi-pending">0</div></div>
+            </div>
+            <div class="section-header">
+              <button class="btn btn-primary" onclick="openTaskModal()" data-en="New Task" data-ar="مهمة جديدة">+ مهمة جديدة</button>
+              <div class="status-pill"><span>✅</span><span data-en="Track tasks for employees" data-ar="تتبع وإسناد المهام للموظفين">تتبع وإسناد المهام للموظفين</span></div>
+            </div>
+            <div class="chart-container" style="min-height:200px">
+              <div class="card-header" data-en="Latest Tasks" data-ar="آخر المهام المسجلة">آخر المهام المسجلة</div>
+              <table class="w-full text-sm"><thead><tr>
+                <th data-en="Title" data-ar="العنوان">العنوان</th>
+                <th data-en="Assignee" data-ar="الموظف المسؤول">الموظف المسؤول</th>
+                <th data-en="Priority" data-ar="الأولوية">الأولوية</th>
+                <th data-en="Due" data-ar="تاريخ الاستحقاق">تاريخ الاستحقاق</th>
+                <th data-en="Status" data-ar="الحالة">الحالة</th>
+                <th data-en="Actions" data-ar="إجراءات">إجراءات</th>
+              </tr></thead><tbody id="tasks-table"></tbody></table>
+            </div>
+          </div>
+        </section>
+        <div id="task-modal" class="modal-overlay">
+          <div class="modal-content">
+            <div class="modal-header"><span class="header-title" data-en="Add New Task" data-ar="إضافة مهمة جديدة">إضافة مهمة جديدة</span><button class="modal-close" onclick="closeTaskModal()">&times;</button></div>
+            <div class="modal-body">
+              <div class="grid">
+                <div><label class="form-group-label" data-en="Title" data-ar="العنوان">العنوان</label><input id="task-title" class="form-control"></div>
+                <div style="grid-column:1/-1"><label class="form-group-label" data-en="Description" data-ar="الوصف">الوصف</label><textarea id="task-desc" class="form-control" rows="3"></textarea></div>
+                <div><label class="form-group-label" data-en="Assign To" data-ar="إسناد إلى">إسناد إلى</label><input id="task-assignee" class="form-control" placeholder="اكتب موظف..."></div>
+                <div><label class="form-group-label" data-en="Priority" data-ar="الأولوية">الأولوية</label><select id="task-priority" class="form-control"><option value="low" data-en="Low" data-ar="منخفضة">منخفضة</option><option value="medium" selected data-en="Medium" data-ar="متوسطة">متوسطة</option><option value="high" data-en="High" data-ar="عالية">عالية</option></select></div>
+                <div><label class="form-group-label" data-en="Due Date" data-ar="تاريخ الاستحقاق">تاريخ الاستحقاق</label><input id="task-due" type="date" class="form-control"></div>
+                <div><label class="form-group-label" data-en="Status" data-ar="الحالة">الحالة</label><select id="task-status" class="form-control"><option value="pending" data-en="Pending" data-ar="قيد الانتظار">قيد الانتظار</option><option value="in_progress" data-en="In Progress" data-ar="جاري العمل">جاري العمل</option><option value="done" data-en="Completed" data-ar="مكتملة">مكتملة</option></select></div>
+              </div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeTaskModal()" data-en="Cancel" data-ar="إلغاء">إلغاء</button><button class="btn btn-primary" onclick="saveTask()" data-en="Save" data-ar="حفظ">حفظ</button></div>
+          </div>
+        </div>
+        <section id="section-violations" style="display:none;">
+          <div class="data-card">
+            <div class="card-header" data-en="Violations Management" data-ar="إدارة المخالفات" data-bi="1">Violations Management</div>
+            <div class="section-header">
+              <div style="display:flex; gap:8px; align-items:center;">
+                <button class="btn btn-primary" onclick="openViolationModal()" data-en="New Violation" data-ar="مخالفة جديدة">+ مخالفة جديدة</button>
+                <label for="viol-excel-input" class="btn" style="cursor:pointer;" data-en="Import Violations Excel" data-ar="استيراد Excel المخالفات">استيراد Excel المخالفات</label>
+                <input type="file" id="viol-excel-input" accept=".xlsx,.xls,.csv" multiple style="display:none;">
+                <button class="btn" onclick="try{ renderViolationsCharts(); renderViolationsTable(); }catch(e){}" data-en="Refresh Analytics" data-ar="تحديث التحليلات">تحديث التحليلات</button>
+              </div>
+              <div class="status-pill"><span>⚠️</span><span data-en="Manage and analyze violations" data-ar="إدارة وتحليل المخالفات">إدارة وتحليل المخالفات</span></div>
+            </div>
+            <div class="kpi-grid">
+              <div class="kpi-card">
+                <div class="kpi-label" data-en="Completed" data-ar="مكتملة">Completed</div>
+                <div class="kpi-value" id="vio-kpi-completed">0</div>
+              </div>
+              <div class="kpi-card">
+                <div class="kpi-label" data-en="In Progress" data-ar="جاري العمل">In Progress</div>
+                <div class="kpi-value" id="vio-kpi-inprogress">0</div>
+              </div>
+              <div class="kpi-card">
+                <div class="kpi-label" data-en="Pending" data-ar="قيد الانتظار">Pending</div>
+                <div class="kpi-value" id="vio-kpi-pending">0</div>
+              </div>
+            </div>
+
+            <div class="charts-container">
+              <div class="chart-container" style="min-height:280px">
+                <div class="card-header" data-en="Top Frequency Branches" data-ar="الفروع – تكرار المخالفات" data-bi="1">Top Frequency Branches</div>
+                <div id="chart-freq" style="height: 260px;"></div>
+              </div>
+              <div class="chart-container" style="min-height:280px">
+                <div class="card-header" data-en="Violations by Region" data-ar="المخالفات حسب المنطقة" data-bi="1">Violations by Region</div>
+                <div id="chart-region" style="height: 260px;"></div>
+              </div>
+              <div class="chart-container" style="min-height:280px">
+                <div class="card-header" data-en="Top Risk Branches" data-ar="الأعلى خطورة بالمبالغ" data-bi="1">Top Risk Branches</div>
+                <div id="chart-risk" style="height: 260px;"></div>
+              </div>
+              <div class="chart-container" style="min-height:280px">
+                <div class="card-header" data-en="Most Common Types" data-ar="أنواع المخالفات الأكثر شيوعاً" data-bi="1">Most Common Types</div>
+                <div id="list-types"></div>
+              </div>
+            </div>
+            <div class="chart-container" style="margin-top:16px;">
+              <div class="card-header" data-en="Recent Violations" data-ar="سجل المخالفات" data-bi="1">سجل المخالفات</div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr>
+                      <th><input type="checkbox" id="vio-select-all"></th>
+                      <th data-en="Branch" data-ar="الفرع">الفرع</th>
+                      <th data-en="Cost Center" data-ar="مركز التكلفة">مركز التكلفة</th>
+                      <th data-en="Region" data-ar="المنطقة">المنطقة</th>
+                      <th data-en="Violation No" data-ar="رقم المخالفة">رقم المخالفة</th>
+                      <th data-en="Efaa No" data-ar="رقم إيفاء">رقم إيفاء</th>
+                      <th data-en="Payment No" data-ar="رقم السداد">رقم السداد</th>
+                      <th data-en="Type" data-ar="نوع">نوع</th>
+                      <th data-en="Amount" data-ar="المبلغ">المبلغ</th>
+                      <th data-en="Date" data-ar="التاريخ">التاريخ</th>
+                      <th data-en="Appeal Status" data-ar="حالة الاعتراض">حالة الاعتراض</th>
+                      <th data-en="Appeal Date" data-ar="تاريخ الاعتراض">تاريخ الاعتراض</th>
+                      <th data-en="Appeal Number" data-ar="رقم الاعتراض">رقم الاعتراض</th>
+                      <th data-en="Finance Date" data-ar="تاريخ المالية">تاريخ المالية</th>
+                      <th data-en="Paid" data-ar="مدفوع">مدفوع</th>
+                      <th data-en="Actions" data-ar="إجراءات">إجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody id="vio-table"></tbody>
+                </table>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:8px">
+                <div style="display:flex;gap:8px;align-items:center">
+                  <select id="vio-page-size" class="form-control" style="width:120px">
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="200">200</option>
+                    <option value="all">All</option>
+                  </select>
+                  <div class="text-xs text-slate-300" id="vio-page-info"></div>
+                  <div class="text-xs text-slate-400" id="vio-total-count" style="margin-inline-start:8px"></div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <button id="vio-btn-prev" class="btn">◀</button>
+                  <button id="vio-btn-next" class="btn">▶</button>
+                  <button class="btn btn-danger" onclick="deleteSelectedViolations()" data-en="Delete Selected" data-ar="حذف المحدد">حذف المحدد</button>
+                </div>
+              </div>
+              <div style="margin-top:12px;">
+                <div class="card-header" data-en="Violation Details" data-ar="تفاصيل المخالفات" data-bi="1">تفاصيل المخالفات</div>
+                <div style="display:flex;gap:8px;align-items:center;margin:8px 0;">
+                  <select id="vio-cards-filter" class="form-control" style="width:160px">
+                    <option value="active" data-en="Active" data-ar="نشطة">نشطة</option>
+                    <option value="archived" data-en="Archived" data-ar="مؤرشفة">مؤرشفة</option>
+                    <option value="all" data-en="All" data-ar="الكل">الكل</option>
+                  </select>
+                  <button id="vio-cards-toggle" class="btn" data-en="Show/Hide" data-ar="إظهار/إخفاء">إظهار/إخفاء</button>
+                </div>
+                <div id="vio-cards" style="display:none; grid-template-columns: repeat(auto-fill,minmax(280px,1fr)); gap:12px;"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+        <div id="vio-modal" class="modal-overlay">
+          <div class="modal-content">
+            <div class="modal-header">
+              <span class="header-title" data-en="Add New Violation" data-ar="إضافة مخالفة جديدة">إضافة مخالفة جديدة</span>
+              <div id="vio-ro-pill" class="status-pill" style="display:none; margin-inline-start: 8px;">
+                <span>🔒</span>
+                <span data-en="Read Only" data-ar="وضع القراءة فقط">وضع القراءة فقط</span>
+              </div>
+              <button class="modal-close" onclick="closeViolationModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div class="grid grid-cols-1 md:grid-cols-2">
+                <div><label class="form-group-label" data-en="Branch" data-ar="الفرع">الفرع (Branch)</label><input id="vio-branch" class="form-control"></div>
+                <div><label class="form-group-label">Cost center</label><input id="vio-cost-center" class="form-control"></div>
+                <div><label class="form-group-label" data-en="Violation No" data-ar="رقم المخالفة">رقم المخالفة (Violation No)</label><input id="vio-number" class="form-control"></div>
+                <div><label class="form-group-label" data-en="Efaa No" data-ar="رقم مخالفة إيفاء">رقم مخالفة إيفاء (Efaa No)</label><input id="vio-efaa" class="form-control"></div>
+                <div><label class="form-group-label" data-en="Payment No" data-ar="رقم السداد">رقم السداد (Payment No)</label><input id="vio-payment" class="form-control"></div>
+                <div><label class="form-group-label" data-en="Date" data-ar="تاريخ وقوع المخالفة">تاريخ وقوع المخالفة</label><input id="vio-date" type="date" class="form-control"></div>
+                <div style="grid-column:1/-1"><label class="form-group-label" data-en="Type/Description" data-ar="نوع المخالفة ووصفها">نوع المخالفة ووصفها</label><textarea id="vio-type" class="form-control" rows="3"></textarea></div>
+                <div><label class="form-group-label" data-en="Amount (SAR)" data-ar="المبلغ (ريال)">المبلغ (ريال)</label><input id="vio-amount" type="number" step="0.01" class="form-control"></div>
+                <div><label class="form-group-label" data-en="Paid Status" data-ar="حالة السداد">حالة السداد</label><select id="vio-paid" class="form-control"><option value="true" data-en="Paid" data-ar="تم السداد">تم السداد</option><option value="false" data-en="Not Paid" data-ar="لم يتم السداد">لم يتم السداد</option><option value="cancelled" data-en="Violation Cancelled" data-ar="الغاء المخالفة">الغاء المخالفة</option></select></div>
+                <div><label class="form-group-label" data-en="Region" data-ar="المنطقة">المنطقة</label><input id="vio-region" class="form-control"></div>
+                <div><label class="form-group-label" data-en="Appeal Status" data-ar="حالة الاعتراض">حالة الاعتراض</label><select id="vio-appeal" class="form-control"><option value="under_study" data-en="Under Study" data-ar="تحت الدراسة">تحت الدراسة</option><option value="rejected" data-en="Objection Rejected" data-ar="رفض الاعتراض">رفض الاعتراض</option><option value="accepted" data-en="Objection Accepted" data-ar="قبول الاعتراض">قبول الاعتراض</option><option value="not_applicable" data-en="Not Applicable" data-ar="لا يمكن الاعتراض">لا يمكن الاعتراض</option></select></div>
+                <div><label class="form-group-label" data-en="Appeal Number" data-ar="رقم الاعتراض">رقم الاعتراض</label><input id="vio-appeal-number" class="form-control"></div>
+                <div><label class="form-group-label" data-en="Appeal Date" data-ar="تاريخ تقديم الاعتراض">تاريخ تقديم الاعتراض</label><input id="vio-appeal-date" type="date" class="form-control"></div>
+                <div><label class="form-group-label" data-en="Finance Send Date" data-ar="تاريخ الإرسال للمالية">تاريخ الإرسال للمالية</label><input id="vio-finance-date" type="date" class="form-control"></div>
+                <div style="grid-column:1/-1"><label class="form-group-label" data-en="Attachments" data-ar="المرفقات">المرفقات (PDF + صور)</label><input id="vio-files" type="file" multiple></div>
+                <div id="vio-files-preview" style="grid-column:1/-1; display:grid; gap:8px; grid-template-columns: repeat(auto-fill,minmax(140px,1fr)); margin-top:8px;"></div>
+                <div style="grid-column:1/-1; display:flex; gap:8px; margin-top:8px;">
+                  <button id="vio-files-print" class="btn bg-purple-600 hover:bg-purple-700 text-white" data-en="Print Attachments" data-ar="طباعة المرفقات">طباعة المرفقات</button>
+                  <button id="vio-data-print" class="btn bg-blue-600 hover:bg-blue-500 text-white" data-en="Print Data" data-ar="طباعة البيانات">طباعة البيانات</button>
+                  <button id="vio-files-clear" class="btn bg-red-600 hover:bg-red-500 text-white" data-en="Clear Attachments" data-ar="حذف المرفقات">حذف المرفقات</button>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeViolationModal()" data-en="Cancel" data-ar="إلغاء">إلغاء</button><button id="vio-save" class="btn btn-primary" onclick="saveViolation()" data-en="Save" data-ar="حفظ">حفظ</button></div>
+          </div>
+        </div>
+        <section id="section-employees" style="display:none;">
+          <div class="data-card" style="padding: 0; overflow: hidden;">
+            <!-- Toolbar -->
+            <div class="p-4 bg-slate-800 flex flex-wrap items-center justify-between gap-4" style="border-bottom: 1px solid #334155;">
+               <div class="flex items-center gap-3 ml-auto">
+                 <input id="emp-search" type="text" class="form-control bg-slate-900 border-slate-700 text-white px-3 py-2 rounded w-64" placeholder="بحث (الاسم، الهوية، الفرع)...">
+               </div>
+               <div class="flex items-center gap-3">
+                 <label for="emp-excel-input" class="btn bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded flex items-center gap-2" style="cursor:pointer;">
+                   <span>⬆</span> <span data-en="Import Employees Excel" data-ar="استيراد Excel الموظفين">استيراد Excel الموظفين</span>
+                 </label>
+                 <input type="file" id="emp-excel-input" accept=".xlsx,.xls,.csv" multiple style="display:none;">
+                 <button id="emp-excel-manage" class="btn bg-slate-700 hover:bg-slate-600 text-white px-3 py-1 rounded text-xs" data-en="Manage Excel Files" data-ar="إدارة ملفات Excel">إدارة ملفات Excel</button>
+                <button id="emp-excel-update" class="btn bg-slate-700 hover:bg-slate-600 text-white px-3 py-1 rounded text-xs" data-en="Update File" data-ar="تحديث الملف">تحديث الملف</button>
+                 <button id="emp-excel-export" class="btn bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded flex items-center gap-2">
+                  <span>⬇</span> <span data-en="Export Excel" data-ar="تصدير Excel">تصدير Excel</span>
+                 </button>
+                 <button id="emp-pdf-print" class="btn bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded flex items-center gap-2">
+                   <span>🖨</span> <span data-en="Print PDF" data-ar="طباعة PDF">طباعة PDF</span>
+                 </button>
+                 <button id="btn-generate-data" class="btn bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded flex items-center gap-2">
+                   <span>🔄</span> <span data-en="Generate Data" data-ar="توليد بيانات">توليد بيانات</span>
+                 </button>
+                 <button id="emp-add-btn" class="btn btn-success bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded flex items-center gap-2">
+                   <span>+</span> <span data-en="Add New" data-ar="إضافة جديد">إضافة جديد</span>
+                 </button>
+                <button id="emp-view-cards" class="btn bg-slate-700 hover:bg-slate-600 text-white px-3 py-1 rounded text-xs" data-en="Cards View" data-ar="عرض الكروت">عرض الكروت</button>
+                <button id="emp-view-table" class="btn bg-slate-700 hover:bg-slate-600 text-white px-3 py-1 rounded text-xs" data-en="Table View" data-ar="عرض الجدول">عرض الجدول</button>
+               </div>
+            </div>
+            <div id="emp-excel-panel" class="p-3 bg-slate-900 border-t border-slate-700" style="display:none;">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <label for="emp-excel-input" class="btn bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded text-xs" style="cursor:pointer;" data-en="Choose Files" data-ar="اختيار ملفات">اختيار ملفات</label>
+                  <button id="emp-excel-delete-all" class="btn bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-xs" data-en="Delete All Files" data-ar="حذف كل الملفات">حذف كل الملفات</button>
+                </div>
+                <div class="text-xs text-slate-400">
+                  <span data-en="Total records:" data-ar="إجمالي السجلات:">إجمالي السجلات:</span>
+                  <span id="emp-excel-total" class="px-2 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300">0</span>
+                </div>
+              </div>
+              <div id="emp-excel-batches" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;"></div>
+            </div>
+            <div id="print-options-panel" class="p-3 bg-slate-900 border-t border-slate-700" style="display:none;">
+              <div class="card-header text-slate-300 mb-2" data-en="Print Options" data-ar="خيارات الطباعة">خيارات الطباعة</div>
+              <div class="grid md:grid-cols-3 gap-3 text-xs">
+                <div>
+                  <label class="block mb-1 text-slate-400" data-en="Training End (<= days)" data-ar="انتهاء التدريب (<= أيام)">انتهاء التدريب (<= أيام)</label>
+                  <div class="flex items-center gap-2">
+                    <input type="checkbox" id="print-tcoe-enable" checked>
+                    <input type="range" id="print-tcoe-range" min="-60" max="365" value="30" class="w-full">
+                    <input type="number" id="print-tcoe-num" min="-60" max="365" step="1" class="w-16 px-2 py-1 rounded bg-slate-800 text-slate-300" value="30">
+                  </div>
+                </div>
+                <div>
+                  <label class="block mb-1 text-slate-400" data-en="Health Card (<= days)" data-ar="الكرت الصحي (<= أيام)">الكرت الصحي (<= أيام)</label>
+                  <div class="flex items-center gap-2">
+                    <input type="checkbox" id="print-health-enable" checked>
+                    <input type="range" id="print-health-range" min="-60" max="365" value="30" class="w-full">
+                    <input type="number" id="print-health-num" min="-60" max="365" step="1" class="w-16 px-2 py-1 rounded bg-slate-800 text-slate-300" value="30">
+                  </div>
+                </div>
+                <div>
+                  <label class="block mb-1 text-slate-400" data-en="Airport Permit Expiry (<= days)" data-ar="انتهاء تصريح المطار (<= أيام)">انتهاء تصريح المطار (<= أيام)</label>
+                  <div class="flex items-center gap-2">
+                    <input type="checkbox" id="print-permit-enable">
+                    <input type="range" id="print-permit-range" min="-60" max="365" value="30" class="w-full">
+                    <input type="number" id="print-permit-num" min="-60" max="365" step="1" class="w-16 px-2 py-1 rounded bg-slate-800 text-slate-300" value="30">
+                  </div>
+                </div>
+              </div>
+              <div class="mt-3 flex items-center gap-2">
+                <button id="print-preview" title="عرض التقرير قبل الطباعة" class="btn bg-slate-700 hover:bg-slate-600 text-white px-3 py-1 rounded text-xs" data-en="Preview" data-ar="عرض">عرض</button>
+                <button id="print-apply" title="طباعة التقرير وتسجيل الحركة في السجل" class="btn bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-xs" data-en="Print" data-ar="طباعة">طباعة</button>
+                <button id="print-close" title="إغلاق لوحة خيارات الطباعة" class="btn bg-slate-700 hover:bg-slate-600 text-white px-3 py-1 rounded text-xs" data-en="Close" data-ar="إغلاق">إغلاق</button>
+              </div>
+            </div>
+            <style id="print-only-styles">
+              @media print {
+                body * { visibility: hidden !important; }
+                #print-report, #print-report * { visibility: visible !important; }
+                #print-report { position: absolute; left: 0; top: 0; width: 100%; padding: 16px; }
+              }
+            </style>
+            <div id="print-report" style="display:none;"></div>
+            
+            <!-- Table -->
+            <div id="table-scroll-top" class="overflow-x-auto">
+              <table class="w-full text-right border-collapse text-sm">
+                <thead class="bg-slate-900 text-white">
+                  <tr>
+                    <th class="p-4 font-medium"><input type="checkbox" id="emp-select-all"></th>
+                    <th class="p-4 font-medium" data-en="No." data-ar="العدد">العدد</th>
+                    <th class="p-4 font-medium" data-en="Details" data-ar="تفاصيل">تفاصيل</th>
+                    <th class="p-4 font-medium" data-en="Employee" data-ar="الموظف">الموظف</th>
+                    <th class="p-4 font-medium" data-en="Phone" data-ar="رقم الهاتف">رقم الهاتف</th>
+                    <th class="p-4 font-medium" data-en="ID/Iqama" data-ar="رقم الهوية/الإقامة">رقم الهوية/الإقامة</th>
+                    <th class="p-4 font-medium" data-en="REF#" data-ar="الرقم المرجعي REF#">الرقم المرجعي REF#</th>
+                    <th class="p-4 font-medium" data-en="Brand" data-ar="العلامة التجارية">العلامة التجارية</th>
+                    <th class="p-4 font-medium" data-en="Branch" data-ar="الفرع">الفرع</th>
+                    <th class="p-4 font-medium" data-en="Cost Center" data-ar="مركز التكلفة">مركز التكلفة</th>
+                    <th class="p-4 font-medium" data-en="Region" data-ar="المنطقة">المنطقة</th>
+                    <th class="p-4 font-medium" data-en="Permit #" data-ar="رقم التصريح">رقم التصريح</th>
+                    <th class="p-4 font-medium" data-en="Airport Permit Expiry" data-ar="انتهاء تصريح المطار">انتهاء تصريح المطار</th>
+                    <th class="p-4 font-medium" style="min-width:220px;">
+                      <div class="flex items-center justify-between gap-3">
+                        <span data-en="Training End" data-ar="انتهاء التدريب">انتهاء التدريب</span>
+                        <span data-en="Health Card" data-ar="الكرت الصحي">الكرت الصحي</span>
+                      </div>
+                    </th>
+                    <th class="p-4 font-medium" style="text-align:center;" data-en="View" data-ar="عرض">عرض</th>
+                  </tr>
+                </thead>
+                <tbody id="employees-table-body" class="divide-y divide-slate-700 text-slate-200">
+                  <!-- Rows will be injected here -->
+                </tbody>
+              </table>
+            </div>
+            <!-- Cards View -->
+            <div id="employees-cards" class="emp-grid" style="display:none;"></div>
+            <div id="table-scroll-bottom" class="overflow-x-auto mt-2" style="height:12px;">
+              <div id="table-scroll-bottom-inner" style="height:12px"></div>
+            </div>
+            <script>
+            (function(){
+              var top = document.getElementById('table-scroll-top');
+              var bottom = document.getElementById('table-scroll-bottom');
+              var inner = document.getElementById('table-scroll-bottom-inner');
+              if (!top || !bottom || !inner) return;
+              function syncWidth(){ inner.style.width = top.scrollWidth + 'px'; }
+              syncWidth();
+              window.addEventListener('resize', syncWidth);
+              bottom.addEventListener('scroll', function(){ top.scrollLeft = bottom.scrollLeft; });
+              top.addEventListener('scroll', function(){ bottom.scrollLeft = top.scrollLeft; });
+            })();
+            </script>
+
+            <!-- Footer Pagination -->
+            <div class="p-4 bg-slate-800 border-t border-slate-700 flex items-center justify-between text-slate-400 text-sm">
+               <div class="flex items-center gap-3">
+                 <button id="btn-prev" class="px-3 py-1 rounded bg-slate-700 hover:bg-slate-600" data-en="Prev" data-ar="السابق">السابق</button>
+                 <span id="page-info">صفحة 1 من 1</span>
+                 <button id="btn-next" class="px-3 py-1 rounded bg-slate-700 hover:bg-slate-600" data-en="Next" data-ar="التالي">التالي</button>
+                 <button id="btn-delete-selected" class="px-3 py-1 rounded bg-red-600 hover:bg-red-500 text-white" data-en="Delete Selected" data-ar="حذف المحدد">حذف المحدد</button>
+               </div>
+               <div class="flex items-center gap-3">
+                 <div id="total-count">إجمالي: 0</div>
+                 <label for="page-size" class="text-xs" data-en="Show:" data-ar="عرض:">عرض:</label>
+                 <select id="page-size" class="px-2 py-1 rounded bg-slate-700 text-white">
+                   <option value="25">25</option>
+                   <option value="50" selected>50</option>
+                   <option value="100">100</option>
+                 </select>
+               </div>
+            </div>
+          </div>
+          <!-- Employee Modal (scoped to Employees section only) -->
+          <div id="emp-modal" class="modal-overlay">
+            <div class="modal-content">
+              <div class="modal-header modal-header-accent" style="min-height:72px;padding:14px;position:relative;">
+                <div id="modal-header-logo" style="position:absolute;inset:0;background-image:url('olayan-mark.svg');background-repeat:no-repeat;background-position:left 12px center;background-size:64px;opacity:0.18;pointer-events:none;"></div>
+                <button onclick="document.getElementById('emp-modal').classList.remove('open')" class="modal-close" style="position:absolute;left:12px;top:12px;">&times;</button>
+                <div style="flex-grow: 1; text-align: right; padding-right: 12px;">
+                  <div id="emp-photo-preview" style="width:72px;height:72px;border-radius:12px;border:2px solid rgba(148,163,184,0.35);background:#0f172a;background-size:cover;background-position:center;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:700;position:relative;margin-top:6px;">
+                    <div id="emp-photo-watermark" style="position:absolute;inset:0;background-image:url('olayan-mark.svg');background-repeat:no-repeat;background-position:center;background-size:56%;opacity:0.14;pointer-events:none;border-radius:inherit;"></div>
+                    <input type="file" id="emp-photo-file" accept="image/*" style="display:none;">
+                    <button id="emp-photo-pick" class="btn" style="position:absolute;right:6px;bottom:6px;background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.25);backdrop-filter:blur(4px);padding:2px 6px;border-radius:8px;font-size:12px;line-height:1;cursor:pointer;">+</button>
+                    <button id="emp-photo-cancel" style="position:absolute;left:6px;top:6px;background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.25);backdrop-filter:blur(4px);padding:2px 6px;border-radius:8px;font-size:12px;line-height:1;cursor:pointer;">✖</button>
+                  </div>
+                </div>
+              </div>
+              <div class="modal-body">
+                <div class="grid grid-cols-1 md:grid-cols-2 text-right" dir="rtl">
+                  <div>
+                    <label class="block text-slate-400 text-xs mb-1">الاسم Name</label>
+                    <input id="emp-name" class="form-control">
+                  </div>
+                  <div>
+                    <label class="block text-slate-400 text-xs mb-1"> SAP ID</label>
+                    <input id="emp-sap" class="form-control">
+                  </div>
+                  <div>
+                    <label class="block text-slate-400 text-xs mb-1">رقم الهوية/الإقامة ID Number</label>
+                    <input id="emp-id-num" class="form-control">
+                  </div>
+                  <div>
+                    <label class="block text-slate-400 text-xs mb-1">الرقم المرجعي REF#</label>
+                    <input id="emp-ref" class="form-control">
+                  </div>
+                  <div>
+                    <label class="block text-slate-400 text-xs mb-1">Phone Number</label>
+                    <input id="emp-phone" class="form-control">
+                  </div>
+                  <div>
+                    <label class="block text-slate-400 text-xs mb-1">مركز التكلفة Cost Center</label>
+                    <input id="emp-tc" class="form-control">
+                  </div>
+                  <div>
+                    <label class="block text-slate-400 text-xs mb-1">العلامة التجارية Brand</label>
+                    <input id="emp-brand" class="form-control">
+                  </div>
+                  <div>
+                    <label class="block text-slate-400 text-xs mb-1">الفرع Branch</label>
+                    <input id="emp-branch" class="form-control">
+                  </div>
+                  <div>
+                    <label class="block text-slate-400 text-xs mb-1">المنطقة Region</label>
+                    <input id="emp-region" class="form-control">
+                  </div>
+                  <div>
+                    <label class="block text-slate-400 text-xs mb-1">حالة الموظف Employee Status</label>
+                    <select id="emp-state" class="form-control">
+                      <option value="">—</option>
+                      <option value="Vacation">إجازة</option>
+                      <option value="SickLeave">سكليف</option>
+                      <option value="Resigned">مستقيل</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-slate-400 text-xs mb-1">انتهاء التدريب العملي T.C.O.E</label>
+                    <input type="date" id="emp-tcoe-end" class="form-control">
+                    <div class="flex items-center gap-2 mt-1">
+                      <div id="emp-tcoe-end-remaining" class="text-xs"></div>
+                      <div id="status-tcoe-indicator" class="px-3 py-1 rounded text-xs font-bold bg-green-500/20 text-green-500 border border-green-500/30">Active</div>
+                    </div>
+                  </div>
+                  <!-- status1 select removed; indicator will be shown next to health remaining -->
+                 <div>
+                    <label class="block text-slate-400 text-xs mb-1">انتهاء الصحية Health Expiry</label>
+                    <input type="date" id="emp-health-expiry" class="form-control">
+                    <div class="flex items-center gap-2 mt-1">
+                      <div id="emp-health-expiry-remaining" class="text-xs"></div>
+                      <div id="status1-indicator" class="px-3 py-1 rounded text-xs font-bold bg-green-500/20 text-green-500 border border-green-500/30">Active</div>
+                    </div>
+                  </div>
+                  <!-- تم إزالة اختيار الحالة 2؛ سيتم عرض الحالة تلقائياً بجوار صلاحية التصريح -->
+                  <div class="md:col-span-2 mt-2 border-t border-slate-700 pt-3">
+                    <h3 class="text-slate-300 font-semibold mb-2">تصريح المطار Airport Permit Card</h3>
+                  </div>
+                  <div>
+                    <label class="block text-slate-400 text-xs mb-1">رقم التصريح Permit Number</label>
+                    <input id="emp-permit-num" class="form-control">
+                  </div>
+                  <div>
+                    <label class="block text-slate-400 text-xs mb-1">تاريخ الانتهاء Expiry Date</label>
+                    <input type="date" id="emp-permit-expiry" class="form-control">
+                    <div class="flex items-center gap-2 mt-1">
+                      <div id="emp-permit-expiry-remaining" class="text-xs"></div>
+                      <div id="status2-indicator" class="px-3 py-1 rounded text-xs font-bold bg-green-500/20 text-green-500 border border-green-500/30">Active</div>
+                    </div>
+                  </div>
+                  <div class="md:col-span-2">
+                    <!-- تمت إعادة تموضع زر الأرشفة أسفل إطار الصورة الخاص بالتصريح -->
+                  </div>
+                  <div class="md:col-span-2 mt-2 border-t border-slate-700 pt-3">
+                    <h3 class="text-slate-300 font-semibold mb-2" style="font-size:1.05rem;">الصور والمرفقات</h3>
+                  </div>
+                  <div>
+                    <label class="block text-slate-400 text-xs mb-1">صورة الهوية</label>
+                    <div id="id-img-box" style="width:100%;height:180px;border:1px dashed rgba(148,163,184,0.35);border-radius:10px;display:flex;align-items:center;justify-content:center;background-size:contain;background-repeat:no-repeat;background-position:center;">+</div>
+                    <input type="file" id="emp-id-img-file" accept="image/*" multiple style="display:none;">
+                    <button id="btn-id-archive" class="btn bg-slate-700 hover:bg-slate-600 text-white mt-2">أرشفة صورة الهوية</button>
+                  </div>
+                  <div>
+                    <label class="block text-slate-400 text-xs mb-1">صورة كرت التدريب الصحي</label>
+                    <div id="health-img-box" style="width:100%;height:180px;border:1px dashed rgba(148,163,184,0.35);border-radius:10px;display:flex;align-items:center;justify-content:center;background-size:contain;background-repeat:no-repeat;background-position:center;">+</div>
+                    <input type="file" id="emp-health-img-file" accept="image/*" multiple style="display:none;">
+                    <button id="btn-health-archive" class="btn bg-slate-700 hover:bg-slate-600 text-white mt-2">أرشفة كرت التدريب الصحي</button>
+                  </div>
+                  <div>
+                    <label class="block text-slate-400 text-xs mb-1">صورة تصريح المطار</label>
+                    <div id="permit-img-box" style="width:100%;height:180px;border:1px dashed rgba(148,163,184,0.35);border-radius:10px;display:flex;align-items:center;justify-content:center;background-size:contain;background-repeat:no-repeat;background-position:center;">+</div>
+                    <input type="file" id="emp-permit-img-file" accept="image/*" multiple style="display:none;">
+                    <button id="btn-permit-archive" class="btn bg-slate-700 hover:bg-slate-600 text-white mt-2">أرشفة تصريح المطار</button>
+                    <div id="permit-archive-status" class="text-xs text-slate-500 mt-1">إدارة مرفقات تصريح المطار</div>
+                  </div>
+                  
+                  <div class="md:col-span-2">
+                    <label class="block text-slate-400 text-xs mb-1">ملاحظات Notes</label>
+                    <textarea id="emp-notes" class="form-control" style="height: 80px;"></textarea>
+                  </div>
+                  <div class="md:col-span-2 mt-3 border-t border-slate-700 pt-3">
+                    <h3 class="text-slate-300 font-semibold mb-2" style="font-size:1.05rem;">المرفقات</h3>
+                    <div id="profile-att-grid" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button onclick="document.getElementById('emp-modal').classList.remove('open')" class="btn bg-slate-600 hover:bg-slate-500 text-white">إلغاء</button>
+                <button id="emp-save" class="btn bg-blue-600 hover:bg-blue-500 text-white font-semibold">حفظ</button>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section id="section-licenses" style="display:none;">
+          <div class="data-card">
+            <div class="card-header" data-en="Licenses & Contracts" data-ar="التراخيص والعقود">Licenses & Contracts</div>
+            <div id="licenses-summary"></div>
+          </div>
+        </section>
+        <section id="section-branches" style="display:none;">
+          <div class="data-card">
+            <div class="card-header" data-en="Branches Coverage" data-ar="تغطية الفروع">Branches Coverage</div>
+            <div class="section-header" style="display:flex;justify-content:space-between;align-items:center;background:linear-gradient(90deg, rgb(250,112,154), rgb(254,225,64));color:#fff;padding:8px 12px;border-radius:8px;" data-theme-applied="1">
+              <span class="section-title" id="branches-title">إدارة الفروع والـ KPIs</span>
+              <a href="branches.html" target="_blank" class="btn btn-secondary" id="btn-open-branches">فتح صفحة الفروع ↗</a>
+            </div>
+            
+            
+            <div class="section-header" style="margin-top:16px">
+              <span class="section-title">بيانات الفرع وإدارة السجلات</span>
+            </div>
+            <div id="branches-content" style="margin-top:8px">
+              <div style="margin-bottom:10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <input id="br-search" class="form-control" type="text" placeholder="بحث" style="max-width:260px">
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                  <button class="btn btn-primary" id="btn-branch-save">حفظ الفرع</button>
+                  <button class="btn btn-secondary" id="btn-branch-new">فرع جديد</button>
+                  <button class="btn btn-secondary" id="btn-branch-import-excel">استيراد من اكسل</button>
+                  <input type="file" id="br-excel-file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none;">
+                </div>
+              </div>
+              <div class="rounded-xl border border-slate-700/60 bg-slate-900/50 p-4" style="box-shadow:0 8px 24px rgba(2,8,23,0.35); border-color:rgba(148,163,184,0.25); background:linear-gradient(180deg, rgba(17,24,39,0.65), rgba(17,24,39,0.5));">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="width:8px;height:8px;border-radius:9999px;background:rgba(59,130,246,0.6);box-shadow:0 0 0 4px rgba(59,130,246,0.18)"></span>
+                    <span style="color:#e2e8f0; font-weight:600; font-size:0.95rem;">نموذج بيانات الفرع</span>
+                  </div>
+                  <span style="color:#94a3b8; font-size:0.8rem;">Form</span>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div>
+                  <label style="display:block; color:#94a3b8; font-size:0.85rem;">اسم الفرع</label>
+                  <input id="br-name" class="form-control" type="text">
+                </div>
+                <div>
+                  <label style="display:block; color:#94a3b8; font-size:0.85rem;">النوع</label>
+                  <select id="br-type" class="form-control" style="background:rgba(59,130,246,0.12); border-color:rgba(59,130,246,0.35)">
+                    <option value="basic">أساسي</option>
+                    <option value="opening">افتتاح</option>
+                    <option value="closed">مغلق</option>
+                  </select>
+                </div>
+                <div>
+                  <label style="display:block; color:#94a3b8; font-size:0.85rem;">العلامة التجارية</label>
+                  <input id="br-brand" class="form-control" type="text" placeholder="BK / TC / BWW">
+                </div>
+                <div>
+                  <label style="display:block; color:#94a3b8; font-size:0.85rem;">المنطقة</label>
+                  <select id="br-region" class="form-control" style="background:rgba(59,130,246,0.12); border-color:rgba(59,130,246,0.35)">
+                    <option value="الغربية">الغربية</option>
+                    <option value="الوسطى">الوسطى</option>
+                    <option value="الشرقية">الشرقية</option>
+                    <option value="other">أخرى</option>
+                  </select>
+                  <input id="br-region-other" class="form-control" type="text" placeholder="اكتب اسم المنطقة" style="margin-top:6px; display:none;">
+                </div>
+                <div>
+                  <label style="display:block; color:#94a3b8; font-size:0.85rem;">الايميل</label>
+                  <input id="br-email" class="form-control" type="email">
+                </div>
+                <div>
+                  <label style="display:block; color:#94a3b8; font-size:0.85rem;">المدينة</label>
+                  <input id="br-city" class="form-control" type="text" placeholder="اكتب اسم المدينة" />
+                </div>
+                <div>
+                  <label style="display:block; color:#94a3b8; font-size:0.85rem;">Cost Center</label>
+                  <input id="br-cost" class="form-control" type="text">
+                </div>
+                <div>
+                  <label style="display:block; color:#94a3b8; font-size:0.85rem;">OPS1</label>
+                  <input id="br-ops" class="form-control" type="text">
+                </div>
+                <div>
+                  <label style="display:block; color:#94a3b8; font-size:0.85rem;">هدف KPI</label>
+                  <input id="br-kpi-target" class="form-control" type="number" step="0.01">
+                </div>
+                <div>
+                  <label style="display:block; color:#94a3b8; font-size:0.85rem;">قيمة KPI</label>
+                  <input id="br-kpi-value" class="form-control" type="number" step="0.01">
+                </div>
+                <div>
+                  <label style="display:block; color:#94a3b8; font-size:0.85rem;">وسام لا مخالفات (يدوي)</label>
+                  <label style="display:flex; align-items:center; gap:8px; color:#e2e8f0;"><input id="br-award-star" type="checkbox"> تفعيل الوسام يدويًا</label>
+                </div>
+                <div>
+                  <label style="display:block; color:#94a3b8; font-size:0.85rem;">شعار العلامة</label>
+                  <input id="br-logo" class="form-control" type="file" accept="image/*">
+                </div>
+                <div id="br-opening-date-wrap">
+                  <label style="display:block; color:#94a3b8; font-size:0.85rem;">تاريخ افتتاح متوقع</label>
+                  <input id="br-opening-date" class="form-control" type="date">
+                </div>
+                
+                <div id="br-close-date-wrap">
+                  <label style="display:block; color:#94a3b8; font-size:0.85rem;">تاريخ الإغلاق</label>
+                  <input id="br-close-date" class="form-control" type="date">
+                </div>
+                <div class="md:col-span-2">
+                  <label style="display:block; color:#94a3b8; font-size:0.85rem;">ملاحظات</label>
+                  <textarea id="br-notes" class="form-control" rows="3" placeholder="أدخل ملاحظات الفرع"></textarea>
+                </div>
+              </div>
+              
+              <div style="margin-top:12px; display:flex; gap:8px; align-items:center; flex-wrap:nowrap; overflow-x:auto; white-space:nowrap; border:1px solid rgba(148,163,184,0.25); border-radius:10px; background:rgba(15,23,42,0.6); padding:6px 8px;">
+                <label style="color:#94a3b8; font-size:0.8rem; display:flex; align-items:center; gap:6px;"><input type="checkbox" id="br-show-hidden" checked> إظهار المخفية</label>
+                <select id="br-type-filter" class="form-control" style="max-width:130px; height:30px; font-size:12px; padding:0 8px; background:rgba(59,130,246,0.12); border-color:rgba(59,130,246,0.35)">
+                  <option value="all">كل الأنواع</option>
+                  <option value="basic">أساسي</option>
+                  <option value="opening">افتتاح</option>
+                </select>
+                <select id="br-region-filter" class="form-control" style="max-width:160px; height:30px; font-size:12px; padding:0 8px; background:rgba(59,130,246,0.12); border-color:rgba(59,130,246,0.35)">
+                  <option value="all">كل المناطق</option>
+                </select>
+                <select id="br-page-size" class="form-control" style="max-width:120px; height:30px; font-size:12px; padding:0 8px">
+                  <option value="20">عرض 20</option>
+                  <option value="50">عرض 50</option>
+                  <option value="100">عرض 100</option>
+                  <option value="200">عرض 200</option>
+                  <option value="all">عرض الكل</option>
+                </select>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <button type="button" class="btn" id="br-prev" style="font-size:12px;padding:4px 10px">السابق</button>
+                  <button type="button" class="btn" id="br-next" style="font-size:12px;padding:4px 10px">التالي</button>
+                  <span id="br-page-info" style="color:#94a3b8; font-size:0.8rem;"></span>
+                </div>
+                <button type="button" class="btn btn-danger" id="br-delete-selected" style="font-size:12px;padding:4px 10px">🗑️ حذف المحدد</button>
+                <span id="br-count-total" style="margin-inline-start:auto; color:#94a3b8; font-size:0.8rem;"></span>
+              </div>
+              <div class="overflow-x-auto rounded-xl border border-slate-700/60 bg-slate-900/50 mt-4">
+                <table class="admin-table w-full text-sm">
+                  <thead class="bg-slate-800/60">
+                    <tr>
+                      <th class="px-3 py-2 whitespace-nowrap text-center text-slate-300 text-xs font-semibold" style="width:40px"><input type="checkbox" id="br-select-all"></th>
+                      <th class="px-3 py-2 whitespace-nowrap text-right text-slate-300 text-xs font-semibold">اسم الفرع</th>
+                      <th class="px-3 py-2 whitespace-nowrap text-center text-slate-300 text-xs font-semibold">المنطقة</th>
+                      <th class="px-3 py-2 whitespace-nowrap text-center text-slate-300 text-xs font-semibold">المدينة</th>
+                      <th class="px-3 py-2 whitespace-nowrap text-center text-slate-300 text-xs font-semibold">الحالة</th>
+                      <th class="px-3 py-2 whitespace-nowrap text-center text-slate-300 text-xs font-semibold">العلامة</th>
+                      <th class="px-3 py-2 whitespace-nowrap text-center text-slate-300 text-xs font-semibold">Cost Center</th>
+                      <th class="px-3 py-2 whitespace-nowrap text-center text-slate-300 text-xs font-semibold">الايميل</th>
+                      <th class="px-3 py-2 whitespace-nowrap text-center text-slate-300 text-xs font-semibold">افتتاح متوقع</th>
+                      <th class="px-3 py-2 whitespace-nowrap text-right text-slate-300 text-xs font-semibold">تاريخ الإغلاق</th>
+                      <th class="px-3 py-2 whitespace-nowrap text-right text-slate-300 text-xs font-semibold">ملاحظات</th>
+                      <th class="px-3 py-2 whitespace-nowrap text-center text-slate-300 text-xs font-semibold">تحكم</th>
+                    </tr>
+                  </thead>
+                  <tbody id="branches-table-body"></tbody>
+                </table>
+              </div>
+              
+            </div>
+          </div>
+        </section>
+        <section id="section-roles" style="display:none;">
+          <div class="data-card">
+            <div class="card-header" data-en="Roles & Permissions" data-ar="الأدوار والصلاحيات">الأدوار والصلاحيات</div>
+            <div class="text-sm text-slate-300">
+              <div>هذه الصفحة لإدارة الأدوار والصلاحيات. سيتم إضافة التحكم التفصيلي قريباً.</div>
+            </div>
+          </div>
+        </section>
+        <section id="section-settings" style="display:none;">
+          <div class="data-card">
+            <div class="card-header" data-en="Motivational Phrases" data-ar="إدارة العبارات التحفيزية">إدارة العبارات التحفيزية</div>
+            <form id="quote-form" class="grid md:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-slate-400 text-xs mb-1">العربية</label>
+                <input id="quote-ar" class="form-control" placeholder="اكتب العبارة بالعربية">
+              </div>
+              <div>
+                <label class="block text-slate-400 text-xs mb-1">English</label>
+                <input id="quote-en" class="form-control" placeholder="Write the phrase in English">
+              </div>
+              <div class="md:col-span-2 flex gap-8 mt-1">
+                <button type="button" id="quote-add" class="btn btn-primary">إضافة</button>
+                <button type="button" id="quote-clear" class="btn">تفريغ الحقول</button>
+              </div>
+            </form>
+            <div class="overflow-x-auto rounded-xl border border-slate-700/60 bg-slate-900/50 mt-4">
+              <table class="compact-table w-full text-sm" id="quotes-table">
+                <thead class="bg-slate-800/60">
+                  <tr>
+                    <th class="px-3 py-2 text-right text-slate-300 text-xs font-semibold">العربية</th>
+                    <th class="px-3 py-2 text-left text-slate-300 text-xs font-semibold">English</th>
+                    <th class="px-3 py-2 text-center text-slate-300 text-xs font-semibold">تحكم</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script src="app.js"></script>
+  <script>
+    function setLang(l) { App.setLang(l); document.body.className = l === 'ar' ? 'ar' : 'en'; }
+    App.init('admin');
+    (function(){ var ab = localStorage.getItem('api.base'); App.setApiBase(ab || 'http://127.0.0.1:9000/api'); })();
+    (function(){
+      try {
+        if (!localStorage.getItem('branches.reset.done')) {
+          localStorage.setItem('db:branches','[]');
+          localStorage.setItem('admin_branches_data','[]');
+          localStorage.setItem('branches.reset.done','1');
+          if (typeof renderBranchesTable==='function') renderBranchesTable();
+          if (typeof renderBranchesControl==='function') renderBranchesControl();
+          if (typeof renderQuickAccessFromBranches==='function') renderQuickAccessFromBranches();
+        }
+      } catch(_){}
+    })();
+    (function(){
+      var bSave = document.getElementById('btn-branch-save'); if (bSave) bSave.onclick = function(){ if (typeof saveBranch==='function') saveBranch(); };
+      var bNew = document.getElementById('btn-branch-new'); if (bNew) bNew.onclick = function(){ if (typeof newBranchForm==='function') newBranchForm(); };
+      var bImpX = document.getElementById('btn-branch-import-excel'); if (bImpX) bImpX.onclick = function(){ var f = document.getElementById('br-excel-file'); if (f) f.click(); };
+      var fExcel = document.getElementById('br-excel-file'); if (fExcel && typeof importBranchesFromExcel==='function') fExcel.onchange = importBranchesFromExcel;
+      var taBulk = document.getElementById('br-bulk-text'); if (taBulk && typeof importBranchesFromText==='function') { taBulk.addEventListener('keydown', function(e){ if ((e.ctrlKey||e.metaKey) && e.key==='Enter'){ importBranchesFromText(); } }); }
+      var sInp = document.getElementById('br-search'); if (sInp) sInp.oninput = function(){ try{ renderBranchesTable(); }catch(_){} };
+      var sh = document.getElementById('br-show-hidden'); if (sh) sh.onchange = function(){ try{ renderBranchesTable(); }catch(_){} };
+      var op = document.getElementById('br-only-pinned'); if (op) op.onchange = function(){ try{ renderBranchesTable(); }catch(_){} };
+      var tf = document.getElementById('br-type-filter'); if (tf) tf.onchange = function(){ try{ renderBranchesTable(); }catch(_){} };
+      var rf = document.getElementById('br-region-filter'); if (rf) rf.onchange = function(){ try{ renderBranchesTable(); }catch(_){} };
+      var selAll = document.getElementById('br-select-all'); if (selAll) selAll.onchange = function(){ try { var boxes = document.querySelectorAll('#branches-table-body input.br-select'); boxes.forEach(function(b){ b.checked = selAll.checked; }); } catch(_){} };
+      var delSel = document.getElementById('br-delete-selected'); if (delSel) delSel.onclick = function(){ try { var ids = (typeof getSelectedBranchIds==='function') ? getSelectedBranchIds() : []; if (!ids.length) { if (typeof toast==='function') toast('info','تنبيه','لم يتم تحديد أي فروع'); return; } confirmDialog({ title:'تأكيد الحذف', message:'سيتم حذف '+ ids.length +' فرع/فروع. هل أنت متأكد؟' }).then(function(ok){ if(!ok) return; ids.forEach(function(id){ try { App.store.remove('branches', id); } catch(_){ } }); renderBranchesTable(); renderBranchesControl(); renderQuickAccessFromBranches(); if (typeof toast==='function') toast('success','تم','تم حذف المحدد'); }); } catch(_){} };
+      var rSel = document.getElementById('br-region'); if (rSel) rSel.onchange = function(){ try { var other = document.getElementById('br-region-other'); var v = rSel.value; if (other) other.style.display = (v==='other') ? '' : 'none'; if (v!=='other' && other) other.value=''; } catch(_){} };
+      function updateRegionFilterOptions(){ try { var el = document.getElementById('br-region-filter'); if (!el) return; var rows = App.store.list('branches')||[]; var uniq = {}; rows.forEach(function(b){ var r = String(b.region||'').trim(); if (r) uniq[r]=true; }); var curr = el.value||'all'; el.innerHTML = '<option value="all">كل المناطق</option>' + Object.keys(uniq).sort(function(a,b){ return a.localeCompare(b,'ar'); }).map(function(r){ return '<option value="'+ r +'">'+ r +'</option>'; }).join(''); if (curr && (curr==='all' || uniq[curr])) el.value = curr; } catch(_){} }
+      updateRegionFilterOptions();
+      function updateBranchFormVisibility(){
+        try{
+          var typeSel = document.getElementById('br-type');
+          var openingWrap = document.getElementById('br-opening-date-wrap');
+          var closeWrap = document.getElementById('br-close-date-wrap');
+          var openingInput = document.getElementById('br-opening-date');
+          var closeInput = document.getElementById('br-close-date');
+          var t = (typeSel && typeSel.value) || 'basic';
+          // افتتاح: أظهر تاريخ الافتتاح المتوقع
+          var isOpening = t === 'opening';
+          if (openingWrap) openingWrap.style.display = isOpening ? '' : 'none';
+          if (!isOpening && openingInput) openingInput.value = '';
+          // مغلق: أظهر تاريخ الإغلاق
+          var isClosed = t === 'closed';
+          if (closeWrap) closeWrap.style.display = isClosed ? '' : 'none';
+          if (!isClosed && closeInput) closeInput.value = '';
+        }catch(_){}
+      }
+      var typeField = document.getElementById('br-type'); if (typeField) typeField.onchange = function(){ updateBranchFormVisibility(); };
+      updateBranchFormVisibility();
+      var ps = document.getElementById('br-page-size'); if (ps) ps.onchange = function(){ try{ window.__branchesPage = 1; renderBranchesTable(); }catch(_){} };
+      var prev = document.getElementById('br-prev'); if (prev) prev.onclick = function(){ try{ window.__branchesPage = Math.max(1, (window.__branchesPage||1) - 1); renderBranchesTable(); }catch(_){} };
+      var next = document.getElementById('br-next'); if (next) next.onclick = function(){ try{ var sizeEl = document.getElementById('br-page-size'); var sizeVal = (sizeEl && sizeEl.value) || '20'; var pageSize = sizeVal==='all' ? Infinity : (parseInt(sizeVal,10)||20); var rows = App.store.list('branches') || []; var qEl = document.getElementById('br-search'); var showHiddenEl = document.getElementById('br-show-hidden'); var onlyPinnedEl = document.getElementById('br-only-pinned'); var typeFilterEl = document.getElementById('br-type-filter'); var regionFilterEl = document.getElementById('br-region-filter'); var q = (qEl && qEl.value || '').trim().toLowerCase(); var showHidden = !!(showHiddenEl && showHiddenEl.checked); var onlyPinned = !!(onlyPinnedEl && onlyPinnedEl.checked); var typeFilter = (typeFilterEl && typeFilterEl.value) || 'all'; var regionFilter = (regionFilterEl && regionFilterEl.value) || 'all'; var filtered = rows.filter(function(b){ if(!showHidden && b.hidden===true) return false; if(onlyPinned && b.pinned!==true) return false; if(typeFilter!=='all'){ if((typeFilter==='opening' && b.type!=='opening') || (typeFilter==='basic' && b.type==='opening')) return false; } if(regionFilter!=='all'){ if(String(b.region||'').trim()!==regionFilter) return false; } if(q){ var hay = ((b.name||'')+' '+(b.brand||'')+' '+(b.email||'')+' '+(b.cost_center||'')+' '+(b.ops1||'')).toLowerCase(); if(hay.indexOf(q)<0) return false; } return true; }); var pages = pageSize===Infinity ? 1 : Math.max(1, Math.ceil(filtered.length / pageSize)); window.__branchesPage = Math.min(pages, (window.__branchesPage||1) + 1); renderBranchesTable(); }catch(_){} };
+    })();
+    // تهيئة عامة دون عناصر دخول سريعة في الهيدر
+    var violationsCache = null;
+    var __pendingDeleteId = null;
+    var __pendingDeleteTimer = null;
+    function getRandomRedGradient() {
+      var r1 = 100 + Math.floor(Math.random() * 156);
+      var g1 = 100 + Math.floor(Math.random() * 156);
+      var b1 = 100 + Math.floor(Math.random() * 156);
+      var r2 = 80 + Math.floor(Math.random() * 120);
+      var g2 = 80 + Math.floor(Math.random() * 120);
+      var b2 = 80 + Math.floor(Math.random() * 120);
+      return 'linear-gradient(135deg, rgb(' + r1 + ',' + g1 + ',' + b1 + '), rgb(' + r2 + ',' + g2 + ',' + b2 + '))';
+    }
+    var __photoData = null;
+    var __idImgData = null;
+    var __healthImgData = null;
+    var __idImages = [];
+    var __healthImages = [];
+    var __permitAttachments = [];
+    var __attCategory = null;
+    var __attTemp = [];
+    var __violChart = null;
+    var __attSelect = { id: {}, health: {}, permit: {} };
+    var __selectMode = { id: false, health: false, permit: false };
+    function getRandomGoldAccent(){
+      var h = 45 + Math.floor(Math.random()*15);
+      var s = 90 + Math.floor(Math.random()*8);
+      var l = 50 + Math.floor(Math.random()*10);
+      var toRgb = function(h,s,l){
+        s/=100; l/=100;
+        var c=(1-Math.abs(2*l-1))*s; var x=c*(1-Math.abs((h/60)%2-1)); var m=l-c/2;
+        var r=0,g=0,b=0;
+        if (0<=h&&h<60){ r=c; g=x; b=0; }
+        else if (60<=h&&h<120){ r=x; g=c; b=0; }
+        else if (120<=h&&h<180){ r=0; g=c; b=x; }
+        else if (180<=h&&h<240){ r=0; g=x; b=c; }
+        else if (240<=h&&h<300){ r=x; g=0; b=c; }
+        else { r=c; g=0; b=x; }
+        r=Math.round((r+m)*255); g=Math.round((g+m)*255); b=Math.round((b+m)*255);
+        return 'rgb('+r+','+g+','+b+')';
+      };
+      return toRgb(h,s,l);
+    }
+    var __empExcelBatches = [];
+    var __excelUpdateTarget = null;
+    function daysDiff(dateStr){
+      var d = new Date(dateStr);
+      if (isNaN(d.getTime())) return null;
+      var now = new Date();
+      var du = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+      var nu = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+      return Math.floor((du - nu) / 86400000);
+    }
+    function setRemaining(elId, dateStr){
+      var el = document.getElementById(elId);
+      if (!el) return;
+      var diff = daysDiff(dateStr);
+      if (diff == null) { el.textContent = ''; el.className = 'text-xs'; return; }
+      if (diff >= 0) {
+        el.textContent = 'متبقي ' + diff + ' يوم';
+        el.className = 'text-xs text-green-400';
+        if (elId === 'emp-tcoe-end-remaining') {
+          var indT = document.getElementById('status-tcoe-indicator');
+          if (indT) indT.className = 'px-3 py-1 rounded text-xs font-bold bg-green-500/20 text-green-500 border border-green-500/30', indT.textContent = 'Active';
+        }
+        if (elId === 'emp-health-expiry-remaining') {
+          var ind1 = document.getElementById('status1-indicator');
+          if (ind1) ind1.className = 'px-3 py-1 rounded text-xs font-bold bg-green-500/20 text-green-500 border border-green-500/30', ind1.textContent = 'Active';
+        }
+        if (elId === 'emp-permit-expiry-remaining') {
+          var indP1 = document.getElementById('status2-indicator');
+          if (indP1) indP1.className = 'px-3 py-1 rounded text-xs font-bold bg-green-500/20 text-green-500 border border-green-500/30', indP1.textContent = 'Active';
+        }
+      } else {
+        el.textContent = 'منتهي منذ ' + Math.abs(diff) + ' يوم';
+        el.className = 'text-xs text-red-400';
+        if (elId === 'emp-tcoe-end-remaining') {
+          var indT2 = document.getElementById('status-tcoe-indicator');
+          if (indT2) indT2.className = 'px-3 py-1 rounded text-xs font-bold bg-red-500/20 text-red-500 border border-red-500/30', indT2.textContent = 'Inactive';
+        }
+        if (elId === 'emp-health-expiry-remaining') {
+          var ind2 = document.getElementById('status1-indicator');
+          if (ind2) ind2.className = 'px-3 py-1 rounded text-xs font-bold bg-red-500/20 text-red-500 border border-red-500/30', ind2.textContent = 'Inactive';
+        }
+        if (elId === 'emp-permit-expiry-remaining') {
+          var indP2 = document.getElementById('status2-indicator');
+          if (indP2) indP2.className = 'px-3 py-1 rounded text-xs font-bold bg-red-500/20 text-red-500 border border-red-500/30', indP2.textContent = 'Inactive';
+        }
+      }
+    }
+    function updateDateIndicators(){
+      var v2 = document.getElementById('emp-tcoe-end') && document.getElementById('emp-tcoe-end').value;
+      var v3 = document.getElementById('emp-health-expiry') && document.getElementById('emp-health-expiry').value;
+      var v4 = document.getElementById('emp-permit-expiry') && document.getElementById('emp-permit-expiry').value;
+      setRemaining('emp-tcoe-end-remaining', v2 || '');
+      setRemaining('emp-health-expiry-remaining', v3 || '');
+      setRemaining('emp-permit-expiry-remaining', v4 || '');
+    }
+    // تم الاستغناء عن select للحالة؛ يتم تحديث مؤشرات الحالة تلقائياً عبر setRemaining
+    function initials(name){
+      var n = String(name||'').trim();
+      if(!n) return 'NA';
+      var parts = n.split(/\s+/).slice(0,2);
+      return parts.map(function(p){ return p[0]||''; }).join('').toUpperCase();
+    }
+      function setPhotoPreview(data, name){
+      var pv = document.getElementById('emp-photo-preview');
+        var wm = document.getElementById('emp-photo-watermark');
+      if (!pv) return;
+      if (data) {
+        pv.style.backgroundImage = 'url('+data+')';
+          if (wm) wm.style.display = 'none';
+      } else {
+        pv.style.backgroundImage = '';
+          if (wm) wm.style.display = 'block';
+      }
+    }
+    function renderAttachmentsList(){
+      var cont = document.getElementById('att-list');
+      if (!cont) return;
+      cont.innerHTML = '';
+      __attTemp.forEach(function(a, i){
+        var item = document.createElement('div');
+        item.className = 'flex items-center gap-2';
+        var thumb = document.createElement('div');
+        thumb.style.width = '36px';
+        thumb.style.height = '36px';
+        thumb.style.borderRadius = '6px';
+        thumb.style.backgroundImage = 'url(' + a.data + ')';
+        thumb.style.backgroundSize = 'cover';
+        thumb.style.backgroundPosition = 'center';
+        var name = document.createElement('span');
+        name.className = 'text-xs text-slate-300';
+        name.textContent = a.name || 'ملف';
+        var del = document.createElement('button');
+        del.className = 'btn bg-red-500/20 hover:bg-red-500/40 text-red-500 rounded';
+        del.textContent = 'حذف';
+        del.onclick = function(){ __attTemp.splice(i,1); renderAttachmentsList(); };
+        item.appendChild(thumb);
+        item.appendChild(name);
+        item.appendChild(del);
+        cont.appendChild(item);
+      });
+    }
+    function renderProfileAttachments(){
+      var grid = document.getElementById('profile-att-grid');
+      if (!grid) return;
+      grid.innerHTML = '';
+      var makeSection = function(title, arr, which){
+        var wrap = document.createElement('div');
+        var head = document.createElement('div');
+        head.className = 'mb-1';
+        head.style.display = 'flex';
+        head.style.alignItems = 'center';
+        head.style.justifyContent = 'space-between';
+        var headTitle = document.createElement('span');
+        headTitle.className = 'text-xs text-slate-400';
+        headTitle.textContent = title;
+        var headActions = document.createElement('div');
+        headActions.style.display = 'flex';
+        headActions.style.gap = '6px';
+        var btnToggle = document.createElement('button');
+        btnToggle.className = 'btn';
+        btnToggle.style.background = 'rgba(148,163,184,0.2)';
+        btnToggle.style.color = '#cbd5e1';
+        btnToggle.style.border = '1px solid rgba(148,163,184,0.35)';
+        btnToggle.style.borderRadius = '6px';
+        btnToggle.style.fontSize = '11px';
+        btnToggle.style.padding = '2px 6px';
+        btnToggle.textContent = (__selectMode[which] ? 'إلغاء التحديد' : 'اختيار متعدد');
+        btnToggle.onclick = function(){
+          __selectMode[which] = !__selectMode[which];
+          if (!__selectMode[which]) __attSelect[which] = {};
+          renderProfileAttachments();
+        };
+        var btnDeleteSelected = document.createElement('button');
+        btnDeleteSelected.className = 'btn';
+        btnDeleteSelected.style.background = 'rgba(239,68,68,0.25)';
+        btnDeleteSelected.style.color = '#ef4444';
+        btnDeleteSelected.style.border = '1px solid rgba(239,68,68,0.35)';
+        btnDeleteSelected.style.borderRadius = '6px';
+        btnDeleteSelected.style.fontSize = '11px';
+        btnDeleteSelected.style.padding = '2px 6px';
+        btnDeleteSelected.textContent = 'حذف المحدد';
+        btnDeleteSelected.style.display = __selectMode[which] ? '' : 'none';
+        btnDeleteSelected.onclick = function(){
+          var keep = [];
+          (arr || []).forEach(function(a, idx){
+            if (!__attSelect[which][idx]) keep.push(a);
+          });
+          if (which === 'id') __idImages = keep;
+          if (which === 'health') __healthImages = keep;
+          if (which === 'permit') __permitAttachments = keep;
+          __attSelect[which] = {};
+          __selectMode[which] = false;
+          renderProfileAttachments();
+        };
+        var btnDeleteAll = document.createElement('button');
+        btnDeleteAll.className = 'btn';
+        btnDeleteAll.style.background = 'rgba(239,68,68,0.35)';
+        btnDeleteAll.style.color = '#fff';
+        btnDeleteAll.style.border = '1px solid rgba(239,68,68,0.55)';
+        btnDeleteAll.style.borderRadius = '6px';
+        btnDeleteAll.style.fontSize = '11px';
+        btnDeleteAll.style.padding = '2px 6px';
+        btnDeleteAll.textContent = 'حذف الكل';
+        btnDeleteAll.onclick = function(){
+          if (which === 'id') __idImages.length = 0;
+          if (which === 'health') __healthImages.length = 0;
+          if (which === 'permit') __permitAttachments.length = 0;
+          __attSelect[which] = {};
+          __selectMode[which] = false;
+          renderProfileAttachments();
+        };
+        headActions.appendChild(btnToggle);
+        headActions.appendChild(btnDeleteSelected);
+        headActions.appendChild(btnDeleteAll);
+        head.appendChild(headTitle);
+        head.appendChild(headActions);
+        var cont = document.createElement('div');
+        cont.style.display = 'grid';
+        cont.style.gridTemplateColumns = 'repeat(4,minmax(0,1fr))';
+        cont.style.gap = '6px';
+        (arr || []).forEach(function(a, idx){
+          var item = document.createElement('div');
+          item.style.position = 'relative';
+          item.style.height = '60px';
+          item.style.borderRadius = '8px';
+          item.style.backgroundImage = 'url(' + a.data + ')';
+          item.style.backgroundSize = 'cover';
+          item.style.backgroundPosition = 'center';
+          if (__selectMode[which]) {
+            var mark = document.createElement('div');
+            mark.style.position = 'absolute';
+            mark.style.left = '4px';
+            mark.style.top = '4px';
+            mark.style.width = '18px';
+            mark.style.height = '18px';
+            mark.style.borderRadius = '4px';
+            mark.style.border = '1px solid rgba(255,255,255,0.4)';
+            mark.style.background = __attSelect[which][idx] ? 'rgba(16,185,129,0.7)' : 'rgba(0,0,0,0.35)';
+            mark.style.cursor = 'pointer';
+            mark.onclick = function(){
+              if (__attSelect[which][idx]) delete __attSelect[which][idx];
+              else __attSelect[which][idx] = true;
+              mark.style.background = __attSelect[which][idx] ? 'rgba(16,185,129,0.7)' : 'rgba(0,0,0,0.35)';
+            };
+            item.appendChild(mark);
+          }
+          var x = document.createElement('button');
+          x.textContent = '✖';
+          x.className = 'btn';
+          x.style.position = 'absolute';
+          x.style.right = '4px';
+          x.style.top = '4px';
+          x.style.background = 'rgba(0,0,0,0.4)';
+          x.style.color = '#fff';
+          x.style.border = '1px solid rgba(255,255,255,0.25)';
+          x.style.borderRadius = '6px';
+          x.style.fontSize = '10px';
+          x.style.lineHeight = '1';
+          x.style.padding = '2px 4px';
+          x.onclick = function(){
+            if (which === 'id') __idImages.splice(idx,1);
+            if (which === 'health') __healthImages.splice(idx,1);
+            if (which === 'permit') __permitAttachments.splice(idx,1);
+            renderProfileAttachments();
+          };
+          item.appendChild(x);
+          cont.appendChild(item);
+        });
+        wrap.appendChild(head);
+        wrap.appendChild(cont);
+        grid.appendChild(wrap);
+      };
+      makeSection('الهوية', __idImages, 'id');
+      makeSection('الكرت الصحي', __healthImages, 'health');
+      makeSection('تصريح المطار', __permitAttachments, 'permit');
+    }
+    function openAttachmentsModal(category, row){
+      __attCategory = category;
+      var ov = document.getElementById('attachments-modal');
+      var title = document.getElementById('att-title');
+      var pick = document.getElementById('att-pick');
+      var file = document.getElementById('att-file');
+      var save = document.getElementById('att-save');
+      var clear = document.getElementById('att-clear');
+      if (!ov || !title || !pick || !file || !save || !clear) return;
+      var arr = [];
+      if (category === 'permit') arr = (row && row.permitAttachments) || __permitAttachments || [];
+      if (category === 'id') arr = (row && row.idAttachments) || __idImages || [];
+      if (category === 'health') arr = (row && row.healthAttachments) || __healthImages || [];
+      __attTemp = arr.slice();
+      title.textContent = category === 'permit' ? 'مرفقات تصريح المطار' : (category === 'id' ? 'مرفقات صورة الهوية' : 'مرفقات كرت التدريب الصحي');
+      renderAttachmentsList();
+      pick.onclick = function(){ file.click(); };
+      file.onchange = function(ev){
+        var files = Array.from(ev.target.files || []);
+        var i = 0;
+        var next = function(){
+          if (i >= files.length) { renderAttachmentsList(); return; }
+          var f = files[i++];
+          var r = new FileReader();
+          r.onload = function(e){ __attTemp.push({ name: f.name, data: e.target.result }); next(); };
+          r.readAsDataURL(f);
+        };
+        next();
+      };
+      save.onclick = function(){
+        if (__attCategory === 'permit') { __permitAttachments = __attTemp.slice(); }
+        if (__attCategory === 'id') { __idImages = __attTemp.slice(); }
+        if (__attCategory === 'health') { __healthImages = __attTemp.slice(); }
+        renderProfileAttachments();
+        ov.classList.remove('open');
+      };
+      clear.onclick = function(){ __attTemp = []; renderAttachmentsList(); };
+      ov.classList.add('open');
+    }
+    function setUpdateSource(name) {
+      var el = document.getElementById('update-source-indicator');
+      if (!el) return;
+      var spans = el.querySelectorAll('span');
+      if (spans.length > 1) {
+        var isAr = App.getLang && App.getLang() === 'ar';
+        spans[1].textContent = isAr
+          ? (name === 'api' ? 'آخر تحديث: API' : 'آخر تحديث: Excel')
+          : (name === 'api' ? 'Last Update: API' : 'Last Update: Excel');
+      }
+    }
+    function syncViolationsFromApi() {
+      if (!App.api || !App.api.violations || !App.api.violations.list) return;
+      App.api.violations.list().then(function (rows) {
+        if (!Array.isArray(rows)) rows = [];
+        violationsCache = rows.map(function (r) {
+          return { branch: r.branch || r.location || 'غير محدد', amount: Number(r.amount || r.fine || r.total || 0) };
+        });
+        setUpdateSource('api');
+        renderCharts();
+        renderLists();
+      }).catch(function () {
+        setUpdateSource('excel');
+        renderCharts();
+        renderLists();
+      });
+    }
+    function toast(type, title, message) {
+      var c = document.getElementById('toast-container');
+      var el = document.createElement('div');
+      el.className = 'toast toast-' + type;
+      var icon = document.createElement('div');
+      icon.className = 'toast-icon';
+      icon.textContent = type === 'success' ? '✓' : (type === 'error' ? '!' : 'i');
+      var cont = document.createElement('div');
+      cont.className = 'toast-content';
+      var t = document.createElement('div');
+      t.className = 'toast-title';
+      t.textContent = title;
+      var m = document.createElement('div');
+      m.className = 'toast-message';
+      m.textContent = message;
+      cont.appendChild(t);
+      cont.appendChild(m);
+      el.appendChild(icon);
+      el.appendChild(cont);
+      c.appendChild(el);
+      setTimeout(function () { el.classList.add('show'); }, 10);
+      setTimeout(function () { el.classList.remove('show'); setTimeout(function () { c.removeChild(el); }, 400); }, 3000);
+    }
+    (function setupQuoteEdit(){
+      var ov = document.getElementById('quote-edit-overlay');
+      if (!ov) return;
+      var idx = -1;
+      var arInput = document.getElementById('quote-edit-ar');
+      var enInput = document.getElementById('quote-edit-en');
+      var saveBtn = document.getElementById('quote-edit-save');
+      var cancelBtn = document.getElementById('quote-edit-cancel');
+      var closeBtn = document.getElementById('quote-edit-close');
+      window.openQuoteEdit = function(i, q){
+        idx = i;
+        if (arInput) arInput.value = (q && q.ar) || '';
+        if (enInput) enInput.value = (q && q.en) || '';
+        ov.classList.add('open');
+      };
+      var close = function(){ ov.classList.remove('open'); idx = -1; };
+      if (closeBtn) closeBtn.onclick = close;
+      if (cancelBtn) cancelBtn.onclick = close;
+      if (saveBtn) saveBtn.onclick = function(){
+        var ar = (arInput && arInput.value || '').trim();
+        var en = (enInput && enInput.value || '').trim();
+        if (idx >= 0) {
+          __quotes[idx] = { ar: ar, en: en };
+          saveQuotes(); renderQuotes();
+        }
+        close();
+      };
+    })();
+    function confirmDialog(opts) {
+      var o = document.getElementById('confirm-overlay');
+      if (!o) return Promise.resolve(false);
+      var titleEl = document.getElementById('confirm-title');
+      var msgEl = document.getElementById('confirm-message');
+      var okBtn = document.getElementById('confirm-ok');
+      var cancelBtn = document.getElementById('confirm-cancel');
+      var isAr = App.getLang && App.getLang() === 'ar';
+      var title = (opts && opts.title) || (isAr ? 'تأكيد الحذف' : 'Confirm Delete');
+      var message = (opts && opts.message) || (isAr ? 'هل أنت متأكد من عملية الحذف؟' : 'Are you sure you want to delete?');
+      if (titleEl) titleEl.textContent = title;
+      if (msgEl) msgEl.textContent = message;
+      o.classList.add('open');
+      return new Promise(function(resolve){
+        var closeAll = function(result){
+          o.classList.remove('open');
+          okBtn.onclick = null;
+          cancelBtn.onclick = null;
+        };
+        okBtn.onclick = function(){
+          closeAll(true);
+          resolve(true);
+        };
+        cancelBtn.onclick = function(){
+          closeAll(false);
+          resolve(false);
+        };
+      });
+    }
+    function updateView() {
+      if (!App.isAdmin()) {
+        window.location.href = 'login.html';
+        return;
+      }
+      document.getElementById('admin-content').style.display = 'flex';
+    }
+    updateView();
+    
+    document.getElementById('logout').onclick = function () {
+      App.setRole('user');
+      App.logout();
+      window.location.href = 'login.html';
+    };
+    var sbToggle = document.getElementById('sidebar-toggle');
+    if (sbToggle) {
+      sbToggle.onclick = function () {
+        var sb = document.querySelector('.admin-sidebar');
+        if (sb) sb.classList.toggle('collapsed');
+      };
+    }
+    function toggleSidebarGroup(id) {
+      var g = document.getElementById(id);
+      if (!g) return;
+      g.classList.toggle('active');
+    }
+    window.toggleSidebarGroup = toggleSidebarGroup;
+    function showSection(name) {
+      var ids = ['dashboard', 'violations', 'employees', 'licenses', 'branches', 'roles', 'settings'];
+      ids.forEach(function (s) {
+        var el = document.getElementById('section-' + s);
+        if (el) el.style.display = s === name ? 'block' : 'none';
+        var nav = document.getElementById('nav-' + s);
+        if (nav) { if (s === name) nav.classList.add('active'); else nav.classList.remove('active'); }
+      });
+      if (name === 'employees') renderEmployeesCards();
+      else if (name === 'violations') { try { renderViolationsTable(); renderViolationsCharts(); } catch(e){} }
+      else if (name === 'branches') { try { renderBranchesCoverage(); renderBranchesControl(); renderBranchesTable(); } catch(e){} }
+      else { var ov = document.getElementById('emp-modal'); if (ov) ov.classList.remove('open'); }
+    }
+    window.showSection = showSection;
+    function updateDevToolsVisibility() {
+      var card = document.getElementById('dev-tools-card');
+      if (!card) return;
+      card.style.display = App.isDev && App.isDev() ? 'block' : 'none';
+    }
+    updateDevToolsVisibility();
+    function backupAll() {
+      var cols = ['employees','branches','licenses','contracts','violations','housings','transports','training','admin_import'];
+      var data = {};
+      cols.forEach(function(c){ data[c] = App.store.list(c); });
+      var blob = new Blob([JSON.stringify(data,null,2)], { type: 'application/json' });
+      var ts = new Date().toISOString().replace(/[:.]/g,'-');
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'ops-backup-' + ts + '.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      toast('success','تم','تم إنشاء ملف النسخ الاحتياطي.');
+    }
+    function restoreFromFile(file) {
+      var reader = new FileReader();
+      reader.onload = function(e){
+        try{
+          var obj = JSON.parse(e.target.result || '{}');
+          Object.keys(obj || {}).forEach(function(k){
+            if (Array.isArray(obj[k])) {
+              App.store.importJSON(k, JSON.stringify(obj[k]));
+            }
+          });
+          toast('success','تم','تمت الاستعادة بنجاح.');
+          renderLists();
+        }catch(err){
+          toast('error','خطأ','ملف غير صالح.');
+        }
+      };
+      reader.readAsText(file);
+    }
+    function purgeData() {
+      var isAr = App.getLang && App.getLang() === 'ar';
+      var confirmMsg = isAr ? 'سيتم حذف البيانات المحلية (db:*). هل أنت متأكد؟' : 'This will delete local data (db:*). Are you sure?';
+      if (!confirm(confirmMsg)) return;
+      for (var i=0;i<localStorage.length;i++){
+        var key = localStorage.key(i);
+        if (key && key.indexOf('db:') === 0) {
+          // collect keys to avoid mutation during iteration
+        }
+      }
+      var keys = [];
+      for (var j=0;j<localStorage.length;j++){
+        var k = localStorage.key(j);
+        if (k && k.indexOf('db:') === 0) keys.push(k);
+      }
+      keys.forEach(function(k){ localStorage.removeItem(k); });
+      toast('success','تم','تم تفريغ البيانات المحلية.');
+      renderLists();
+    }
+    // --- Quotes Manager ---
+    var __quotes = (function(){ try{ var s=localStorage.getItem('admin_quotes'); var a=s?JSON.parse(s):[]; return Array.isArray(a)?a:[]; }catch(e){ return []; }})();
+    function saveQuotes(){ localStorage.setItem('admin_quotes', JSON.stringify(__quotes)); }
+    function renderQuotes(){
+      var tb = document.querySelector('#quotes-table tbody');
+      if (!tb) return;
+      tb.innerHTML = '';
+      __quotes.forEach(function(q, i){
+        var tr = document.createElement('tr');
+        var tdAr = document.createElement('td'); tdAr.textContent = q.ar || ''; tdAr.style.textAlign='right';
+        var tdEn = document.createElement('td'); tdEn.textContent = q.en || ''; tdEn.style.textAlign='left';
+        var tdCtl = document.createElement('td'); tdCtl.style.textAlign='center';
+        var btnEdit = document.createElement('button'); btnEdit.className='btn'; btnEdit.title='تعديل'; btnEdit.innerHTML='✏';
+        btnEdit.onclick = function(){ openQuoteEdit(i, q); };
+        var btnDel = document.createElement('button'); btnDel.className='btn btn-danger'; btnDel.title='حذف'; btnDel.innerHTML='🗑';
+        if (!(App.isOwner && App.isOwner())) { btnDel.disabled = true; btnDel.title = 'متاح للمالك فقط'; }
+        btnDel.onclick = function(){
+          if (!(App.isOwner && App.isOwner())) { toast('error','مرفوض','هذه العملية متاحة للمالك فقط'); return; }
+          confirmDialog({
+            title: 'تأكيد الحذف',
+            message: 'سيتم حذف هذه العبارة من القائمة. هل أنت متأكد؟'
+          }).then(function(yes){
+            if (!yes) return;
+            __quotes.splice(i,1); saveQuotes(); renderQuotes();
+          });
+        };
+        tdCtl.appendChild(btnEdit); tdCtl.appendChild(btnDel);
+        tr.appendChild(tdAr); tr.appendChild(tdEn); tr.appendChild(tdCtl);
+        tb.appendChild(tr);
+      });
+    }
+    renderQuotes();
+    var addBtn = document.getElementById('quote-add');
+    if (addBtn) {
+      addBtn.onclick = function(){
+        var ar = (document.getElementById('quote-ar').value || '').trim();
+        var en = (document.getElementById('quote-en').value || '').trim();
+        if (!ar && !en) return;
+        __quotes.push({ ar: ar, en: en }); saveQuotes(); renderQuotes();
+        document.getElementById('quote-ar').value=''; document.getElementById('quote-en').value='';
+        toast('success','تم','تمت إضافة العبارة');
+      };
+    }
+    var clrBtn = document.getElementById('quote-clear');
+    if (clrBtn) {
+      if (!(App.isOwner && App.isOwner())) { clrBtn.disabled = true; clrBtn.title = 'متاح للمالك فقط'; }
+      clrBtn.onclick = function(){
+        if (!(App.isOwner && App.isOwner())) { toast('error','مرفوض','هذه العملية متاحة للمالك فقط'); return; }
+        document.getElementById('quote-ar').value='';
+        document.getElementById('quote-en').value='';
+        toast('success','تم','تم تفريغ الحقول');
+      };
+    }
+    var devBackupBtn = document.getElementById('dev-backup');
+    var devRestoreFile = document.getElementById('dev-restore-file');
+    var devPurgeBtn = document.getElementById('dev-purge');
+    if (devBackupBtn) devBackupBtn.onclick = function(){ if (App.isDev && App.isDev()) backupAll(); };
+    if (devRestoreFile) devRestoreFile.onchange = function(ev){ var f = ev.target.files && ev.target.files[0]; if (f && App.isDev && App.isDev()) restoreFromFile(f); };
+    if (devPurgeBtn) devPurgeBtn.onclick = function(){ if (App.isDev && App.isDev()) purgeData(); };
+    function renderCharts() {
+      var el = document.getElementById('chart-violations');
+      if (!el) return;
+      el.innerHTML = '';
+      var rows = violationsCache || App.store.list('violations');
+      if (!Array.isArray(rows)) rows = App.store.list('violations');
+      if (!rows.length) {
+        rows = [{ branch: 'الرياض', amount: 12 }, { branch: 'جدة', amount: 7 }, { branch: 'الدمام', amount: 9 }];
+      }
+      var lang = (App.getLang && App.getLang()) || 'ar';
+      var seriesName = lang === 'ar' ? 'المخالفات' : 'Violations';
+      var xTitle = lang === 'ar' ? 'الفروع' : 'Branches';
+      var yTitle = lang === 'ar' ? 'العدد' : 'Count';
+      var options = {
+        chart: { type: 'bar', height: 300, toolbar: { show: false } },
+        plotOptions: { bar: { borderRadius: 6 } },
+        theme: { mode: 'dark' },
+        colors: ['#4facfe'],
+        series: [{ name: seriesName, data: rows.map(function (r) { return r.amount || 0; }) }],
+        xaxis: {
+          categories: rows.map(function (r) { return r.branch || ''; }),
+          title: { text: xTitle, style: { color: '#cbd5e1' } },
+          labels: { style: { colors: '#e5e7eb' } }
+        },
+        yaxis: {
+          title: { text: yTitle, style: { color: '#cbd5e1' } },
+          labels: { style: { colors: '#e5e7eb' } }
+        },
+        tooltip: { theme: 'dark' },
+        legend: { labels: { colors: '#e5e7eb' } }
+      };
+      __violChart = new ApexCharts(el, options);
+      __violChart.render();
+    }
+    document.addEventListener('app:lang', function(){ try { renderViolationsCharts(); } catch(e){} });
+    function generateStrategicReport(){
+      var year = (document.getElementById('ai-year-filter') && document.getElementById('ai-year-filter').value) || 'all';
+      var dFrom = (document.getElementById('ai-date-from') && document.getElementById('ai-date-from').value) || '';
+      var dTo = (document.getElementById('ai-date-to') && document.getElementById('ai-date-to').value) || '';
+      var lang = (App.getLang && App.getLang()) || 'ar';
+      var rows = Array.isArray(violationsCache) ? violationsCache : App.store.list('violations');
+      if (!Array.isArray(rows) || !rows.length) rows = [
+        { branch:'Western', amount:28 }, { branch:'JED', amount:19 }, { branch:'Madina', amount:11 }, { branch:'Taif', amount:12 }, { branch:'Abha', amount:28 }, { branch:'JAZAN', amount:12 }, { branch:'Jeddah', amount:111 }
+      ];
+      // Apply year/date filters if dates present in rows
+      try{
+        var hasDate = rows.some(function(r){ return r.date; });
+        if (hasDate) {
+          rows = rows.filter(function(r){
+            var dt = new Date(r.date);
+            var ok = true;
+            if (year !== 'all') ok = ok && dt.getFullYear() === Number(year);
+            if (dFrom) ok = ok && dt >= new Date(dFrom);
+            if (dTo) ok = ok && dt <= new Date(dTo);
+            return ok;
+          });
+        }
+      }catch(_){ }
+      var total = rows.reduce(function(s,r){ return s + (Number(r.amount)||0); }, 0);
+      var top = rows.slice().sort(function(a,b){ return (b.amount||0)-(a.amount||0); })[0];
+      var ops = document.getElementById('ai-insight-ops');
+      var fin = document.getElementById('ai-insight-risk');
+      var hr = document.getElementById('ai-insight-hr');
+      var rec = document.getElementById('ai-recommendation');
+      var topName = (top && top.branch) || (lang==='ar' ? 'غير محدد' : 'Unknown');
+      var opsTxt = lang==='ar' ? ('كفاءة مُحَقَّقة: تم إغلاق نسبة عالية من المخالفات في الوقت المناسب.') : ('Efficiency achieved: High on-time closure rate of violations.');
+      var finTxt = lang==='ar' ? ('مخاطر مالية: إجمالي الغرامات التقديرية ' + total + ' – التركيز على المناطق ذات الارتفاع مثل ' + topName + '.') : ('Financial risk: Estimated total fines ' + total + ' – focus on high regions like ' + topName + '.');
+      var hrTxt = lang==='ar' ? ('استقرار القوى العاملة: لا مؤشرات انخفاض كبيرة مرتبطة بالمخالفات.') : ('Workforce stability: No major declines linked to violations.');
+      var recTxt = lang==='ar' ? ('التوصية: تركيز الإستراتيجية على معالجة فروع "' + topName + '" وتقليل تكرار المخالفات.') : ('Recommendation: Focus strategy on "' + topName + '" branches to reduce repeat violations.');
+      if (ops) ops.textContent = opsTxt; if (fin) fin.textContent = finTxt; if (hr) hr.textContent = hrTxt; if (rec) rec.textContent = recTxt;
+      (function(){
+        var el = document.getElementById('chart-ai-risk-map'); if (!el) return;
+        el.innerHTML = '';
+        var options = {
+          chart: { type:'bar', height:300, toolbar:{ show:false } },
+          theme: { mode:'dark' },
+          colors:['#ef4444'],
+          plotOptions: { bar: { horizontal: true, borderRadius: 6 } },
+          series: [{ name: lang==='ar'?'المخالفات':'Violations', data: rows.map(function(r){ return r.amount||0; }) }],
+          xaxis: { categories: rows.map(function(r){ return r.branch||''; }) }
+        };
+        var chart = new ApexCharts(el, options); chart.render();
+      })();
+      (function(){
+        var el = document.getElementById('chart-ai-trend'); if (!el) return;
+        el.innerHTML = '';
+        var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        var data = [12,10,15,20,18,25,22,19,32,14,9,21];
+        var options = {
+          chart: { type:'line', height:300, toolbar:{ show:false } },
+          theme: { mode:'dark' },
+          colors:['#4facfe'],
+          stroke: { width: 3 },
+          series: [{ name: lang==='ar'?'الاتجاه':'Trend', data: data }],
+          xaxis: { categories: months }
+        };
+        var chart = new ApexCharts(el, options); chart.render();
+      })();
+      (function(){
+        var box = document.getElementById('ai-top-offenders-table'); if (!box) return;
+        var sorted = rows.slice().sort(function(a,b){ return (b.amount||0)-(a.amount||0); }).slice(0, 6);
+        var html = '<div class="overflow-x-auto rounded-xl border border-slate-700/60 bg-slate-900/50">'
+          + '<table class="compact-table w-full text-sm"><thead class="bg-slate-800/60"><tr>'+
+          '<th class="px-3 py-2 text-right text-slate-300 text-xs font-semibold">'+ (lang==='ar'?'الفرع':'Branch') + '</th>'+
+          '<th class="px-3 py-2 text-center text-slate-300 text-xs font-semibold">'+ (lang==='ar'?'عدد المخالفات':'Violations') + '</th>'+
+          '</tr></thead><tbody>' +
+          sorted.map(function(r){ return '<tr class="odd:bg-slate-800/10 even:bg-slate-800/5 hover:bg-slate-700/20 transition-colors"><td class="px-3 py-2 text-slate-200 border-b border-slate-700/40">'+ (r.branch||'') +'</td><td class="px-3 py-2 text-slate-200 text-center border-b border-slate-700/40">'+ (r.amount||0) +'</td></tr>'; }).join('') +
+          '</tbody></table></div>';
+        box.innerHTML = html;
+      })();
+    }
+    document.addEventListener('app:lang', function(){ try { generateStrategicReport(); } catch(e){} });
+    document.addEventListener('app:lang', function(){ try { renderCharts(); } catch(e){} });
+    document.addEventListener('app:lang', function(){ try { if (window.App && typeof window.App.renderBoardBox === 'function') window.App.renderBoardBox(); } catch(e){} });
+    document.addEventListener('app:lang', function(){ try { renderLists(); } catch(e){} });
+    function renderLists() {
+      var v = Array.isArray(violationsCache) ? violationsCache : App.store.list('violations');
+      var e = App.store.list('employees');
+      var l = App.store.list('licenses');
+      var b = App.store.list('branches');
+      if (!b.length) {
+        var names = {};
+        v.forEach(function(r){ var n = r.branch || r.location; if(n) names[n]=true; });
+        e.forEach(function(r){ var n = r.branch || r.location; if(n) names[n]=true; });
+        l.forEach(function(r){ var n = r.branch || r.location; if(n) names[n]=true; });
+        var inferred = Object.keys(names).filter(function(n){ return !!n; }).map(function(n){ return { name:n }; });
+        if (inferred.length) {
+          inferred.forEach(function(row){ App.store.create('branches', row); });
+          b = inferred;
+        }
+      }
+      var vEl = document.getElementById('violations-list');
+      if (vEl) vEl.textContent = v.length ? v.length + ' سجلات' : 'لا توجد سجلات';
+      
+      // Removed employees-summary update as it's now handled in renderEmployeesCards
+      
+      var lEl = document.getElementById('licenses-summary');
+      if (lEl) lEl.textContent = l.length ? l.length + ' تراخيص/عقود' : 'لا توجد بيانات';
+      
+      try { renderQuickAccessFromBranches(); } catch(e){}
+      
+      var boardBox = document.getElementById('board-summary');
+      if (boardBox) {
+        if (window.App && typeof window.App.renderBoardBox === 'function') { window.App.renderBoardBox(); }
+        else {
+          var totalViolations = v.length;
+          var totalBranches = b.length || 1;
+          var avgPerBranch = totalViolations ? Math.round(totalViolations / totalBranches) : 0;
+          boardBox.textContent = totalViolations ? 'إجمالي المخالفات المسجلة: ' + totalViolations + ' | معدل لكل فرع: ' + avgPerBranch : 'لا توجد بيانات كافية لتكوين تقرير الإدارة, يمكنك استيراد بيانات من Excel أو تحديث صفحات الوحدات.';
+        }
+      }
+      var tp = document.getElementById('training-progress');
+      if (tp) {
+        var sessions = App.store.list('training_sessions');
+        var completed = sessions.filter(function(s){ var st = String(s.status||'').toLowerCase(); return st.includes('مكتمل') || st.includes('complete'); }).length;
+        var compliance = sessions.length ? Math.round((completed / sessions.length) * 100) : 0;
+        var courseAgg = {};
+        sessions.forEach(function(s){ var c = s.course || ''; if(c) courseAgg[c] = (courseAgg[c]||0) + 1; });
+        var topCourse = Object.keys(courseAgg).sort(function(a,b){ return (courseAgg[b]||0) - (courseAgg[a]||0); })[0] || '';
+        var isAr = App.getLang && App.getLang() === 'ar';
+        var text = isAr ? ('نسبة اكتمال التدريب: ' + compliance + '% | الجلسات: ' + sessions.length + (topCourse ? (' | أكثر دورة: ' + topCourse) : '')) : ('Training completion: ' + compliance + '% | Sessions: ' + sessions.length + (topCourse ? (' | Top course: ' + topCourse) : ''));
+        tp.textContent = text;
+      }
+    }
+    var __pageSize = 50;
+    var __currentPage = 1;
+    var __empViewMode = 'table';
+    function renderEmployeesCards() {
+      var tbody = document.getElementById('employees-table-body');
+      var cardsBox = document.getElementById('employees-cards');
+      var tableTop = document.getElementById('table-scroll-top');
+      var tableBottom = document.getElementById('table-scroll-bottom');
+      if (!tbody) return;
+      if (__empViewMode === 'cards') {
+        if (cardsBox) cardsBox.style.display = 'grid';
+        if (tableTop) tableTop.style.display = 'none';
+        if (tableBottom) tableBottom.style.display = 'none';
+      } else {
+        if (cardsBox) cardsBox.style.display = 'none';
+        if (tableTop) tableTop.style.display = '';
+        if (tableBottom) tableBottom.style.display = '';
+      }
+      var q = (document.getElementById('emp-search') && document.getElementById('emp-search').value || '').toLowerCase();
+      var rows = App.store.list('employees');
+      
+      // Filter
+      if (q) rows = rows.filter(function(r){
+        return String(r.name||'').toLowerCase().includes(q) || 
+               String(r.sap||'').toLowerCase().includes(q) || 
+               String(r.idNum||'').toLowerCase().includes(q) ||
+               String(r.ref||'').toLowerCase().includes(q) ||
+               String(r.branch||'').toLowerCase().includes(q);
+      });
+      
+      var totalCount = document.getElementById('total-count');
+      if (totalCount) totalCount.textContent = (App.t ? App.t('table.total') : 'إجمالي:') + ' ' + rows.length;
+      var infoEl = document.getElementById('page-info');
+      var prevBtn = document.getElementById('btn-prev');
+      var nextBtn = document.getElementById('btn-next');
+      var pageSizeEl = document.getElementById('page-size');
+      var totalPages = Math.max(1, Math.ceil(rows.length / (__pageSize || 50)));
+      if (__currentPage > totalPages) __currentPage = totalPages;
+      if (__currentPage < 1) __currentPage = 1;
+      if (infoEl) infoEl.textContent = (App.t ? App.t('pagination.page') : 'صفحة') + ' ' + __currentPage + ' ' + (App.t ? App.t('pagination.of') : 'من') + ' ' + totalPages;
+      if (prevBtn) prevBtn.disabled = __currentPage <= 1;
+      if (nextBtn) nextBtn.disabled = __currentPage >= totalPages;
+      if (pageSizeEl && pageSizeEl.value) { __pageSize = parseInt(pageSizeEl.value, 10) || 50; }
+      
+      var start = (__currentPage - 1) * (__pageSize || 50);
+      var end = start + (__pageSize || 50);
+      var pageRows = rows.slice(start, end);
+      tbody.innerHTML = pageRows.length ? '' : '<tr><td colspan="15" class="text-center p-4 text-slate-400">'+(App.t ? App.t('no.records') : 'لا توجد سجلات')+'</td></tr>';
+      if (cardsBox) cardsBox.innerHTML = pageRows.length ? '' : '<div class="text-slate-400">'+(App.t ? App.t('no.records') : 'لا توجد سجلات')+'</div>';
+      
+      var master = document.getElementById('emp-select-all');
+      var __empSelect = window.__empSelect || {};
+      window.__empSelect = __empSelect;
+      if (master) {
+        master.onchange = function(){
+          pageRows.forEach(function(r){ if(r.id) __empSelect[r.id] = master.checked ? true : false; });
+          renderEmployeesCards();
+        };
+        var allChecked = pageRows.length && pageRows.every(function(r){ return !!__empSelect[r.id]; });
+        master.checked = !!allChecked;
+      }
+      pageRows.forEach(function(r, idx){
+        var tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-800 transition-colors border-b border-slate-800';
+        var dT = daysDiff(r.tcoeEnd||'');
+        var dH = daysDiff(r.healthExpiry||'');
+        var dP = daysDiff(r.permitExpiry||'');
+        if (dT != null) tr.setAttribute('data-tcoe-diff', dT);
+        if (dH != null) tr.setAttribute('data-health-diff', dH);
+        if (dP != null) tr.setAttribute('data-permit-diff', dP);
+        
+        // Date Logic (Example: Green if future, Red if past)
+        var healthClass = 'text-green-400';
+        if (r.healthExpiry && new Date(r.healthExpiry) < new Date()) healthClass = 'text-red-400';
+        var permitClass = 'text-green-400';
+        if (r.permitExpiry && new Date(r.permitExpiry) < new Date()) permitClass = 'text-red-400';
+        var now = new Date();
+        var tcoeBadge = 'bg-green-500/20 text-green-400';
+        if (r.tcoeEnd && new Date(r.tcoeEnd) < now) tcoeBadge = 'bg-red-500/20 text-red-400';
+        var l2Badge = 'bg-green-500/20 text-green-400';
+        if (r.healthExpiry && new Date(r.healthExpiry) < now) l2Badge = 'bg-red-500/20 text-red-400';
+        
+        var rowIndex = start + idx + 1;
+        tr.innerHTML = 
+          '<td class="p-4"><input type="checkbox" class="emp-select" data-id="'+(r.id||'')+'"></td>' +
+          '<td class="p-4 text-slate-300">'+rowIndex+'</td>' +
+          '<td class="p-4">' +
+            '<div class="flex items-center gap-2">' +
+              '<div style="width:28px;height:28px;border-radius:50%;background:'+ (r.photoData ? 'transparent' : '#0f172a') + ';background-image:' + (r.photoData ? ('url('+r.photoData+')') : 'none') + ';background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;">'+(r.photoData ? '' : initials(r.name||''))+'</div>' +
+            '</div>' +
+          '</td>' +
+          '<td class="p-4 font-medium text-white">'+(r.name||'-')+'</td>' +
+          '<td class="p-4 text-slate-300">'+(r.phone||'-')+'</td>' +
+          '<td class="p-4 text-slate-300">'+(r.idNum||'-')+'</td>' +
+          '<td class="p-4 text-slate-300">'+(r.ref||'-')+'</td>' +
+          '<td class="p-4 text-slate-300">'+(r.brand||'-')+'</td>' +
+          '<td class="p-4 text-slate-300">'+(r.branch||'-')+'</td>' +
+          '<td class="p-4 text-slate-300">'+(r.tc||'-')+'</td>' +
+          '<td class="p-4 text-slate-300">'+(r.region||'-')+'</td>' +
+          
+          '<td class="p-4 text-slate-300">'+(r.permitNum||'-')+'</td>' +
+          '<td class="p-4">' +
+            (function(){ var d=daysDiff(r.permitExpiry||''); var num=(d==null?'':Math.abs(d)); var badge=(d!=null && d<0)?'bg-red-500/20 text-red-400':'bg-green-500/20 text-green-400'; return '<span class="whitespace-nowrap px-2 py-1 rounded '+badge+'">'+(r.permitExpiry||'-')+(num!==''?' <span class="opacity-75">('+num+')</span>':'')+'</span>'; })() +
+          '</td>' +
+          '<td class="p-4">' +
+            '<div class="flex items-center gap-3 text-[11px]">' +
+              (function(){ var d=daysDiff(r.tcoeEnd||''); var num=(d==null?'':Math.abs(d)); var badge=(d!=null && d<0)?'bg-red-500/20 text-red-400':'bg-green-500/20 text-green-400'; return '<span class=\"whitespace-nowrap px-2 py-1 rounded '+badge+'\">'+(r.tcoeEnd||'-')+(num!==''?' <span class=\"opacity-75\">('+num+')</span>':'')+'</span>'; })() +
+              (function(){ var d=daysDiff(r.healthExpiry||''); var num=(d==null?'':Math.abs(d)); var badge=(d!=null && d<0)?'bg-red-500/20 text-red-400':'bg-green-500/20 text-green-400'; return '<span class=\"whitespace-nowrap px-2 py-1 rounded '+badge+'\">'+(r.healthExpiry||'-')+(num!==''?' <span class=\"opacity-75\">('+num+')</span>':'')+'</span>'; })() +
+            '</div>' +
+          '</td>' +
+          '<td class="p-4">' +
+            '<div class="flex items-center gap-2">' +
+              '<button class="btn-delete p-2 bg-red-500/20 hover:bg-red-500/40 text-red-500 rounded transition" title="حذف">🗑</button>' +
+              '<button class="btn-edit p-2 bg-blue-500/20 hover:bg-blue-500/40 text-blue-500 rounded transition" title="تعديل">✏</button>' +
+              '<button class="btn-view p-2 bg-slate-500/20 hover:bg-slate-500/40 text-slate-400 rounded transition" title="عرض">👁</button>' +
+            '</div>' +
+          '</td>';
+          
+        // Bind events
+        var btnDelete = tr.querySelector('.btn-delete');
+        var btnEdit = tr.querySelector('.btn-edit');
+        var btnView = tr.querySelector('.btn-view');
+        var cb = tr.querySelector('.emp-select');
+        if (cb) {
+          cb.checked = !!__empSelect[r.id];
+          cb.onchange = function(){
+            if (cb.checked) __empSelect[r.id] = true;
+            else delete __empSelect[r.id];
+            var masterEl = document.getElementById('emp-select-all');
+            if (masterEl) {
+              var all = pageRows.length && pageRows.every(function(row){ return !!__empSelect[row.id]; });
+              masterEl.checked = !!all;
+            }
+          };
+        }
+        
+        btnDelete.onclick = function() {
+           if (__pendingDeleteId === r.id) {
+             if (__pendingDeleteTimer) { clearTimeout(__pendingDeleteTimer); __pendingDeleteTimer = null; }
+             __pendingDeleteId = null;
+             App.store.remove('employees', r.id);
+             renderEmployeesCards();
+             toast('success','تم','تم الحذف بنجاح');
+             return;
+           }
+           __pendingDeleteId = r.id;
+           btnDelete.textContent = 'تأكيد';
+           btnDelete.classList.add('bg-red-500/40');
+           __pendingDeleteTimer = setTimeout(function(){
+             __pendingDeleteId = null;
+             btnDelete.textContent = '🗑';
+             btnDelete.classList.remove('bg-red-500/40');
+           }, 3000);
+        };
+        
+        btnEdit.onclick = function() {
+           openEmployeeModal(r);
+        };
+        
+        if (btnView) btnView.onclick = function() {
+          openEmployeeModal(r, true);
+        };
+        
+        tbody.appendChild(tr);
+
+        if (cardsBox && __empViewMode === 'cards') {
+          var card = document.createElement('div');
+          card.className = 'emp-card';
+          var initialsText = initials(r.name||'');
+          var photoStyle = r.photoData ? 'style="background-image:url('+r.photoData+');"' : '';
+          var tDays = daysDiff(r.tcoeEnd||'');
+          var hDays = daysDiff(r.healthExpiry||'');
+          var pDays = daysDiff(r.permitExpiry||'');
+          function badgeClass(days){ if (days==null) return 'status-expiring'; return days>=0 ? 'status-valid' : 'status-expired'; }
+          card.innerHTML = 
+            '<div class="emp-photo" '+photoStyle+'>'+(r.photoData?'':initialsText)+'</div>'+
+            '<div class="emp-name">'+(r.name||'-')+'</div>'+
+            '<div class="emp-role">'+(r.branch||'-')+' • '+(r.region||'-')+'</div>'+
+            '<div class="emp-detail"><span>TCOE</span><span class="status-badge '+badgeClass(tDays)+'">'+(r.tcoeEnd||'-')+'</span></div>'+
+            '<div class="emp-detail"><span>Health</span><span class="status-badge '+badgeClass(hDays)+'">'+(r.healthExpiry||'-')+'</span></div>'+
+            '<div class="emp-detail"><span>Permit</span><span class="status-badge '+badgeClass(pDays)+'">'+(r.permitExpiry||'-')+'</span></div>'+
+            '<div class="flex items-center justify-center gap-2 mt-2">'+
+              '<button class="btn bg-blue-500/20 hover:bg-blue-500/40 text-blue-500 rounded text-xs">✏</button>'+
+              '<button class="btn bg-slate-500/20 hover:bg-slate-500/40 text-slate-400 rounded text-xs">👁</button>'+
+            '</div>';
+          var editBtn = card.querySelector('button:nth-child(1)');
+          var viewBtn = card.querySelector('button:nth-child(2)');
+          if (editBtn) editBtn.onclick = function(){ openEmployeeModal(r); };
+          if (viewBtn) viewBtn.onclick = function(){ openEmployeeModal(r, true); };
+          cardsBox.appendChild(card);
+        }
+      });
+    }
+    (function(){
+      var delSel = document.getElementById('btn-delete-selected');
+      if (delSel) {
+        delSel.onclick = function(){
+          var map = window.__empSelect || {};
+          var ids = Object.keys(map).filter(function(k){ return !!map[k]; });
+          if (!ids.length) return;
+          ids.forEach(function(id){ App.store.remove('employees', id); });
+          window.__empSelect = {};
+          renderEmployeesCards();
+          toast('success','تم','تم حذف السجلات المحددة');
+        };
+      }
+    })();
+
+    function openEmployeeModal(row, viewOnly) {
+      var ov = document.getElementById('emp-modal');
+      if (!ov) return;
+      
+      var hdr = ov.querySelector('.modal-header');
+      if (hdr) { hdr.style.background = getRandomRedGradient(); }
+      var refBox = document.getElementById('emp-ref-box');
+      if (refBox) refBox.style.background = getRandomGoldAccent();
+      var hdrName = document.getElementById('hdr-name');
+      var hdrId = document.getElementById('hdr-id-pill');
+      var hdrBrand = document.getElementById('hdr-brand-pill');
+      var hdrHealth = document.getElementById('hdr-health-remaining');
+      var hdrPermit = document.getElementById('hdr-permit-remaining');
+      
+      // Get Elements
+      var fields = ['sap', 'name', 'id-num', 'ref', 'phone', 'tc', 'brand', 'state', 'tcoe-end', 'status1', 'health-expiry', 'permit-num', 'permit-expiry', 'region', 'branch', 'notes'];
+      __photoData = null;
+      __idImgData = null;
+      __healthImgData = null;
+      __idImages = (row && row.idAttachments) ? row.idAttachments.slice() : [];
+      __healthImages = (row && row.healthAttachments) ? row.healthAttachments.slice() : [];
+      __permitAttachments = (row && row.permitAttachments) ? row.permitAttachments.slice() : [];
+      
+      fields.forEach(function(f) {
+         var el = document.getElementById('emp-' + f);
+         if (el) {
+            var prop = f.replace(/-([a-z])/g, function (g) { return g[1].toUpperCase(); }); // camelCase
+            // Manual mapping for special cases
+            if (f === 'id-num') prop = 'idNum';
+            if (f === 'tcoe-end') prop = 'tcoeEnd';
+            if (f === 'health-expiry') prop = 'healthExpiry';
+            if (f === 'permit-num') prop = 'permitNum';
+            if (f === 'permit-expiry') prop = 'permitExpiry';
+            
+            var val = (row && row[prop]) || '';
+            if (f === 'region' && !val) val = 'Western Region';
+            el.value = val;
+         }
+      });
+
+      var nameEl = document.getElementById('emp-name');
+      var sapEl = document.getElementById('emp-sap');
+      var brandEl = document.getElementById('emp-brand');
+      var healthEl = document.getElementById('emp-health-expiry');
+      var permitEl = document.getElementById('emp-permit-expiry');
+      if (hdrName && nameEl) hdrName.textContent = nameEl.value || '—';
+      if (hdrId && sapEl) hdrId.textContent = 'ID: ' + (sapEl.value || '—');
+      if (hdrBrand && brandEl) hdrBrand.textContent = (brandEl.value || '').slice(0,2).toUpperCase() || '—';
+      var hDays = healthEl && healthEl.value ? daysDiff(healthEl.value) : null;
+      var pDays = permitEl && permitEl.value ? daysDiff(permitEl.value) : null;
+      if (hdrHealth) hdrHealth.textContent = 'Health: ' + (hDays==null ? '—' : (hDays>=0 ? (hDays+'d') : (hDays+'d')));
+      if (hdrPermit) hdrPermit.textContent = 'Permit: ' + (pDays==null ? '—' : (pDays>=0 ? (pDays+'d') : (pDays+'d')));
+
+      var photoFile = document.getElementById('emp-photo-file');
+      if (photoFile) photoFile.onchange = function(ev){
+        var f = ev.target.files && ev.target.files[0];
+        if (!f) return;
+        var r = new FileReader();
+        r.onload = function(e){ __photoData = e.target.result; setPhotoPreview(__photoData, row && row.name); var n=document.getElementById('emp-photo-file-name'); if(n) n.value = (f.name||''); };
+        r.readAsDataURL(f);
+      };
+      var photoPick = document.getElementById('emp-photo-pick');
+      if (photoPick && photoFile) photoPick.onclick = function(){ photoFile.click(); };
+      var photoCancel = document.getElementById('emp-photo-cancel');
+      if (photoCancel) {
+        var pending = false;
+        photoCancel.onclick = function(){
+          if (!pending) {
+            pending = true;
+            photoCancel.textContent = 'تأكيد';
+            photoCancel.classList.add('bg-red-500/40');
+            setTimeout(function(){
+              pending = false;
+              photoCancel.textContent = '✖';
+              photoCancel.classList.remove('bg-red-500/40');
+            }, 2500);
+          } else {
+            __photoData = null;
+            setPhotoPreview(null, row && row.name);
+            var n = document.getElementById('emp-photo-file-name');
+            if (n) n.value = '';
+            pending = false;
+            photoCancel.textContent = '✖';
+            photoCancel.classList.remove('bg-red-500/40');
+          }
+        };
+      }
+      var idBox = document.getElementById('id-img-box');
+      var idFile = document.getElementById('emp-id-img-file');
+      if (idBox && idFile) idBox.onclick = function(){ idFile.click(); };
+      if (idFile) idFile.onchange = function(ev){
+        var files = Array.from(ev.target.files || []);
+        if (!files.length) return;
+        var f = files[0];
+        var r = new FileReader();
+        r.onload = function(e){ __idImgData = e.target.result; var box=document.getElementById('id-img-box'); if(box){ box.style.backgroundImage='url('+__idImgData+')'; box.textContent=''; } __idImages = []; files.forEach(function(ff){ var rr = new FileReader(); rr.onload=function(ee){ __idImages.push({ name: ff.name, data: ee.target.result }); }; rr.readAsDataURL(ff); }); };
+        r.readAsDataURL(f);
+      };
+      var healthBox = document.getElementById('health-img-box');
+      var healthFile = document.getElementById('emp-health-img-file');
+      if (healthBox && healthFile) healthBox.onclick = function(){ healthFile.click(); };
+      if (healthFile) healthFile.onchange = function(ev){
+        var files = Array.from(ev.target.files || []);
+        if (!files.length) return;
+        var f = files[0];
+        var r = new FileReader();
+        r.onload = function(e){ __healthImgData = e.target.result; var box=document.getElementById('health-img-box'); if(box){ box.style.backgroundImage='url('+__healthImgData+')'; box.textContent=''; } __healthImages = []; files.forEach(function(ff){ var rr = new FileReader(); rr.onload=function(ee){ __healthImages.push({ name: ff.name, data: ee.target.result }); }; rr.readAsDataURL(ff); }); };
+        r.readAsDataURL(f);
+      };
+      var permitBox = document.getElementById('permit-img-box');
+      var permitFile = document.getElementById('emp-permit-img-file');
+      if (permitBox && permitFile) permitBox.onclick = function(){ permitFile.click(); };
+      if (permitFile) permitFile.onchange = function(ev){
+        var files = Array.from(ev.target.files || []);
+        if (!files.length) return;
+        var f = files[0];
+        var r = new FileReader();
+        r.onload = function(e){ var box=document.getElementById('permit-img-box'); if(box){ box.style.backgroundImage='url('+e.target.result+')'; box.textContent=''; } __permitAttachments = []; files.forEach(function(ff){ var rr = new FileReader(); rr.onload=function(ee){ __permitAttachments.push({ name: ff.name, data: ee.target.result }); }; rr.readAsDataURL(ff); }); };
+        r.readAsDataURL(f);
+      };
+      var btnIdArch = document.getElementById('btn-id-archive');
+      if (btnIdArch) btnIdArch.onclick = function(){ openAttachmentsModal('id', row); };
+      var btnHealthArch = document.getElementById('btn-health-archive');
+      if (btnHealthArch) btnHealthArch.onclick = function(){ openAttachmentsModal('health', row); };
+      var btnPermitArch = document.getElementById('btn-permit-archive');
+      if (btnPermitArch) btnPermitArch.onclick = function(){ openAttachmentsModal('permit', row); };
+      var d2 = document.getElementById('emp-tcoe-end');
+      var d3 = document.getElementById('emp-health-expiry');
+      var d4 = document.getElementById('emp-permit-expiry');
+      if (d2) { d2.oninput = updateDateIndicators; d2.onchange = updateDateIndicators; }
+      if (d3) { d3.oninput = updateDateIndicators; d3.onchange = updateDateIndicators; }
+      if (d4) { d4.oninput = updateDateIndicators; d4.onchange = updateDateIndicators; }
+      updateDateIndicators();
+      setPhotoPreview(row && row.photoData, row && row.name);
+      var idPrevBox = document.getElementById('id-img-box');
+      if (idPrevBox) {
+        var first = (__idImages[0] && __idImages[0].data) || (row && row.idImageData) || '';
+        if (first) { idPrevBox.style.backgroundImage = 'url('+first+')'; idPrevBox.textContent=''; } else { idPrevBox.style.backgroundImage=''; idPrevBox.textContent='+'; }
+      }
+      var healthPrevBox = document.getElementById('health-img-box');
+      if (healthPrevBox) {
+        var firstH = (__healthImages[0] && __healthImages[0].data) || (row && row.healthImageData) || '';
+        if (firstH) { healthPrevBox.style.backgroundImage = 'url('+firstH+')'; healthPrevBox.textContent=''; } else { healthPrevBox.style.backgroundImage=''; healthPrevBox.textContent='+'; }
+      }
+      var permitPrevBox = document.getElementById('permit-img-box');
+      if (permitPrevBox) {
+        var firstP = (__permitAttachments[0] && __permitAttachments[0].data) || '';
+        if (firstP) { permitPrevBox.style.backgroundImage = 'url('+firstP+')'; permitPrevBox.textContent=''; } else { permitPrevBox.style.backgroundImage=''; permitPrevBox.textContent='+'; }
+      }
+
+      renderProfileAttachments();
+
+      if (window.renderAllSummaries) window.renderAllSummaries();
+      var idPickBtn = document.getElementById('id-summary-pick');
+      var idFileInput = document.getElementById('id-summary-file');
+      var idClearBtn = document.getElementById('id-summary-clear');
+      if (idPickBtn && idFileInput) idPickBtn.onclick = function(){ idFileInput.click(); };
+      if (idFileInput) idFileInput.onchange = function(ev){
+        var files = Array.from(ev.target.files || []);
+        var i = 0;
+        var next = function(){
+          if (i >= files.length) { renderAllSummaries(); return; }
+          var ff = files[i++];
+          var r = new FileReader();
+          r.onload = function(e){ __idImages.push({ name: ff.name, data: e.target.result }); next(); };
+          r.readAsDataURL(ff);
+        };
+        next();
+      };
+      if (idClearBtn) idClearBtn.onclick = function(){ __idImages.length = 0; renderAllSummaries(); };
+      var healthPickBtn = document.getElementById('health-summary-pick');
+      var healthFileInput = document.getElementById('health-summary-file');
+      var healthClearBtn = document.getElementById('health-summary-clear');
+      if (healthPickBtn && healthFileInput) healthPickBtn.onclick = function(){ healthFileInput.click(); };
+      if (healthFileInput) healthFileInput.onchange = function(ev){
+        var files = Array.from(ev.target.files || []);
+        var i = 0;
+        var next = function(){
+          if (i >= files.length) { renderAllSummaries(); return; }
+          var ff = files[i++];
+          var r = new FileReader();
+          r.onload = function(e){ __healthImages.push({ name: ff.name, data: e.target.result }); next(); };
+          r.readAsDataURL(ff);
+        };
+        next();
+      };
+      if (healthClearBtn) healthClearBtn.onclick = function(){ __healthImages.length = 0; renderAllSummaries(); };
+      var permitPickBtn = document.getElementById('permit-summary-pick');
+      var permitFileInput = document.getElementById('permit-summary-file');
+      var permitClearBtn = document.getElementById('permit-summary-clear');
+      if (permitPickBtn && permitFileInput) permitPickBtn.onclick = function(){ permitFileInput.click(); };
+      if (permitFileInput) permitFileInput.onchange = function(ev){
+        var files = Array.from(ev.target.files || []);
+        var i = 0;
+        var next = function(){
+          if (i >= files.length) { renderAllSummaries(); return; }
+          var ff = files[i++];
+          var r = new FileReader();
+          r.onload = function(e){ __permitAttachments.push({ name: ff.name, data: e.target.result }); next(); };
+          r.readAsDataURL(ff);
+        };
+        next();
+      };
+      if (permitClearBtn) permitClearBtn.onclick = function(){ __permitAttachments.length = 0; renderAllSummaries(); };
+
+      var saveBtn = document.getElementById('emp-save');
+      // Clone button to remove old event listeners
+      var newSaveBtn = saveBtn.cloneNode(true);
+      saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+      
+      var inputsAll = document.querySelectorAll('#emp-modal input, #emp-modal select, #emp-modal textarea, #emp-photo-pick, #emp-id-img-pick, #emp-health-img-pick, #id-summary-pick, #id-summary-clear, #health-summary-pick, #health-summary-clear, #permit-summary-pick, #permit-summary-clear');
+      if (viewOnly) {
+        inputsAll.forEach(function(el){ if (el && el.id !== 'emp-modal-close') el.disabled = true; });
+        newSaveBtn.style.display = 'none';
+      } else {
+        inputsAll.forEach(function(el){ if (el) el.disabled = false; });
+        newSaveBtn.style.display = '';
+      }
+      
+      newSaveBtn.onclick = function(){
+        var data = {};
+        fields.forEach(function(f) {
+           var el = document.getElementById('emp-' + f);
+           if (el) {
+              var prop = f.replace(/-([a-z])/g, function (g) { return g[1].toUpperCase(); });
+              if (f === 'id-num') prop = 'idNum';
+              if (f === 'ref') prop = 'ref';
+              if (f === 'ops-start') prop = 'opsStart';
+              if (f === 'tcoe-end') prop = 'tcoeEnd';
+              if (f === 'health-expiry') prop = 'healthExpiry';
+              if (f === 'permit-num') prop = 'permitNum';
+              if (f === 'permit-expiry') prop = 'permitExpiry';
+              data[prop] = el.value.trim();
+           }
+        });
+        var prev = row || {};
+        data.photoData = __photoData!=null ? __photoData : (prev.photoData || '');
+        data.idImageData = __idImgData!=null ? __idImgData : (prev.idImageData || '');
+        data.healthImageData = __healthImgData!=null ? __healthImgData : (prev.healthImageData || '');
+        data.idAttachments = __idImages && __idImages.length ? __idImages.slice() : (prev.idAttachments || []);
+        data.healthAttachments = __healthImages && __healthImages.length ? __healthImages.slice() : (prev.healthAttachments || []);
+        data.permitAttachments = __permitAttachments && __permitAttachments.length ? __permitAttachments.slice() : (prev.permitAttachments || []);
+        
+        var hVal = document.getElementById('emp-health-expiry') && document.getElementById('emp-health-expiry').value;
+        var hDiff = hVal ? daysDiff(hVal) : null;
+        data.status1 = (hDiff != null && hDiff >= 0) ? 'Active' : 'Inactive';
+        var pVal = document.getElementById('emp-permit-expiry') && document.getElementById('emp-permit-expiry').value;
+        var pDiff = pVal ? daysDiff(pVal) : null;
+        data.status2 = (pDiff != null && pDiff >= 0) ? 'Active' : 'Inactive';
+        
+        if (row && row.id) App.store.update('employees', row.id, data);
+        else App.store.create('employees', data);
+        
+        ov.classList.remove('open');
+        renderEmployeesCards();
+        toast('success','تم','تم حفظ بيانات الموظف');
+      };
+      
+      ov.classList.add('open');
+    }
+    document.getElementById('emp-add-btn').onclick = function(){ openEmployeeModal(null); };
+    var viewCardsBtn = document.getElementById('emp-view-cards'); if (viewCardsBtn) viewCardsBtn.onclick = function(){ __empViewMode = 'cards'; renderEmployeesCards(); };
+    var viewTableBtn = document.getElementById('emp-view-table'); if (viewTableBtn) viewTableBtn.onclick = function(){ __empViewMode = 'table'; renderEmployeesCards(); };
+    var es = document.getElementById('emp-search'); if (es) es.oninput = function(){ __currentPage = 1; renderEmployeesCards(); };
+    var prevBtn = document.getElementById('btn-prev'); if (prevBtn) prevBtn.onclick = function(){ if (__currentPage > 1) { __currentPage--; renderEmployeesCards(); } };
+    var nextBtn = document.getElementById('btn-next'); if (nextBtn) nextBtn.onclick = function(){ __currentPage++; renderEmployeesCards(); };
+    var pageSizeEl = document.getElementById('page-size'); if (pageSizeEl) pageSizeEl.onchange = function(){ __pageSize = parseInt(pageSizeEl.value,10)||50; __currentPage = 1; renderEmployeesCards(); };
+    var empExcel = document.getElementById('emp-excel-input');
+    var empExcelUpdate = document.getElementById('emp-excel-update');
+    var empExcelManage = document.getElementById('emp-excel-manage');
+    var empExcelPanel = document.getElementById('emp-excel-panel');
+    var empExcelDeleteAll = document.getElementById('emp-excel-delete-all');
+    var empExcelBatchesBox = document.getElementById('emp-excel-batches');
+    var empExcelTotalBox = document.getElementById('emp-excel-total');
+    function renderExcelBatchesPanel(){
+      if (!empExcelBatchesBox) return;
+      empExcelBatchesBox.innerHTML = '';
+      var total = 0;
+      __empExcelBatches.forEach(function(b, idx){
+        total += Number(b.count||0);
+        var item = document.createElement('div');
+        item.className = 'p-2 rounded border';
+        item.style.borderColor = 'rgba(148,163,184,0.35)';
+        item.style.background = 'rgba(15,23,42,0.75)';
+        var t = document.createElement('div');
+        t.className = 'text-xs text-slate-300';
+        t.textContent = b.file || '';
+        var c = document.createElement('div');
+        c.className = 'text-xs text-slate-400';
+        c.textContent = 'عدد السجلات: ' + (b.count||0);
+        var actions = document.createElement('div');
+        actions.className = 'flex items-center gap-2 mt-2';
+        var btnUpdate = document.createElement('button');
+        btnUpdate.className = 'btn bg-slate-700 hover:bg-slate-600 text-white px-2 py-1 rounded text-xs';
+        btnUpdate.textContent = 'تحديث';
+        btnUpdate.onclick = function(){ __excelUpdateTarget = b.batchId; if(empExcel) empExcel.click(); };
+        var btnDelete = document.createElement('button');
+        btnDelete.className = 'btn bg-red-600 hover:bg-red-500 text-white px-2 py-1 rounded text-xs';
+        btnDelete.textContent = 'حذف';
+        btnDelete.onclick = function(){
+          confirmDialog({
+            title: 'تأكيد الحذف',
+            message: 'سيتم حذف جميع الموظفين المرتبطين بهذه الدفعة. هل أنت متأكد؟'
+          }).then(function(yes){
+            if (!yes) return;
+            var rows = App.store.list('employees');
+            rows.filter(function(r){ return r.sourceBatch === b.batchId; }).forEach(function(r){ App.store.remove('employees', r.id); });
+            __empExcelBatches.splice(idx,1);
+            renderEmployeesCards();
+            renderExcelBatchesPanel();
+            toast('success','تم','تم حذف ملف Excel');
+          });
+        };
+        actions.appendChild(btnUpdate);
+        actions.appendChild(btnDelete);
+        item.appendChild(t);
+        item.appendChild(c);
+        item.appendChild(actions);
+        empExcelBatchesBox.appendChild(item);
+      });
+      if (empExcelTotalBox) empExcelTotalBox.textContent = String(total);
+    }
+    if (empExcelManage && empExcelPanel) empExcelManage.onclick = function(){ empExcelPanel.style.display = empExcelPanel.style.display==='none' ? 'block' : 'none'; };
+    if (empExcelDeleteAll) empExcelDeleteAll.onclick = function(){
+      var rows = App.store.list('employees');
+      rows.filter(function(r){ return !!r.sourceBatch; }).forEach(function(r){ App.store.remove('employees', r.id); });
+      __empExcelBatches = [];
+      renderEmployeesCards();
+      renderExcelBatchesPanel();
+      toast('success','تم','تم حذف جميع واردات Excel');
+    };
+    if (empExcelUpdate && empExcel) empExcelUpdate.onclick = function(){ __excelUpdateTarget = null; empExcel.click(); };
+    if (empExcel) {
+      empExcel.onchange = function(ev){
+        var files = Array.from(ev.target.files || []);
+        if (!files.length) return;
+        var importOne = function(f, replaceBatchId){
+          var isCSV = (f.name || '').toLowerCase().endsWith('.csv');
+          var reader = new FileReader();
+          var batchId = replaceBatchId || (Date.now() + '-' + Math.random().toString(36).slice(2));
+          var count = 0;
+          var pushRow = function(r){
+            var data = {
+              sap: r['SAP ID'] || r.sap || r['sapId'] || r['رقم SAP'] || '',
+              name: r['Name'] || r.name || r['الاسم'] || '',
+              idNum: r['ID Number'] || r['الهوية'] || r['رقم الهوية'] || r.id || r['ID'] || '',
+              phone: r['Phone'] || r['رقم الجوال'] || r.phone || '',
+              tc: r['TC'] || r['Cost Center'] || r['مركز التكلفة'] || r.tc || '',
+              brand: r['Brand'] || r['العلامة التجارية'] || r.brand || '',
+              opsStart: r['OPS Start'] || r['بداية العمليات'] || r.opsStart || '',
+              tcoeEnd: r['TCOE End'] || r['انتهاء التدريب العملي'] || r.tcoeEnd || '',
+              healthExpiry: r['Health Expiry'] || r['انتهاء الصحية'] || r.healthExpiry || '',
+              permitNum: r['Permit Number'] || r['رقم التصريح'] || r.permitNum || '',
+              permitExpiry: r['Permit Expiry'] || r['تاريخ الانتهاء'] || r.permitExpiry || '',
+              branch: r['Branch'] || r['الفرع'] || r.branch || '',
+              region: r['Region'] || r['المنطقة'] || r.region || '',
+              trainingL1: r['Training L1'] || r.trainingL1 || '',
+              trainingL2: r['Training L2'] || r.trainingL2 || '',
+              sourceFile: f.name || '',
+              sourceBatch: batchId
+            };
+            App.store.create('employees', data);
+            count++;
+          };
+          var finalize = function(){
+            if (replaceBatchId) {
+              var idx = __empExcelBatches.findIndex(function(b){ return b.batchId === replaceBatchId; });
+              if (idx !== -1) { __empExcelBatches[idx].file = f.name; __empExcelBatches[idx].count = count; __empExcelBatches[idx].ts = Date.now(); }
+            } else {
+              __empExcelBatches.push({ file: f.name, batchId: batchId, count: count, ts: Date.now() });
+            }
+            renderEmployeesCards();
+            renderExcelBatchesPanel();
+            toast('success','تم','تم الاستيراد (' + count + ')');
+          };
+          if (replaceBatchId) {
+            var rowsOld = App.store.list('employees').filter(function(r){ return r.sourceBatch === replaceBatchId; });
+            rowsOld.forEach(function(r){ App.store.remove('employees', r.id); });
+          }
+          if (isCSV) {
+            reader.onload = function (e) {
+              var text = e.target.result || '';
+              var rows = [];
+              try {
+                var wb = XLSX.read(text, { type: 'string' });
+                var ws = wb.Sheets[wb.SheetNames[0]];
+                rows = XLSX.utils.sheet_to_json(ws);
+              } catch (_) {
+                var lines = text.split(/\r?\n/);
+                var headers = lines[0].split(',');
+                for (var i=1;i<lines.length;i++){
+                  var cols = lines[i].split(',');
+                  var obj = {};
+                  headers.forEach(function(h, idx){ obj[h.trim()] = (cols[idx]||'').trim(); });
+                  rows.push(obj);
+                }
+              }
+              rows.forEach(pushRow);
+              finalize();
+            };
+            try { reader.readAsText(f); } catch(e){ toast('error','فشل','لم يتم قراءة الملف'); }
+          } else {
+            reader.onload = function (e) {
+              var data = new Uint8Array(e.target.result);
+              var rows = [];
+              try {
+                var wb = XLSX.read(data, { type: 'array' });
+                var ws = wb.Sheets[wb.SheetNames[0]];
+                rows = XLSX.utils.sheet_to_json(ws);
+              } catch (_) {
+                rows = [];
+              }
+              rows.forEach(pushRow);
+              finalize();
+            };
+            try { reader.readAsArrayBuffer(f); } catch(e){ toast('error','فشل','لم يتم قراءة الملف'); }
+          }
+        };
+        if (__excelUpdateTarget && files.length === 1) {
+          importOne(files[0], __excelUpdateTarget);
+          __excelUpdateTarget = null;
+        } else {
+          files.forEach(function(f){ importOne(f, null); });
+        }
+      };
+    }
+    var empExcelExport = document.getElementById('emp-excel-export');
+    if (empExcelExport) {
+      empExcelExport.onclick = function(){
+        try {
+          var rows = App.store.list('employees');
+          var data = rows.map(function(r){
+            return {
+              'SAP ID': r.sap || '',
+              'Name': r.name || '',
+              'ID Number': r.idNum || '',
+              'Phone': r.phone || '',
+              'Brand': r.brand || '',
+              'Branch': r.branch || '',
+              'Region': r.region || '',
+              'TCOE End': r.tcoeEnd || '',
+              'Health Expiry': r.healthExpiry || '',
+              'Permit Number': r.permitNum || '',
+              'Permit Expiry': r.permitExpiry || '',
+              'Status 1': r.status1 || ''
+            };
+          });
+          var ws = XLSX.utils.json_to_sheet(data);
+          var wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, 'Employees');
+          XLSX.writeFile(wb, 'employees_export.xlsx');
+          toast('success','تم','تم تصدير ملف Excel');
+        } catch(e) {
+          toast('error','فشل','تعذر تصدير Excel');
+        }
+      };
+    }
+    // --- Print PDF Panel ---
+    (function(){
+      var btn = document.getElementById('emp-pdf-print');
+      var panel = document.getElementById('print-options-panel');
+      var tRange = document.getElementById('print-tcoe-range');
+      var tNum = document.getElementById('print-tcoe-num');
+      var hRange = document.getElementById('print-health-range');
+      var hNum = document.getElementById('print-health-num');
+      var pRange = document.getElementById('print-permit-range');
+      var pNum = document.getElementById('print-permit-num');
+      var tEnable = document.getElementById('print-tcoe-enable');
+      var hEnable = document.getElementById('print-health-enable');
+      var pEnable = document.getElementById('print-permit-enable');
+      var apply = document.getElementById('print-apply');
+      var preview = document.getElementById('print-preview');
+      var closeBtn = document.getElementById('print-close');
+      function clamp(v){ var n = parseInt(v,10); if (isNaN(n)) n = 0; if (n < -60) n = -60; if (n > 365) n = 365; return n; }
+      function bindRange(range, num){
+          if (!range) return;
+        var syncFromRange = function(){
+          var v = clamp(range.value);
+          range.value = v;
+          if (num) num.value = v;
+        };
+        var syncFromNum = function(){
+          var v = clamp(num.value);
+          if (num) num.value = v;
+          range.value = v;
+        };
+        syncFromRange();
+        range.oninput = syncFromRange;
+        if (num) num.oninput = syncFromNum;
+      }
+        bindRange(tRange, tNum);
+        bindRange(hRange, hNum);
+        bindRange(pRange, pNum);
+      function restoreRows(){
+        var rows = document.querySelectorAll('#employees-table-body tr');
+        rows.forEach(function(tr){ tr.style.display = ''; });
+      }
+      if (btn && panel) btn.onclick = function(){ 
+        var show = panel.style.display==='none';
+        panel.style.display = show ? 'block' : 'none';
+        if (!show) restoreRows();
+      };
+      if (closeBtn && panel) closeBtn.onclick = function(){ restoreRows(); panel.style.display = 'none'; };
+      function filterForPrint(){
+        var tv = tRange ? parseInt(tRange.value,10) : null;
+        var hv = hRange ? parseInt(hRange.value,10) : null;
+        var pv = pRange ? parseInt(pRange.value,10) : null;
+        var te = tEnable && tEnable.checked;
+        var he = hEnable && hEnable.checked;
+        var pe = pEnable && pEnable.checked;
+        var any = te || he || pe;
+        var rows = App.store.list('employees') || [];
+        var matches = rows.filter(function(r){
+          var dT = daysDiff(r.tcoeEnd || '');
+          var dH = daysDiff(r.healthExpiry || '');
+          var dP = daysDiff(r.permitExpiry || '');
+          var match = !any;
+          if (te && dT!=null && dT <= tv) match = true;
+          if (he && dH!=null && dH <= hv) match = true;
+          if (pe && dP!=null && dP <= pv) match = true;
+          return match;
+        });
+        return { matches: matches, settings: { te: te, tv: tv, he: he, hv: hv, pe: pe, pv: pv } };
+      }
+      function buildPrintReport(data){
+        var box = document.getElementById('print-report');
+        if (!box) return;
+        var lang = App.getLang ? App.getLang() : 'ar';
+        var now = new Date();
+        var dt = now.toLocaleString(lang==='ar'?'ar-SA':'en-US');
+        var user = (App.getUser && App.getUser()) || 'User';
+        var hdr = '<div style="position:relative;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid #334155;padding-bottom:8px;">'
+                + '<div style="font-weight:700;color:#4facfe;">'+(lang==='en'?'Olayan Food Services Company':'شركة العليان للخدمات الغذائية')+'</div>'
+                + '<div style="color:#94a3b8;font-size:0.9rem;">'+dt+'</div>'
+                + '<button onclick="(function(){ var el=document.getElementById(\'print-report\'); if(el){ el.style.display=\'none\'; el.innerHTML=\'\'; } })()" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);padding:4px 8px;border:1px solid #334155;border-radius:6px;background:#334155;color:#fff;font-size:11px;">'+(lang==='en'?'Close':'إغلاق')+'</button>'
+                + '</div>';
+        var logo = '<div style="display:flex;justify-content:center;margin:12px 0;">'
+                 + '<img src="olayan-mark.svg" alt="Olayan Food Services" style="width:96px;height:auto;opacity:0.9;">'
+                 + '</div>';
+        var filt = data.settings;
+        var filtList = [];
+        if (filt.te) filtList.push('انتهاء التدريب ≤ '+filt.tv+' يوم');
+        if (filt.he) filtList.push('الكرت الصحي ≤ '+filt.hv+' يوم');
+        if (filt.pe) filtList.push('انتهاء تصريح المطار ≤ '+filt.pv+' يوم');
+        if (!filtList.length) filtList.push('بدون فلاتر (كل البيانات)');
+        var filtBox = '<div style="margin:8px 0;color:#cbd5e1;font-size:0.9rem;">البيانات المفلترة: '+filtList.join(' | ')+'</div>';
+        var thead = '<thead><tr style="background:#0f172a;color:#e2e8f0;">'
+                  + '<th style="padding:6px 8px;border-bottom:1px solid #334155;">الاسم</th>'
+                  + '<th style="padding:6px 8px;border-bottom:1px solid #334155;">رقم الهوية/الإقامة</th>'
+                  + '<th style="padding:6px 8px;border-bottom:1px solid #334155;">الرقم المرجعي REF#</th>'
+                  + '<th style="padding:6px 8px;border-bottom:1px solid #334155;">رقم الهاتف</th>'
+                  + '<th style="padding:6px 8px;border-bottom:1px solid #334155;">مركز التكلفة</th>'
+                  + '<th style="padding:6px 8px;border-bottom:1px solid #334155;">انتهاء التدريب</th>'
+                  + '<th style="padding:6px 8px;border-bottom:1px solid #334155;">الكرت الصحي</th>'
+                  + '<th style="padding:6px 8px;border-bottom:1px solid #334155;">انتهاء تصريح المطار</th>'
+                  + '</tr></thead>';
+        var rows = data.matches.map(function(r){
+          function fmt(dateStr){
+            if (!dateStr) return '-';
+            var d = daysDiff(dateStr); var part = (d==null?'':(' ('+Math.abs(d)+')'));
+            return dateStr + part;
+          }
+          return '<tr>'
+            + '<td style="padding:6px 8px;border-bottom:1px solid #1e293b;">'+(r.name||'-')+'</td>'
+            + '<td style="padding:6px 8px;border-bottom:1px solid #1e293b;">'+(r.idNum||'-')+'</td>'
+            + '<td style="padding:6px 8px;border-bottom:1px solid #1e293b;">'+(r.ref||'-')+'</td>'
+            + '<td style="padding:6px 8px;border-bottom:1px solid #1e293b;">'+(r.phone||'-')+'</td>'
+            + '<td style="padding:6px 8px;border-bottom:1px solid #1e293b;">'+(r.tc||'-')+'</td>'
+            + '<td style="padding:6px 8px;border-bottom:1px solid #1e293b;">'+fmt(r.tcoeEnd||'')+'</td>'
+            + '<td style="padding:6px 8px;border-bottom:1px solid #1e293b;">'+fmt(r.healthExpiry||'')+'</td>'
+            + '<td style="padding:6px 8px;border-bottom:1px solid #1e293b;">'+fmt(r.permitExpiry||'')+'</td>'
+            + '</tr>';
+        }).join('');
+        var tbl = '<table style="width:100%;border-collapse:collapse;text-align:right;font-size:12px;background:#0b1020;color:#e2e8f0;">'+thead+'<tbody>'+rows+'</tbody></table>';
+        var ftr = '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;border-top:1px solid #334155;padding-top:8px;color:#94a3b8;font-size:0.9rem;">'
+                + '<div>عدد الموظفين: '+data.matches.length+'</div>'
+                + '<div>المستخدم: '+user+'</div>'
+                + '</div>';
+        var ctrl = '';
+        box.innerHTML = hdr + logo + filtBox + tbl + ftr + ctrl;
+      }
+      function logActivity(action, details, count){
+        try {
+          if (window.logActivity) { window.logActivity(action, details, count); return; }
+          var logs = JSON.parse(localStorage.getItem('activity_log') || '[]');
+          var base = { timestamp: new Date().toLocaleString(), user: (App.getUser && App.getUser()) || 'User', action: action, details: details, ip: '192.168.1.X' };
+          var n = parseInt(count||1,10); if (isNaN(n) || n<1) n = 1;
+          for (var i=0;i<n;i++){ logs.push(base); }
+          localStorage.setItem('activity_log', JSON.stringify(logs));
+        } catch(_){}
+      }
+      if (preview) preview.onclick = function(){ 
+        var data = filterForPrint(); 
+        buildPrintReport(data);
+        var box = document.getElementById('print-report'); if (box) box.style.display = 'block';
+      };
+      if (apply) apply.onclick = function(){
+        var data = filterForPrint();
+        buildPrintReport(data);
+        var box = document.getElementById('print-report'); if (box) box.style.display = 'block';
+        logActivity('Print Employees Report', 'Filters: '+JSON.stringify(data.settings)+'; Count: '+data.matches.length, 2);
+        try { window.print(); } catch(_){}
+        // restore
+        restoreRows();
+        var box2 = document.getElementById('print-report'); if (box2) { box2.style.display = 'none'; box2.innerHTML = ''; }
+      };
+    })();
+    // --- Generate Data Button ---
+    (function(){
+      var gen = document.getElementById('btn-generate-data');
+      if (!gen) return;
+      gen.onclick = function(){
+        var brands = ['Burger King','KFC','Herfy','Popeyes','Five Guys'];
+        var regions = ['الغربية','الوسطى','الشرقية','الجنوبية','الشمالية'];
+        for (var i=0;i<25;i++){
+          var name = 'موظف ' + (i+1);
+          var idNum = '1' + String(Math.floor(Math.random()*1e9)).padStart(9,'0');
+          var phone = '05' + String(Math.floor(Math.random()*1e7)).padStart(7,'0');
+          var brand = brands[Math.floor(Math.random()*brands.length)];
+          var region = regions[Math.floor(Math.random()*regions.length)];
+          var branch = brand + ' - ' + (Math.floor(Math.random()*90)+1);
+          var today = new Date();
+          var tcoeEnd = new Date(today.getTime() + (Math.floor(Math.random()*120)-30)*86400000).toISOString().slice(0,10);
+          var healthExpiry = new Date(today.getTime() + (Math.floor(Math.random()*180)-30)*86400000).toISOString().slice(0,10);
+          var permitExpiry = new Date(today.getTime() + (Math.floor(Math.random()*200)-30)*86400000).toISOString().slice(0,10);
+          App.store.create('employees',{
+            sap: 'SAP'+Date.now().toString(36)+i,
+            name: name,
+            idNum: idNum,
+            phone: phone,
+            brand: brand,
+            branch: branch,
+            region: region,
+            tcoeEnd: tcoeEnd,
+            healthExpiry: healthExpiry,
+            permitNum: 'P-'+Math.floor(Math.random()*999999),
+            permitExpiry: permitExpiry
+          });
+        }
+        renderEmployeesCards();
+        toast('success','تم','تم توليد بيانات تجريبية (25 صف)');
+      };
+    })();
+    document.getElementById('excel-input').onchange = function (ev) {
+      var f = ev.target.files && ev.target.files[0];
+      if (!f) return;
+      var nameEl = document.getElementById('excel-file-name');
+      var countEl = document.getElementById('excel-import-count');
+      if (nameEl) nameEl.textContent = f.name || '';
+      var isCSV = (f.name || '').toLowerCase().endsWith('.csv');
+      var reader = new FileReader();
+      if (isCSV) {
+        reader.onload = function (e) {
+          var text = e.target.result || '';
+          var wb = XLSX.read(text, { type: 'string' });
+          var ws = wb.Sheets[wb.SheetNames[0]];
+          var rows = XLSX.utils.sheet_to_json(ws);
+          rows.forEach(function (r) { App.store.create('admin_import', r); });
+          if (countEl) countEl.textContent = rows.length ? ('عدد السجلات: ' + rows.length) : '';
+          toast('success', 'تم', 'تم الاستيراد (' + rows.length + ')');
+          setUpdateSource('excel');
+        };
+        reader.readAsText(f);
+      } else {
+        reader.onload = function (e) {
+          var data = new Uint8Array(e.target.result);
+          var wb = XLSX.read(data, { type: 'array' });
+          var ws = wb.Sheets[wb.SheetNames[0]];
+          var rows = XLSX.utils.sheet_to_json(ws);
+          rows.forEach(function (r) { App.store.create('admin_import', r); });
+          if (countEl) countEl.textContent = rows.length ? ('عدد السجلات: ' + rows.length) : '';
+          toast('success', 'تم', 'تم الاستيراد (' + rows.length + ')');
+          setUpdateSource('excel');
+        };
+        reader.readAsArrayBuffer(f);
+      }
+    };
+    if (App.isAdmin()) { if (App.hasApi && App.hasApi()) syncViolationsFromApi(); renderCharts(); renderLists(); generateStrategicReport(); try{ renderViolationsCharts(); renderViolationsTable(); }catch(e){} }
+    try { renderViolationsCharts(); renderViolationsTable(); } catch(_){}
+    window.addEventListener('storage', function(e){ if (!e || !e.key) return; if (e.key === 'db:violations') { try { renderViolationsCharts(); renderViolationsTable(); } catch(_){} } });
+    document.addEventListener('visibilitychange', function(){ if (!document.hidden) { try { renderViolationsCharts(); renderViolationsTable(); } catch(_){} } });
+    window.addEventListener('unhandledrejection', function(e){
+      try {
+        var r = e && e.reason;
+        var msg = r && (r.message || String(r)) || '';
+        if (String(msg).includes('Failed to fetch') || String(msg).includes('net::ERR')) {
+          e.preventDefault();
+        }
+      } catch(_){}
+    });
+  </script>
+  <div id="attachments-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header" style="position:relative;">
+        <button id="att-close" class="modal-close" onclick="document.getElementById('attachments-modal').classList.remove('open')" style="position:absolute;left:12px;top:12px;">&times;</button>
+        <div style="flex-grow:1; text-align:right; padding-right:12px;">
+          <span id="att-title" class="text-sm text-slate-300">المرفقات</span>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="flex items-center gap-2 mb-3">
+          <button id="att-pick" class="btn bg-slate-700 hover:bg-slate-600 text-white">اختيار ملفات</button>
+          <input type="file" id="att-file" multiple accept="image/*" style="display:none;">
+          <button id="att-save" class="btn bg-blue-600 hover:bg-blue-500 text-white">حفظ</button>
+          <button id="att-clear" class="btn bg-red-600 hover:bg-red-500 text-white">مسح الكل</button>
+        </div>
+        <div id="att-list" style="display:grid; gap:8px;"></div>
+      </div>
+    </div>
+  </div>
+  </script>

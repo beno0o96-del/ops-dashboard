@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>الفروع</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style-base.css">
+  <link rel="stylesheet" href="style-site.css">
+  <style>
+  </style>
+</head>
+<body>
+  <canvas id="bg-canvas"></canvas>
+  <nav class="glass-nav">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <div class="text-lg font-bold">لوحة التشغيل</div>
+      <div class="flex items-center gap-4">
+        <a href="./index.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.home">الرئيسية</a>
+        <a href="./employees.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.employees">الموظفون</a>
+        <a href="./branches.html" class="text-indigo-600 font-medium" data-i18n="nav.branches">الفروع</a>
+        <a href="./licenses.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.licenses">الرخص والعقود</a>
+        <a href="./violations.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.violations">المخالفات</a>
+        <a href="./housings.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.housings">السكنات</a>
+        <a href="./transports.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.transports">المواصلات</a>
+        <a href="./reports.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.reports">التقارير</a>
+        <a href="./login.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.login">تسجيل الدخول</a>
+        <button id="help-toggle" class="px-3 py-1 rounded bg-gray-100 text-gray-800"></button>
+        <button id="lang-toggle" class="px-3 py-1 rounded bg-indigo-600 text-white"></button>
+        <div class="relative inline-block">
+          <div id="user-badge" class="user-badge">
+            <div class="user-avatar"></div>
+            <span id="user-badge-name"></span>
+          </div>
+          <div id="user-menu" class="user-menu">
+            <a href="#" data-en="My Profile" data-ar="ملفّي">My Profile</a>
+            <button onclick="App.logout()" data-en="Logout" data-ar="تسجيل الخروج">Logout</button>
+          </div>
+        </div>
+        <button class="logout-btn" onclick="App.logout()" data-en="Logout" data-ar="تسجيل الخروج">Logout</button>
+      </div>
+    </div>
+  </nav>
+  <main class="max-w-7xl mx-auto px-4 py-8" style="font-family:'Cairo','Segoe UI',sans-serif">
+    <div class="flex items-start md:items-center justify-between mb-6 gap-3 flex-col md:flex-row">
+      <h1 class="text-2xl font-semibold" data-i18n="branches.title">الفروع</h1>
+      <div class="w-full md:w-auto flex items-center gap-3">
+        
+        <select id="region-select" class="form-control" style="min-width:180px; background:rgba(59,130,246,0.12); border-color:rgba(59,130,246,0.35)">
+          <option value="all">كل المناطق</option>
+        </select>
+        <input id="branches-search" class="form-control" type="text" placeholder="بحث" style="min-width:220px">
+      </div>
+    </div>
+    <h2 class="text-xl font-semibold mb-4">الافتتاحات والمشاريع الحالية</h2>
+    <div id="openings-grid" class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8"></div>
+    <h2 class="text-xl font-semibold mb-4">شبكة الفروع النشطة</h2>
+    <div id="branches-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"></div>
+    <h2 class="text-xl font-semibold mb-4">الفروع المغلقة</h2>
+    <div id="closed-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+  </main>
+  <div id="branch-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:2000; align-items:center; justify-content:center; backdrop-filter:blur(5px);">
+    <div style="background:linear-gradient(145deg, #1e293b, #0f172a); color:#fff; padding:0; border-radius:20px; width:95%; max-width:800px; max-height:90vh; overflow-y:auto; border:1px solid rgba(255,255,255,0.1); box-shadow:0 25px 50px rgba(0,0,0,0.5);">
+      <div style="padding:20px 30px; background:rgba(0,0,0,0.2); display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.1);">
+        <div style="display:flex; align-items:center; gap:15px;">
+      <div id="modal-logo" style="width:50px; height:50px; background:rgba(17,24,39,0.85); border:2px solid rgba(148,163,184,0.35); border-radius:50%; display:flex; align-items:center; justify-content:center; overflow:hidden">
+        <img src="olayan-mark.svg" style="width:100%; height:100%; object-fit:contain; padding:6px; border-radius:50%;">
+          </div>
+          <div>
+            <h2 id="modal-title" style="margin:0; font-size:1.5rem;">اسم الفرع</h2>
+            <span id="modal-subtitle" style="color:#94a3b8; font-size:0.9rem;">المنطقة</span>
+          </div>
+        </div>
+        <button onclick="document.getElementById('branch-modal').style.display='none'" style="background:none; border:none; color:#fff; font-size:2rem; cursor:pointer;">&times;</button>
+      </div>
+      <div style="padding:30px;">
+        <h3 style="border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px; margin-bottom:20px; color:#e2e8f0;">⚠️ مخالفات الفرع حسب مركز التكلفة</h3>
+        <div id="modal-cost-violations" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:15px; margin-bottom:10px;"></div>
+      </div>
+    </div>
+  </div>
+  <script src="app.js"></script>
+  <script>
+    App.init('branches');
+    function safeParse(k, d){ try{ return JSON.parse(localStorage.getItem(k)||JSON.stringify(d)); }catch(e){ return d; } }
+    var __regionFilter = 'all';
+    var __searchQuery = '';
+    function buildRegionBar(){ var rows = (App && App.store && App.store.list) ? App.store.list('branches') : safeParse('admin_branches_data', []); var uniq = {}; (Array.isArray(rows)?rows:[]).forEach(function(b){ var r = String(b && b.region || '').trim(); if (r) uniq[r]=true; }); var list = Object.keys(uniq).sort(function(a,b){ return a.localeCompare(b,'ar'); }); buildRegionSelect(list); }
+    function buildRegionSelect(list){ var sel = document.getElementById('region-select'); if (!sel) return; var curr = sel.value || __regionFilter || 'all'; var opts = '<option value="all">كل المناطق</option>' + (Array.isArray(list)?list:[]).map(function(r){ return '<option value="'+ r +'">'+ r +'</option>'; }).join(''); sel.innerHTML = opts; if (curr) sel.value = curr; sel.onchange = function(){ __regionFilter = sel.value || 'all'; renderOpenings(); renderGrid(); renderClosed(); buildRegionBar(); } }
+    
+    function bindSearch(){ var el = document.getElementById('branches-search'); if (!el || el.__bound) return; el.__bound = true; el.oninput = function(){ __searchQuery = (el.value||'').trim().toLowerCase(); renderOpenings(); renderGrid(); renderClosed(); }; }
+    function detectBrand(name){
+      var lower = (name||'').toLowerCase();
+      if(lower.includes('bk')||lower.includes('burger')) return 'Burger King';
+      if(lower.includes('texas')||lower.includes('chicken')) return 'Texas Chicken';
+      if(lower.includes('bww')||lower.includes('buffalo')) return 'Buffalo Wild Wings';
+      return 'Olayan';
+    }
+    function getBrandLogo(brand){
+      var b = String(brand||'').toLowerCase();
+      if (b.includes('burger') || b.includes('bk')) return '../olayan1%20-%20Copy/BK-logo.png';
+      return 'olayan-mark.svg';
+    }
+    function ensureDataKeys(){
+      var emps = App.store.list('employees');
+      var vios = App.store.list('violations');
+      var lics = App.store.list('licenses');
+      var brs = App.store.list('branches');
+      if(emps && emps.length) localStorage.setItem('admin_employees', JSON.stringify(emps));
+      if(vios && vios.length) localStorage.setItem('admin_violations_raw', JSON.stringify(vios));
+      if(lics && lics.length) localStorage.setItem('admin_licenses', JSON.stringify(lics));
+      var rich = safeParse('admin_branches_data', []);
+      var names = new Set(rich.map(function(b){ return typeof b==='string'?b:b.name; }));
+      brs.forEach(function(b){
+        var nm = b.name || b.branch || b;
+        if(nm && !names.has(nm)){
+          rich.push({ name:nm, brand: detectBrand(nm), source:'auto' });
+          names.add(nm);
+        }
+      });
+      if(rich.length) localStorage.setItem('admin_branches_data', JSON.stringify(rich));
+    }
+    function updateStatus(elId, status){
+      var el = document.getElementById(elId);
+      if(!el) return;
+      var s = (status||'').toLowerCase();
+      el.textContent = status || 'غير متوفر';
+      el.style.padding = '4px 10px';
+      el.style.borderRadius = '10px';
+      if(s.includes('valid')||s.includes('ساري')) { el.style.background='rgba(16,185,129,0.2)'; el.style.color='#10b981'; }
+      else if(s.includes('expire')||s.includes('منتهي')) { el.style.background='rgba(239,68,68,0.2)'; el.style.color='#ef4444'; }
+      else { el.style.background='rgba(148,163,184,0.2)'; el.style.color='#94a3b8'; }
+    }
+    function renderOpenings(){
+      var cont = document.getElementById('openings-grid');
+      if(!cont) return;
+      var rows = (window.App && App.store && typeof App.store.list==='function') ? App.store.list('branches') : safeParse('admin_branches_data', []);
+      var list = Array.isArray(rows) ? rows : [];
+      list = list.filter(function(b){ if (!(b && b.type==='opening' && b.hidden!==true)) return false; if (!(__regionFilter==='all' || String(b.region||'').trim()===__regionFilter)) return false; var hay = ((b.name||'')+' '+(b.brand||'')+' '+(b.notes||'')).toLowerCase(); return !__searchQuery || hay.indexOf(__searchQuery) >= 0; });
+      list.sort(function(a,b){ var pa = a && a.pinned===true ? 1 : 0; var pb = b && b.pinned===true ? 1 : 0; if (pb !== pa) return pb - pa; return String(a && a.name || '').localeCompare(String(b && b.name || ''), 'ar'); });
+      if(!list.length){ cont.innerHTML = '<div class="glass-card p-4">لا توجد افتتاحات حالية</div>'; return; }
+      cont.innerHTML = list.map(function(b, i){
+        var name = b.name||'';
+        var brand = b.brand||detectBrand(name);
+        var logoSrc = b.logo || getBrandLogo(brand);
+        var exp = b.opening_date_expected || '';
+        var expTxt = exp ? ('📅 الافتتاح المتوقع: ' + exp) : '📅 المتوقع: لاحقاً';
+        var notes = b.notes || '';
+        var notesTxt = notes ? ('📝 ' + notes) : '';
+        var awning = '<div style="position:absolute; left:0; right:0; top:0; height:10px; border-radius:16px 16px 0 0; background:repeating-linear-gradient(90deg, rgba(245,158,11,0.9) 0, rgba(245,158,11,0.9) 14px, rgba(250,204,21,0.9) 14px, rgba(250,204,21,0.9) 28px);"></div>';
+        return '<div class="glass-card p-5 rounded-2xl border border-amber-400/25 bg-slate-900/60" style="position:relative; opacity:0; transform:translateY(8px) scale(0.98); transition:transform .35s ease, opacity .35s ease, box-shadow .35s ease">'
+          + awning
+          + '<div class="flex items-center justify-between mb-3">'
+          +   '<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-300">قريباً</span>'
+          +   '<div class="flex items-center gap-2 text-sm text-slate-400">'
+          +     '<div class="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden" style="background:rgba(17,24,39,0.85); border:2px solid rgba(245,158,11,0.65)">'
+          +       '<img src="'+ logoSrc +'" alt="logo" style="width:100%;height:100%;object-fit:contain;padding:4px;border-radius:50%">'
+          +     '</div>'
+          +     '<span>'+ brand +'</span>'
+          +   '</div>'
+          + '</div>'
+          + '<div class="text-lg font-semibold text-white mb-1">'+ name +'</div>'
+          + (notesTxt ? ('<div class="text-xs text-slate-400 mt-1">'+ notesTxt +'</div>') : '')
+          + '<div class="text-sm text-slate-400">'+ expTxt +'</div>'
+          + '</div>';
+      }).join('');
+      Array.prototype.slice.call(cont.children||[]).forEach(function(card, idx){ setTimeout(function(){ card.style.opacity='1'; card.style.transform='translateY(0) scale(1)'; }, Math.min(idx*40, 400)); });
+    }
+    function renderGrid(){
+      ensureDataKeys();
+      var cont = document.getElementById('branches-grid');
+      if(!cont) return;
+      var rows = (window.App && App.store && typeof App.store.list==='function') ? App.store.list('branches') : safeParse('admin_branches_data', []);
+      var list = Array.isArray(rows) ? rows : [];
+      list = list.filter(function(b){ if ((b && b.hidden===true) || (b && b.type==='opening') || (b && b.closed===true)) return false; if (!(__regionFilter==='all' || String(b.region||'').trim()===__regionFilter)) return false; var hay = ((b.name||'')+' '+(b.brand||'')+' '+(b.notes||'')).toLowerCase(); return !__searchQuery || hay.indexOf(__searchQuery) >= 0; });
+      list.sort(function(a,b){ var pa = a && a.pinned===true ? 1 : 0; var pb = b && b.pinned===true ? 1 : 0; if (pb !== pa) return pb - pa; return String(a && a.name || '').localeCompare(String(b && b.name || ''), 'ar'); });
+      if(!list.length){
+        cont.innerHTML = '<div class="glass-card p-4">لا توجد بيانات فروع</div>';
+        return;
+      }
+      cont.innerHTML = '';
+      list.forEach(function(b, i){
+        var name = (typeof b==='string') ? b : (b && b.name) || '';
+        var brand = (typeof b==='object' && b) ? (b.brand || detectBrand(name)) : detectBrand(name);
+        var logoSrc = (typeof b==='object' && b && b.logo) ? b.logo : getBrandLogo(brand);
+        var isClosed = !!(b && b.closed===true);
+        var stClass = isClosed ? 'bg-red-500/15 text-red-300 border-red-400/25' : 'bg-emerald-500/15 text-emerald-300 border-emerald-400/25';
+        var stText = isClosed ? 'مغلق' : 'نشط';
+        var logoBorder = isClosed ? 'rgba(244,63,94,0.65)' : 'rgba(16,185,129,0.65)';
+        var vios = (App && App.store && App.store.list) ? App.store.list('violations') : safeParse('admin_violations_raw', []);
+        var vCount = (Array.isArray(vios)?vios:[]).filter(function(v){ return (v.branch||v.location)===name; }).length;
+        var autoNoVio = (vCount === 0);
+        var manualStar = (b && b.award_star_manual===true);
+        var starInline = (autoNoVio || manualStar) ? ' <span title="وسام" style="color:#f59e0b; font-size:14px; margin-inline-start:6px; line-height:1;">⭐</span>' : '';
+        var awning = '<div style="position:absolute; left:0; right:0; top:0; height:10px; border-radius:16px 16px 0 0; background:repeating-linear-gradient(90deg, rgba(59,130,246,0.9) 0, rgba(59,130,246,0.9) 14px, rgba(99,102,241,0.9) 14px, rgba(99,102,241,0.9) 28px);"></div>';
+        var card = document.createElement('div');
+        card.className = 'glass-card p-5 rounded-2xl border bg-slate-900/60';
+        card.style.borderColor = isClosed ? 'rgba(244,63,94,0.25)' : 'rgba(16,185,129,0.25)';
+        card.style.position = 'relative';
+        card.innerHTML =
+          awning +
+          '<div class="flex items-center justify-between mb-3">'
+            + '<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold '+ stClass +'">'+ stText +'</span>'
+          +   '<div class="flex items-center gap-2 text-sm text-slate-400">'
+          +   '<div class="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden" style="background:rgba(17,24,39,0.85); border:2px solid '+ logoBorder +'">'
+          +       '<img src="'+ logoSrc +'" alt="logo" style="width:100%;height:100%;object-fit:contain;object-position:center;padding:4px;border-radius:50%">'
+            +   '</div>'
+            +   '<span>'+ brand +'</span>'
+            + '</div>'
+          + '</div>'
+          + '<div class="text-white font-semibold text-lg mb-1">'+ name + starInline +'</div>'
+          + (b && b.city ? ('<div class="text-xs text-slate-400">📍 '+ b.city +'</div>') : '')
+          + ((b && b.notes) ? ('<div class="text-xs text-slate-400">📝 '+ b.notes +'</div>') : '');
+        card.onclick = function(){ openModal(name, brand); };
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(8px) scale(0.98)';
+        card.style.transition = 'transform .35s ease, opacity .35s ease, box-shadow .35s ease';
+        cont.appendChild(card);
+        setTimeout(function(){ card.style.opacity='1'; card.style.transform='translateY(0) scale(1)'; }, Math.min(i*40, 400));
+      });
+    }
+    function renderClosed(){
+      var cont = document.getElementById('closed-grid');
+      if(!cont) return;
+      var rows = (window.App && App.store && typeof App.store.list==='function') ? App.store.list('branches') : safeParse('admin_branches_data', []);
+      var list = Array.isArray(rows) ? rows : [];
+      list = list.filter(function(b){ if (!(b && b.closed===true && b.hidden!==true)) return false; if (!(__regionFilter==='all' || String(b.region||'').trim()===__regionFilter)) return false; var hay = ((b.name||'')+' '+(b.brand||'')+' '+(b.notes||'')).toLowerCase(); return !__searchQuery || hay.indexOf(__searchQuery) >= 0; });
+      list.sort(function(a,b){ var pa = a && a.pinned===true ? 1 : 0; var pb = b && b.pinned===true ? 1 : 0; if (pb !== pa) return pb - pa; return String(a && a.name || '').localeCompare(String(b && b.name || ''), 'ar'); });
+      if(!list.length){ cont.innerHTML = '<div class="glass-card p-4">لا توجد فروع مغلقة</div>'; return; }
+      cont.innerHTML = '';
+      list.forEach(function(b, i){
+        var name = b.name || '';
+        var brand = b.brand || detectBrand(name);
+        var logoSrc = b.logo || getBrandLogo(brand);
+        var vios = (App && App.store && App.store.list) ? App.store.list('violations') : safeParse('admin_violations_raw', []);
+        var vCount = (Array.isArray(vios)?vios:[]).filter(function(v){ return (v.branch||v.location)===name; }).length;
+        var autoNoVio = (vCount === 0);
+        var manualStar = (b && b.award_star_manual===true);
+        var starInline = (autoNoVio || manualStar) ? ' <span title="وسام" style="color:#f59e0b; font-size:14px; margin-inline-start:6px; line-height:1;">⭐</span>' : '';
+        var awning = '<div style="position:absolute; left:0; right:0; top:0; height:10px; border-radius:16px 16px 0 0; background:repeating-linear-gradient(90deg, rgba(59,130,246,0.9) 0, rgba(59,130,246,0.9) 14px, rgba(99,102,241,0.9) 14px, rgba(99,102,241,0.9) 28px);"></div>';
+        var card = document.createElement('div');
+        card.className = 'glass-card p-5 rounded-2xl border bg-slate-900/60';
+        card.style.borderColor = 'rgba(244,63,94,0.25)';
+        card.style.position = 'relative';
+        var closeDate = b.close_date || b.closed_date || b.closing_date || '';
+        var closeExp = b.closing_date_expected || b.close_date_expected || b.expected_close || b.close_expected || '';
+        card.innerHTML =
+          awning +
+          '<div class="flex items-center justify-between mb-3">'
+            + '<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-red-500/15 text-red-300">مغلق</span>'
+          +   '<div class="flex items-center gap-2 text-sm text-slate-400">'
+          +   '<div class="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden" style="background:rgba(17,24,39,0.85); border:2px solid rgba(244,63,94,0.65)">'
+          +     '<img src="'+ logoSrc +'" alt="logo" style="width:100%;height:100%;object-fit:contain;object-position:center;padding:4px;border-radius:50%">'
+            +   '</div>'
+            +   '<span>'+ brand +'</span>'
+            + '</div>'
+          + '</div>'
+          + '<div class="text-white font-semibold text-lg mb-1">'+ name + starInline +'</div>'
+          + (b && b.city ? ('<div class="text-xs text-slate-400">📍 '+ b.city +'</div>') : '')
+          + ((b && b.notes) ? ('<div class="text-xs text-slate-400">📝 '+ b.notes +'</div>') : '')
+          + (closeDate ? ('<div class="text-sm text-slate-400">📅 تاريخ الإغلاق: '+ closeDate +'</div>') : '')
+          + (closeExp ? ('<div class="text-sm text-slate-400">📅 الإغلاق المتوقع: '+ closeExp +'</div>') : '');
+        card.onclick = function(){ openModal(name, brand); };
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(8px) scale(0.98)';
+        card.style.transition = 'transform .35s ease, opacity .35s ease, box-shadow .35s ease';
+        cont.appendChild(card);
+        setTimeout(function(){ card.style.opacity='1'; card.style.transform='translateY(0) scale(1)'; }, Math.min(i*40, 400));
+      });
+    }
+    function openModal(branchName, brand){
+      var modal = document.getElementById('branch-modal');
+      var tEl = document.getElementById('modal-title');
+      var sEl = document.getElementById('modal-subtitle');
+      if (tEl) tEl.textContent = branchName || '';
+      if (sEl) sEl.textContent = brand || 'Olayan';
+      var logoEl = document.querySelector('#modal-logo img');
+      if (logoEl) {
+        var rowsB = (App && App.store && App.store.list) ? App.store.list('branches') : [];
+        var recB = (Array.isArray(rowsB)?rowsB:[]).find(function(b){ return (b && (b.name||b.branch)) === branchName; });
+        var srcB = (recB && recB.logo) || getBrandLogo(brand);
+        logoEl.src = srcB;
+        logoEl.alt = brand || 'logo';
+      }
+      var vios = (App && App.store && App.store.list) ? App.store.list('violations') : safeParse('admin_violations_raw', []);
+      var container = document.getElementById('modal-cost-violations');
+      if (container) {
+        var rows = vios.filter(function(v){ return (v.branch||v.location)===branchName; });
+        var groups = {};
+        rows.forEach(function(v){
+          var cc = v.costCenter || v.cost_center || v.center || 'غير محدد';
+          if (!groups[cc]) groups[cc] = { cost_center: cc, items: [], count: 0, amount: 0, active:0, archived:0 };
+          groups[cc].items.push(v);
+          groups[cc].count += 1;
+          groups[cc].amount += Number(v.amount || 0);
+          if (v.archived===true) groups[cc].archived++; else groups[cc].active++;
+        });
+        var attRows = (App && App.store && App.store.list) ? App.store.list('attachments') : [];
+        var entries = Object.keys(groups).map(function(k){ return groups[k]; }).sort(function(a,b){ return b.amount - a.amount; });
+        if (!entries.length) {
+          container.innerHTML = '<div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:12px; color:#94a3b8; text-align:center;">لا توجد مخالفات مسجلة لهذا الفرع</div>';
+        } else {
+          container.innerHTML = entries.map(function(g){
+            var head = '<div style="background:rgba(17,24,39,0.6); border:1px solid rgba(59,130,246,0.25); border-radius:12px; padding:12px;">'
+              + '<div style="text-align:center">'
+              + '<div style="color:#94a3b8; font-size:0.8rem;">مركز التكلفة</div>'
+              + '<div style="font-weight:bold; color:#e2e8f0; margin-bottom:8px;">'+ g.cost_center +'</div>'
+              + '<div style="display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap">'
+              +   '<span style="color:#60a5fa; font-weight:bold;">عدد: '+ g.count +'</span>'
+              +   '<span style="color:#64748b;">|</span>'
+              +   '<span style="color:#f87171; font-weight:bold;">المبلغ: '+ g.amount.toLocaleString('ar-SA') +' ر.س</span>'
+              +   '<span style="color:#64748b;">|</span>'
+              +   '<span style="color:#22d3ee">نشطة: '+ g.active +'</span>'
+              +   '<span style="color:#64748b;">|</span>'
+              +   '<span style="color:#f59e0b">مؤرشفة: '+ g.archived +'</span>'
+              + '</div>'
+              + '</div>';
+            var rowsHtml = (function(){
+              var thead = '<thead style="position:sticky; top:0; z-index:2; background:rgba(51,65,85,0.95)" class="bg-slate-800/60"><tr>'
+                + '<th class="px-3 py-2 text-slate-300 text-xs font-semibold">رقم المخالفة</th>'
+                + '<th class="px-3 py-2 text-slate-300 text-xs font-semibold">رقم إيفاء</th>'
+                + '<th class="px-3 py-2 text-slate-300 text-xs font-semibold">رقم السداد</th>'
+                + '<th class="px-3 py-2 text-slate-300 text-xs font-semibold">التاريخ</th>'
+                + '<th class="px-3 py-2 text-slate-300 text-xs font-semibold">الوصف</th>'
+                + '<th class="px-3 py-2 text-slate-300 text-xs font-semibold text-right">المبلغ</th>'
+                + '<th class="px-3 py-2 text-slate-300 text-xs font-semibold">مدفوع</th>'
+                + '<th class="px-3 py-2 text-slate-300 text-xs font-semibold">الاعتراض</th>'
+                + '<th class="px-3 py-2 text-slate-300 text-xs font-semibold">المرفقات</th>'
+                + '</tr></thead>';
+              var tbody = '<tbody>' + g.items.map(function(r){
+                var paid = (r && (r.paid === true || String(r.paid).toLowerCase()==='true'));
+                var paidBadge = '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold '+ (paid? 'bg-emerald-500/15 text-emerald-300' : 'bg-rose-500/15 text-rose-300') +'">'+ (paid? 'نعم' : 'لا') +'</span>';
+                var appealMap = { 'under_study':'تحت الدراسة', 'rejected':'رفض الاعتراض', 'accepted':'قبول الاعتراض', 'not_applicable':'لا يمكن الاعتراض' };
+                var appealTxt = appealMap[r.appeal] || (r.appeal||'-');
+                var appealClass = (function(a){ a = String(a||'').toLowerCase(); if(a==='accepted') return 'bg-emerald-500/15 text-emerald-300'; if(a==='rejected') return 'bg-rose-500/15 text-rose-300'; if(a==='under_study') return 'bg-amber-500/15 text-amber-300'; return 'bg-slate-500/15 text-slate-300'; })(String(r.appeal||''));
+                var appealBadge = '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold '+ appealClass +'">'+ appealTxt +'</span>';
+                var atts = (attRows||[]).filter(function(a){ return a && a.entity==='violation' && String(a.entityId)===String(r.id); });
+                var icons = atts.slice(0,4).map(function(a){ var isImg=/^image\//.test(a.type||''); var isPdf=/pdf$/i.test(a.type||'')||String(a.name||'').toLowerCase().endsWith('.pdf'); var src=a.data||a.url||''; if(isImg){ return '<a href="'+(src||'#')+'" target="_blank" title="'+(a.name||'')+'"><img src="'+src+'" style="width:22px;height:22px;object-fit:cover;border:1px solid rgba(148,163,184,0.35);border-radius:6px"></a>'; } if(isPdf){ return '<a href="'+(src||'#')+'" target="_blank" title="'+(a.name||'')+'"><span class="inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-500/15 text-blue-300" style="min-width:28px">PDF</span></a>'; } return '<a href="'+(src||'#')+'" target="_blank" title="'+(a.name||'')+'"><span class="inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-500/15 text-slate-300" style="min-width:28px">📎</span></a>'; }).join(' ');
+                var more = atts.length>4 ? ('<span class="inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-500/15 text-slate-300">+'+ (atts.length-4) +'</span>') : '';
+                return '<tr class="odd:bg-slate-800/10 even:bg-slate-800/5 hover:bg-slate-700/20 transition-colors">'
+                  + '<td class="px-3 py-2 text-slate-200 border-b border-slate-700/40">'+ (r.vio_no||'-') +'</td>'
+                  + '<td class="px-3 py-2 text-slate-200 border-b border-slate-700/40">'+ (r.efaa_no||'-') +'</td>'
+                  + '<td class="px-3 py-2 text-slate-200 border-b border-slate-700/40">'+ (r.payment_no||'-') +'</td>'
+                  + '<td class="px-3 py-2 text-slate-200 border-b border-slate-700/40">'+ (r.date||'-') +'</td>'
+                  + '<td class="px-3 py-2 text-slate-200 border-b border-slate-700/40">'+ (r.type||'-') +'</td>'
+                  + '<td class="px-3 py-2 text-right text-rose-400 font-bold border-b border-slate-700/40">'+ Number(r.amount||0).toLocaleString('ar-SA') +'</td>'
+                  + '<td class="px-3 py-2 border-b border-slate-700/40">'+ paidBadge +'</td>'
+                  + '<td class="px-3 py-2 border-b border-slate-700/40">'+ appealBadge +'</td>'
+                  + '<td class="px-3 py-2 border-b border-slate-700/40"><div class="flex items-center gap-1">'+ icons + more +'</div></td>'
+                  + '</tr>';
+              }).join('') + '</tbody>';
+              return '<div class="rounded-xl border border-slate-700/60 bg-slate-900/50 mt-3" style="max-height:360px; overflow:auto"><table class="w-full text-sm">' + thead + tbody + '</table></div>';
+            })();
+            return head + rowsHtml + '</div>';
+          }).join('');
+        }
+      }
+      if (modal) modal.style.display = 'flex';
+    }
+    bindSearch();
+    buildRegionBar();
+    renderOpenings();
+    renderGrid();
+    renderClosed();
+    window.addEventListener('storage', function(e){ if (e && e.key && e.key.indexOf('db:violations')>=0) { try { renderGrid(); } catch(_){ } } });
+  </script>

@@ -1,0 +1,50 @@
+<!-- Admin Modals Component -->
+
+<!-- Confirmation Modal -->
+<div id="confirm-overlay" class="modal-overlay">
+  <div class="modal-content" style="max-width:420px;">
+    <div class="modal-header">
+      <div style="flex-grow:1; text-align:right;">
+        <span id="confirm-title" class="text-sm text-slate-200">تأكيد</span>
+      </div>
+    </div>
+    <div class="modal-body">
+      <p id="confirm-message" class="text-slate-200 text-sm"></p>
+    </div>
+    <div class="modal-footer">
+      <button id="confirm-cancel" class="btn bg-slate-700 hover:bg-slate-600 text-white">إلغاء</button>
+      <button id="confirm-ok" class="btn bg-red-600 hover:bg-red-500 text-white">تأكيد الحذف</button>
+    </div>
+  </div>
+</div>
+
+<!-- Quote Edit Modal -->
+<div id="quote-edit-overlay" class="modal-overlay">
+  <div class="modal-content" style="max-width:560px;">
+    <div class="modal-header">
+      <div style="flex-grow:1; text-align:right;">
+        <span class="text-sm text-slate-200">تحرير العبارة</span>
+      </div>
+      <button id="quote-edit-close" class="modal-close" style="position:absolute;left:12px;top:12px;">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="grid md:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-slate-400 text-xs mb-1">العربية</label>
+          <input id="quote-edit-ar" class="form-control" placeholder="اكتب العبارة بالعربية">
+        </div>
+        <div>
+          <label class="block text-slate-400 text-xs mb-1">English</label>
+          <input id="quote-edit-en" class="form-control" placeholder="Write the phrase in English">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button id="quote-edit-cancel" class="btn bg-slate-700 hover:bg-slate-600 text-white">إلغاء</button>
+      <button id="quote-edit-save" class="btn bg-blue-600 hover:bg-blue-500 text-white">حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Additional Admin Modals will be added here -->
+<!-- Example: Employee Edit Modal, Branch Edit Modal, etc. -->

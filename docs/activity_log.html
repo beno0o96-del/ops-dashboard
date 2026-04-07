@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-en="Ops Dashboard Activity Log" data-ar="سجل نشاطات لوحة التشغيل">سجل نشاطات لوحة التشغيل</title>
+    <link rel="icon" type="image/svg+xml" href="/logos/CompliQ.svg">
+    <link rel="stylesheet" href="style-base.css">
+    <link rel="stylesheet" href="style-admin.css">
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .log-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #1e293b;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .log-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #4facfe;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .log-controls {
+            display: flex;
+            gap: 10px;
+        }
+        .filter-input {
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            outline: none;
+        }
+        .log-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .log-table th, .log-table td {
+            padding: 12px;
+            text-align: right;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .log-table th {
+            color: #94a3b8;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .log-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        .badge-add { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+        .badge-update { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        .badge-delete { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+        .badge-login { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="log-container">
+        <div class="log-header">
+            <div class="log-title">
+                <i>📜</i>
+                <span data-en="System Activity Log" data-ar="سجل حركات النظام">سجل حركات النظام</span>
+            </div>
+            <div class="log-controls" style="align-items:center">
+                <div class="lang-switch" style="display:flex;gap:8px;align-items:center">
+                  <button class="btn btn-secondary" onclick="setLang('en')">EN</button>
+                  <span style="color:#64748b">/</span>
+                  <button class="btn btn-secondary" onclick="setLang('ar')">AR</button>
+                </div>
+                <input type="text" id="log-search" class="filter-input" data-i18n-ph="search.placeholder" placeholder="بحث في السجل..." onkeyup="filterLogs()">
+                <button class="btn btn-secondary" onclick="exportLogCSV()"><span>📥</span> <span data-en="Export CSV" data-ar="تصدير CSV">تصدير CSV</span></button>
+                <button class="btn btn-danger" onclick="clearLogs()"><span>🗑️</span> <span data-en="Clear Log" data-ar="مسح السجل">مسح السجل</span></button>
+                <button class="btn btn-primary" onclick="window.close()" data-en="Close" data-ar="إغلاق">إغلاق</button>
+            </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table class="log-table">
+                <thead>
+                    <tr>
+                        <th data-en="Time" data-ar="الوقت">الوقت</th>
+                        <th data-en="User" data-ar="المستخدم">المستخدم</th>
+                        <th data-en="Action" data-ar="نوع الحركة">نوع الحركة</th>
+                        <th data-en="Details" data-ar="التفاصيل">التفاصيل</th>
+                        <th data-en="IP (Mock)" data-ar="IP (افتراضي)">IP (Mock)</th>
+                    </tr>
+                </thead>
+                <tbody id="full-log-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        if (window.App && typeof window.App.init === 'function') {
+            window.App.init('activity');
+        }
+
+        function safeParse(key, defaultVal) {
+            try {
+                const item = localStorage.getItem(key);
+                return item ? JSON.parse(item) : defaultVal;
+            } catch (e) { return defaultVal; }
+        }
+
+        function loadLogs() {
+            const logs = safeParse('activity_log', []);
+            const tbody = document.getElementById('full-log-body');
+            
+            if (logs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state">لا توجد سجلات محفوظة حالياً.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = logs.map(log => {
+                let badgeClass = '';
+                const act = log.action.toLowerCase();
+                if(act.includes('add') || act.includes('create')) badgeClass = 'badge-add';
+                else if(act.includes('update') || act.includes('edit')) badgeClass = 'badge-update';
+                else if(act.includes('delete') || act.includes('remove')) badgeClass = 'badge-delete';
+                else if(act.includes('login')) badgeClass = 'badge-login';
+                
+                return `
+                    <tr>
+                        <td style="direction:ltr; text-align:right;">${log.timestamp}</td>
+                        <td><strong>${log.user}</strong></td>
+                        <td><span class="log-badge ${badgeClass}">${log.action}</span></td>
+                        <td>${log.details}</td>
+                        <td style="color:#64748b; font-size:0.8rem;">192.168.1.X</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterLogs() {
+            const query = document.getElementById('log-search').value.toLowerCase();
+            const rows = document.querySelectorAll('#full-log-body tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        }
+
+        function clearLogs() {
+            if(confirm('هل أنت متأكد من مسح جميع السجلات؟ لا يمكن التراجع عن هذا الإجراء.')) {
+                localStorage.removeItem('activity_log');
+                loadLogs();
+            }
+        }
+
+        function exportLogCSV() {
+            const logs = safeParse('activity_log', []);
+            if(logs.length === 0) return alert('لا توجد بيانات للتصدير');
+            
+            const headers = ['Timestamp,User,Action,Details'];
+            const csvContent = logs.map(l => `${l.timestamp},"${l.user}","${l.action}","${l.details}"`).join('\n');
+            const blob = new Blob(["\uFEFF" + headers + '\n' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "activity_log_" + new Date().toISOString().slice(0,10) + ".csv";
+            link.click();
+        }
+
+        document.addEventListener('DOMContentLoaded', loadLogs);
+    </script>
+</body>
+</html>

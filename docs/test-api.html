@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>اختبار النظام الموحد</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style-base.css">
+  <style>
+    body { font-family: 'Cairo', 'Segoe UI', sans-serif; }
+    .console-output {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 1rem;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      max-height: 400px;
+      overflow-y: auto;
+      margin-top: 1rem;
+    }
+    .console-output .success { color: #86efac; }
+    .console-output .error { color: #f87171; }
+    .console-output .info { color: #93c5fd; }
+    .test-item {
+      padding: 0.75rem;
+      margin: 0.5rem 0;
+      border-radius: 6px;
+      border-left: 4px solid transparent;
+    }
+    .test-item.pending {
+      background: rgba(245, 158, 11, 0.1);
+      border-left-color: #fbbf24;
+    }
+    .test-item.success {
+      background: rgba(16, 185, 129, 0.1);
+      border-left-color: #10b981;
+    }
+    .test-item.error {
+      background: rgba(239, 68, 68, 0.1);
+      border-left-color: #ef4444;
+    }
+  </style>
+</head>
+<body class="bg-gray-900 text-gray-100">
+  <div class="max-w-2xl mx-auto p-8">
+    <h1 class="text-3xl font-bold mb-6 text-center">🧪 اختبار النظام الموحد</h1>
+    
+    <div class="bg-gray-800 rounded-lg p-6">
+      <h2 class="text-xl font-semibold mb-4">الاختبارات المتاحة:</h2>
+      
+      <button onclick="testAPIConnection()" class="w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded mb-2">
+        1️⃣ اختبار اتصال API
+      </button>
+      
+      <button onclick="testCreateViolation()" class="w-full bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded mb-2">
+        2️⃣ إنشاء مخالفة تجريبية
+      </button>
+      
+      <button onclick="testListViolations()" class="w-full bg-green-600 hover:bg-green-700 px-4 py-2 rounded mb-2">
+        3️⃣ جلب جميع المخالفات
+      </button>
+      
+      <button onclick="testCreateBranch()" class="w-full bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded mb-2">
+        4️⃣ إنشاء فرع تجريبي
+      </button>
+      
+      <button onclick="testListBranches()" class="w-full bg-pink-600 hover:bg-pink-700 px-4 py-2 rounded mb-4">
+        5️⃣ جلب جميع الفروع
+      </button>
+
+      <button onclick="clearConsole()" class="w-full bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded">
+        🗑️ مسح السجل
+      </button>
+
+      <div id="console" class="console-output"></div>
+    </div>
+
+    <div class="bg-gray-800 rounded-lg p-6 mt-6">
+      <h2 class="text-xl font-semibold mb-4">النتائج:</h2>
+      <div id="results" class="space-y-2"></div>
+    </div>
+  </div>
+
+  <!-- تحميل المكتبات -->
+  <script src="js/api-client.js?v=1"></script>
+  <script src="js/helpers.js?v=1"></script>
+  
+  <script>
+    const consoleEl = document.getElementById('console');
+    const resultsEl = document.getElementById('results');
+
+    function log(message, type = 'info') {
+      const span = document.createElement('div');
+      span.className = type;
+      span.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      consoleEl.appendChild(span);
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+
+    function addResult(title, status, details = '') {
+      const div = document.createElement('div');
+      div.className = `test-item ${status}`;
+      div.innerHTML = `
+        <strong>${title}</strong>
+        ${status === 'success' ? '✅' : status === 'error' ? '❌' : '⏳'}
+        ${details ? `<div style="font-size: 0.9em; margin-top: 0.5rem; opacity: 0.9;">${details}</div>` : ''}
+      `;
+      resultsEl.appendChild(div);
+    }
+
+    function clearConsole() {
+      consoleEl.innerHTML = '';
+      resultsEl.innerHTML = '';
+      log('تم مسح السجل');
+    }
+
+    async function testAPIConnection() {
+      log('اختبار اتصال API...', 'info');
+      addResult('اتصال API', 'pending', 'جاري الاختبار...');
+      
+      try {
+        const connected = await APIClient.test();
+        if (connected) {
+          log('✓ اتصال API ناجح!', 'success');
+          resultsEl.lastChild.className = 'test-item success';
+          resultsEl.lastChild.innerHTML = '✓ اتصال API<strong style="margin-right: 1rem; color: #86efac;">✅ ناجح</strong>';
+        } else {
+          log('✗ فشل اتصال API', 'error');
+          resultsEl.lastChild.className = 'test-item error';
+          resultsEl.lastChild.innerHTML = '✗ اتصال API<strong style="margin-right: 1rem; color: #f87171;">❌ فشل</strong>';
+        }
+      } catch (error) {
+        log(`✗ خطأ: ${error.message}`, 'error');
+        resultsEl.lastChild.className = 'test-item error';
+        resultsEl.lastChild.innerHTML = `✗ اتصال API<strong style="margin-right: 1rem; color: #f87171;">❌ ${error.message}</strong>`;
+      }
+    }
+
+    async function testCreateViolation() {
+      log('إنشاء مخالفة تجريبية...', 'info');
+      addResult('إنشاء مخالفة', 'pending', 'جاري الإنشاء...');
+      
+      try {
+        const violation = await APIClient.violations.create({
+          type: 'اختبار',
+          branch: 'الرياض',
+          amount: 100,
+          date: new Date().toISOString().split('T')[0],
+          description: 'مخالفة تجريبية من اختبار API'
+        });
+        
+        log(`✓ تم إنشاء مخالفة برقم: ${violation.id}`, 'success');
+        resultsEl.lastChild.className = 'test-item success';
+        resultsEl.lastChild.innerHTML = `✓ إنشاء مخالفة<strong style="margin-right: 1rem; color: #86efac;">✅ ID: ${violation.id}</strong>`;
+      } catch (error) {
+        log(`✗ خطأ: ${error.message}`, 'error');
+        resultsEl.lastChild.className = 'test-item error';
+        resultsEl.lastChild.innerHTML = `✗ إنشاء مخالفة<strong style="margin-right: 1rem; color: #f87171;">❌ ${error.message}</strong>`;
+      }
+    }
+
+    async function testListViolations() {
+      log('جلب جميع المخالفات...', 'info');
+      addResult('جلب المخالفات', 'pending', 'جاري الجلب...');
+      
+      try {
+        const violations = await APIClient.violations.list();
+        log(`✓ تم جلب ${violations.length} مخالفة`, 'success');
+        resultsEl.lastChild.className = 'test-item success';
+        resultsEl.lastChild.innerHTML = `✓ جلب المخالفات<strong style="margin-right: 1rem; color: #86efac;">✅ ${violations.length} مخالفات</strong>`;
+      } catch (error) {
+        log(`✗ خطأ: ${error.message}`, 'error');
+        resultsEl.lastChild.className = 'test-item error';
+        resultsEl.lastChild.innerHTML = `✗ جلب المخالفات<strong style="margin-right: 1rem; color: #f87171;">❌ ${error.message}</strong>`;
+      }
+    }
+
+    async function testCreateBranch() {
+      log('إنشاء فرع تجريبي...', 'info');
+      addResult('إنشاء فرع', 'pending', 'جاري الإنشاء...');
+      
+      try {
+        const branch = await APIClient.branches.create({
+          name: 'فرع تجريبي',
+          type: 'basic',
+          region: 'الرياض',
+          city: 'الرياض'
+        });
+        
+        log(`✓ تم إنشاء فرع برقم: ${branch.id}`, 'success');
+        resultsEl.lastChild.className = 'test-item success';
+        resultsEl.lastChild.innerHTML = `✓ إنشاء فرع<strong style="margin-right: 1rem; color: #86efac;">✅ ID: ${branch.id}</strong>`;
+      } catch (error) {
+        log(`✗ خطأ: ${error.message}`, 'error');
+        resultsEl.lastChild.className = 'test-item error';
+        resultsEl.lastChild.innerHTML = `✗ إنشاء فرع<strong style="margin-right: 1rem; color: #f87171;">❌ ${error.message}</strong>`;
+      }
+    }
+
+    async function testListBranches() {
+      log('جلب جميع الفروع...', 'info');
+      addResult('جلب الفروع', 'pending', 'جاري الجلب...');
+      
+      try {
+        const branches = await APIClient.branches.list();
+        log(`✓ تم جلب ${branches.length} فرع`, 'success');
+        resultsEl.lastChild.className = 'test-item success';
+        resultsEl.lastChild.innerHTML = `✓ جلب الفروع<strong style="margin-right: 1rem; color: #86efac;">✅ ${branches.length} فروع</strong>`;
+      } catch (error) {
+        log(`✗ خطأ: ${error.message}`, 'error');
+        resultsEl.lastChild.className = 'test-item error';
+        resultsEl.lastChild.innerHTML = `✗ جلب الفروع<strong style="margin-right: 1rem; color: #f87171;">❌ ${error.message}</strong>`;
+      }
+    }
+
+    // تهيئة
+    log('جاهز للاختبار! اضغط على أزرار الاختبار أعلاه', 'info');
+  </script>
+</body>
+</html>

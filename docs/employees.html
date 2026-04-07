@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Employees Dashboard</title>
+  <meta name="theme-color" content="#0b0e2b">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style-base.css">
+  <link rel="stylesheet" href="style-home.css">
+  <link rel="icon" type="image/svg+xml" href="/logos/CompliQ.svg">
+  <link rel="apple-touch-icon" href="/logos/CompliQ.svg">
+  <style>
+    /* Employee Specific Styles matching Glassmorphism */
+    .emp-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .emp-card {
+      background: rgba(30, 41, 59, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+      transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+    }
+    .emp-card:hover {
+      background: rgba(30, 41, 59, 0.82);
+      border-color: rgba(96, 165, 250, 0.42);
+      box-shadow: 0 18px 38px rgba(37, 99, 235, 0.2);
+      transform: translateY(-4px) scale(1.01);
+    }
+    .emp-card:active {
+      transform: translateY(-1px) scale(0.99);
+    }
+    .emp-card:focus-visible {
+      outline: none;
+      border-color: rgba(96, 165, 250, 0.75);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22), 0 18px 38px rgba(37, 99, 235, 0.2);
+    }
+    .emp-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.16), rgba(168, 85, 247, 0.08), transparent 60%);
+      opacity: 0;
+      transition: opacity 0.25s ease;
+      pointer-events: none;
+    }
+    .emp-card:hover::before,
+    .emp-card:focus-visible::before {
+      opacity: 1;
+    }
+    .emp-card::after {
+      content: "";
+      position: absolute;
+      inset-inline: 14px;
+      bottom: 0;
+      height: 4px;
+      border-radius: 999px 999px 0 0;
+      background: linear-gradient(90deg, rgba(59,130,246,0.92), rgba(139,92,246,0.9), rgba(56,189,248,0.92));
+      opacity: 0.7;
+      transform: scaleX(0.82);
+      transform-origin: center;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+      pointer-events: none;
+    }
+    .emp-card:hover::after,
+    .emp-card:focus-visible::after {
+      opacity: 1;
+      transform: scaleX(1);
+    }
+    .emp-card-top-badge {
+      position: absolute;
+      top: 12px;
+      inset-inline-end: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #cbd5e1;
+      font-size: 0.72rem;
+      line-height: 1;
+      backdrop-filter: blur(8px);
+      z-index: 1;
+      transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+    }
+    .emp-card-top-badge .arrow {
+      color: #93c5fd;
+      font-size: 0.8rem;
+      transform: translateX(0);
+      transition: transform 0.25s ease, color 0.25s ease;
+    }
+    .emp-card:hover .emp-card-top-badge,
+    .emp-card:focus-visible .emp-card-top-badge {
+      background: rgba(30, 41, 59, 0.78);
+      border-color: rgba(96, 165, 250, 0.34);
+      color: #e2e8f0;
+      transform: translateY(-1px);
+    }
+    .emp-card:hover .emp-card-top-badge .arrow,
+    .emp-card:focus-visible .emp-card-top-badge .arrow {
+      color: #dbeafe;
+      transform: translateX(-2px);
+    }
+    .emp-open-hint {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: #93c5fd;
+      background: rgba(59, 130, 246, 0.09);
+      border: 1px solid rgba(59, 130, 246, 0.18);
+      border-radius: 999px;
+      padding: 6px 10px;
+      margin-top: 2px;
+      transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+    }
+    .emp-card:hover .emp-open-hint,
+    .emp-card:focus-visible .emp-open-hint {
+      color: #dbeafe;
+      background: rgba(59, 130, 246, 0.16);
+      border-color: rgba(96, 165, 250, 0.34);
+    }
+    .emp-photo {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: white;
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+    }
+    .emp-name {
+      font-weight: 700;
+      color: #fff;
+      font-size: 1.1rem;
+    }
+    .emp-role {
+      color: #94a3b8;
+      font-size: 0.9rem;
+    }
+    .emp-detail {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: #cbd5e1;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 10px;
+      margin-top: 5px;
+    }
+    .status-badge {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-weight: 600;
+    }
+    .status-valid { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    
+    /* Modal Styles Override for Glassmorphism */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(5px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .modal-overlay.open { display: flex; opacity: 1; }
+    .modal-content {
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      width: 90%;
+      max-width: 800px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 24px;
+      color: #fff;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+    .modal-header {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 16px;
+      margin-bottom: 20px;
+    }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+    }
+    .form-control {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: white;
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, rgba(59,130,246,0.95), rgba(79,70,229,0.95));
+      color: #fff;
+      border: 1px solid rgba(147,197,253,0.25);
+      box-shadow: 0 4px 15px rgba(59,130,246,0.3);
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-weight: 700;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      min-width: 120px;
+      text-align: center;
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, rgba(59,130,246,1), rgba(79,70,229,1));
+      box-shadow: 0 8px 30px rgba(59,130,246,0.4);
+      transform: translateY(-2px) scale(1.02);
+    }
+    .btn-primary:active {
+      transform: translateY(0) scale(0.98);
+    }
+  </style>
+</head>
+<body class="en">
+  <canvas id="bg-canvas"></canvas>
+  
+  <header class="top-nav">
+    <div class="top-left">
+      <img src="/logos/CompliQ.svg" alt="CompliQ">
+      <div class="division">
+        <div class="division-name" data-en="CompliQ" data-ar="CompliQ">CompliQ</div>
+        <div class="division-note" data-en="Your only limit is your mind." data-ar="حدودك الوحيدة هي عقلك">Your only limit is your mind.</div>
+      </div>
+    </div>
+    <nav class="top-links">
+      <button id="help-toggle" class="px-3 py-1 rounded bg-gray-100 text-gray-800"></button>
+      <button class="lang-btn-mini" onclick="setLang('ar')">AR</button>
+      <button class="lang-btn-mini" onclick="setLang('en')">EN</button>
+      <button class="hamburger-btn" onclick="toggleMenu()" aria-label="menu" style="margin-inline-start:8px; display:inline-flex; align-items:center; justify-content:center; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); color: #fff; padding: 6px 10px; border-radius: 10px; cursor: pointer;">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+      <div class="user-slot">
+        <div id="user-badge" class="user-badge">
+          <div class="user-avatar"></div>
+          <span id="user-badge-name"></span>
+        </div>
+        <div id="user-menu" class="user-menu">
+          <a href="#" data-en="My Profile" data-ar="ملفّي">My Profile</a>
+          <button onclick="App.logout()" data-en="Logout" data-ar="تسجيل الخروج">Logout</button>
+        </div>
+        <button class="logout-btn" onclick="App.logout()" data-en="Logout" data-ar="تسجيل الخروج">Logout</button>
+      </div>
+    </nav>
+  </header>
+
+  <div class="side-menu-overlay" id="sideMenuOverlay" onclick="toggleMenu()"></div>
+  <aside class="side-menu" id="sideMenu">
+    <div class="side-menu-header">
+      <img src="/logos/CompliQ.svg" class="side-menu-logo" alt="CompliQ">
+      <button class="close-menu-btn" onclick="toggleMenu()">&times;</button>
+    </div>
+    <nav class="side-menu-nav">
+      <a href="index.html" class="side-link">
+        <i>🏠</i> <span data-en="Home" data-ar="الرئيسية">Home</span>
+      </a>
+      <a href="tasks.html" class="side-link">
+        <i>✅</i> <span data-en="Tasks" data-ar="المهام">Tasks</span>
+      </a>
+      <a href="employees.html" class="side-link active">
+        <i>👥</i> <span data-en="Employees" data-ar="الموظفين">Employees</span>
+      </a>
+      <a href="violations.html" class="side-link">
+        <i>⚠️</i> <span data-en="Violations" data-ar="المخالفات">Violations</span>
+      </a>
+      <a href="training.html" class="side-link">
+        <i>🎓</i> <span data-en="Training" data-ar="التدريب">Training</span>
+      </a>
+      <a href="branches.html" class="side-link">
+        <i>🏬</i> <span data-en="Branches" data-ar="الفروع">Branches</span>
+      </a>
+      <a href="licenses.html" class="side-link">
+        <i>📜</i> <span data-en="Licenses & Contracts" data-ar="الرخص والعقود">Licenses & Contracts</span>
+      </a>
+      <a href="housings.html" class="side-link">
+        <i>🏠</i> <span data-en="Housings" data-ar="السكنات">Housings</span>
+      </a>
+      <a href="transports.html" class="side-link">
+        <i>🚌</i> <span data-en="Transports" data-ar="المواصلات">Transports</span>
+      </a>
+      <a href="reports.html" class="side-link">
+        <i>📊</i> <span data-en="Reports" data-ar="التقارير">Reports</span>
+      </a>
+      <a href="login.html" class="side-link">
+        <i>👤</i> <span data-en="Employee Login" data-ar="دخول الموظفين">Employee Login</span>
+      </a>
+      <a href="admin.html" class="side-link">
+        <i>🔐</i> <span data-en="Admin Login" data-ar="دخول الإدارة">Admin Login</span>
+      </a>
+    </nav>
+    <div style="margin-top: auto; padding-top: 20px;">
+      <div class="lang-switch" style="display: flex; gap: 10px; justify-content: center;">
+        <button class="lang-btn" onclick="setLang('ar')" style="flex:1;">العربية</button>
+        <button class="lang-btn" onclick="setLang('en')" style="flex:1;">English</button>
+      </div>
+      <div class="sidebar-footer" style="margin-top: 20px; text-align: center; font-size: 0.7rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
+        <div class="gradient-text" style="margin-bottom: 5px; font-weight: bold;" data-en="جميع الحقوق محفوظة لدى كومبليك © 2026" data-ar="جميع الحقوق محفوظة لدى كومبليك © 2026">جميع الحقوق محفوظة لدى كومبليك © 2026</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="p-6 space-y-6" style="padding-top: 100px;">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+       <div>
+         <h1 class="text-2xl font-bold text-white mb-1" data-en="Employees" data-ar="الموظفون">Employees</h1>
+         <p class="text-slate-400 text-sm" data-en="Manage workforce and documents" data-ar="إدارة القوى العاملة والمستندات">Manage workforce and documents</p>
+       </div>
+    </div>
+
+    <!-- Employee Grid -->
+    <div id="emp-grid" class="emp-grid"></div>
+
+  </main>
+
+  <footer class="site-footer">
+    <div data-en="جميع الحقوق محفوظة لدى كومبليك © 2026" data-ar="جميع الحقوق محفوظة لدى كومبليك © 2026">جميع الحقوق محفوظة لدى كومبليك © 2026</div>
+  </footer>
+
+  <!-- View/Edit Modal -->
+  <div id="emp-modal" class="modal-overlay">
+    <div class="modal-content custom-scrollbar" style="overflow-x:hidden; overflow-y:auto; max-height:90vh; border-radius:16px;">
+      <div id="m-header" style="background:linear-gradient(135deg,#f59e0b,#ec4899,#6366f1); padding:10px 12px; display:flex; align-items:center; gap:10px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <img id="m-logo" src="/logos/CompliQ.svg" alt="CompliQ" style="height:26px; border-radius:6px;">
+          <span id="m-brand-badge" style="font-weight:700; color:#fff; letter-spacing:.5px;">CompliQ</span>
+        </div>
+        <button id="m-close" title="إغلاق" aria-label="Close" class="text-slate-100 hover:text-white" style="margin-inline-start:auto; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.25);">✕</button>
+      </div>
+      <div class="modal-header" style="border-bottom:1px solid rgba(255,255,255,0.08);">
+        <div id="m-photo" class="modal-photo"></div>
+        <div>
+          <div id="m-name" style="font-weight:700; font-size:1.2rem;"></div>
+          <div id="m-branch" style="color:#94a3b8;"></div>
+        </div>
+      </div>
+      <input id="m-profile-file" type="file" accept="image/*" style="display:none">
+      <div style="display:grid; grid-template-columns: 1.5fr 1fr; gap:16px;">
+        <div class="glass-card p-4">
+          <div style="font-weight:700; margin-bottom:10px;">بيانات الموظف</div>
+          <form id="m-meta-form" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(210px,1fr)); gap:8px;">
+            <div class="flex flex-col"><label class="text-xs text-slate-400 mb-1">الاسم Name</label><input class="form-control rounded px-3 py-2" name="name" placeholder="Name"></div>
+            <div class="flex flex-col"><label class="text-xs text-slate-400 mb-1">SAP ID</label><input class="form-control rounded px-3 py-2" name="sapId" placeholder="SAP ID"></div>
+            <div class="flex flex-col"><label class="text-xs text-slate-400 mb-1">رقم الهوية/الإقامة ID Number</label><input class="form-control rounded px-3 py-2" name="idNumber" placeholder="ID Number"></div>
+            <div class="flex flex-col"><label class="text-xs text-slate-400 mb-1">الرقم المرجعي REF#</label><input class="form-control rounded px-3 py-2" name="refNumber" placeholder="REF#"></div>
+            <div class="flex flex-col"><label class="text-xs text-slate-400 mb-1">Phone Number</label><input class="form-control rounded px-3 py-2" name="phone" placeholder="Phone Number"></div>
+            <div class="flex flex-col"><label class="text-xs text-slate-400 mb-1">Cost Center</label><input class="form-control rounded px-3 py-2" name="costCenter" placeholder="Cost Center"></div>
+            <div class="flex flex-col"><label class="text-xs text-slate-400 mb-1">العلامة التجارية Brand</label><input class="form-control rounded px-3 py-2" name="brand" placeholder="Brand"></div>
+            <div class="flex flex-col"><label class="text-xs text-slate-400 mb-1">الفرع Branch</label><input class="form-control rounded px-3 py-2" name="branch" placeholder="Branch"></div>
+            <div class="flex flex-col"><label class="text-xs text-slate-400 mb-1">المنطقة Region</label><input class="form-control rounded px-3 py-2" name="region" placeholder="Western Region"></div>
+            <div class="flex flex-col"><label class="text-xs text-slate-400 mb-1">حالة الموظف Employee Status</label><select class="form-control rounded px-3 py-2" name="status"><option value="">—</option><option value="active">Active</option><option value="vacation">Vacation</option><option value="sickleave">SickLeave</option><option value="resigned">Resigned</option><option value="inactive">Inactive</option></select></div>
+
+            <div class="flex flex-col">
+              <label class="text-xs text-slate-400 mb-1">انتهاء التدريب العملي T.C.O.E</label>
+              <input class="form-control rounded px-3 py-2 date-input-fix" name="tcoeEnd" placeholder="yyyy/mm/dd">
+              <div id="m-tcoe-status" class="text-[11px] mt-1 px-2 py-1 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 w-fit">Active</div>
+            </div>
+            <div class="flex flex-col">
+              <label class="text-xs text-slate-400 mb-1">انتهاء الصحية Health Expiry</label>
+              <input class="form-control rounded px-3 py-2 date-input-fix" name="healthCardExp" placeholder="yyyy/mm/dd">
+              <div id="m-health-status" class="text-[11px] mt-1 px-2 py-1 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 w-fit">Active</div>
+            </div>
+            <div class="flex flex-col" style="grid-column:1/-1;">
+              <div class="text-xs text-slate-400 mb-1">تصريح المطار Airport Permit Card</div>
+              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap:8px;">
+                <input class="form-control rounded px-3 py-2" name="airportPermitNo" placeholder="رقم التصريح Permit Number">
+                <input class="form-control rounded px-3 py-2 date-input-fix" name="airportPermitExp" placeholder="تاريخ الانتهاء Expiry Date yyyy/mm/dd">
+              </div>
+              <div id="m-permit-status" class="text-[11px] mt-2 px-2 py-1 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 w-fit">Active</div>
+            </div>
+
+            <div class="flex flex-col" style="grid-column:1/-1;"><label class="text-xs text-slate-400 mb-1">ملاحظات Notes</label><textarea class="form-control rounded px-3 py-2" name="notes" placeholder="Notes"></textarea></div>
+            <button class="btn-primary text-white px-4 py-2 rounded" type="submit" style="grid-column:1/-1;">حفظ التفاصيل</button>
+          </form>
+        </div>
+
+        <div class="glass-card p-4">
+          <div style="font-weight:700; margin-bottom:10px;">الصور والمرفقات</div>
+          <input id="m-file-id" type="file" accept="image/*,application/pdf,video/*" style="display:none">
+          <input id="m-file-health" type="file" accept="image/*,application/pdf,video/*" style="display:none">
+          <input id="m-file-permit" type="file" accept="image/*,application/pdf,video/*" style="display:none">
+
+          <div class="space-y-3">
+            <div class="rounded-lg border border-white/10 p-3">
+              <div class="flex items-center justify-between mb-2"><div class="text-sm text-slate-200">صورة الهوية</div><button id="btn-upload-id" class="px-2 py-1 rounded bg-blue-600/20 text-blue-300 border border-blue-500/30">+</button></div>
+              <div id="m-doc-id" class="space-y-2 text-xs"></div>
+              <button id="btn-archive-id" class="mt-2 px-2 py-1 rounded border border-white/20 text-slate-300 hover:bg-white/5 text-xs">أرشفة صورة الهوية</button>
+            </div>
+            <div class="rounded-lg border border-white/10 p-3">
+              <div class="flex items-center justify-between mb-2"><div class="text-sm text-slate-200">صورة كرت التدريب الصحي</div><button id="btn-upload-health" class="px-2 py-1 rounded bg-blue-600/20 text-blue-300 border border-blue-500/30">+</button></div>
+              <div id="m-doc-health" class="space-y-2 text-xs"></div>
+              <button id="btn-archive-health" class="mt-2 px-2 py-1 rounded border border-white/20 text-slate-300 hover:bg-white/5 text-xs">أرشفة كرت التدريب الصحي</button>
+            </div>
+            <div class="rounded-lg border border-white/10 p-3">
+              <div class="flex items-center justify-between mb-2"><div class="text-sm text-slate-200">صورة تصريح المطار</div><button id="btn-upload-permit" class="px-2 py-1 rounded bg-blue-600/20 text-blue-300 border border-blue-500/30">+</button></div>
+              <div id="m-doc-permit" class="space-y-2 text-xs"></div>
+              <button id="btn-archive-permit" class="mt-2 px-2 py-1 rounded border border-white/20 text-slate-300 hover:bg-white/5 text-xs">أرشفة تصريح المطار</button>
+            </div>
+          </div>
+
+          <div style="font-weight:600; margin:14px 0 8px;">جميع المرفقات</div>
+          <div id="m-docs" style="max-height:260px; overflow:auto; padding-right:5px;" class="space-y-2 app-scrollbar"><div class="text-slate-500 text-center py-4 text-sm">No documents found</div></div>
+        </div>
+      </div>
+      
+      <div style="margin-top:16px; display:flex; gap:8px; border-top:1px solid rgba(255,255,255,0.1); padding-top:16px;">
+        <button id="m-save" type="button" class="px-4 py-2 rounded border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10" data-en="Save" data-ar="حفظ">حفظ</button>
+        <button id="m-close-action" type="button" class="px-4 py-2 rounded border border-slate-500/40 text-slate-200 hover:bg-slate-500/10" data-en="Close" data-ar="إغلاق">إغلاق</button>
+        <button id="m-refresh-action" type="button" class="px-4 py-2 rounded border border-blue-500/40 text-blue-300 hover:bg-blue-500/10" data-en="Refresh" data-ar="تحديث">تحديث</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Modal -->
+  <div id="add-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width:500px;">
+      <div style="font-weight:700; margin-bottom:20px; font-size:1.2rem;" data-en="Add Employee" data-ar="إضافة موظف">Add Employee</div>
+      <form id="emp-add-form" class="space-y-4">
+        <div>
+           <label class="block text-sm text-slate-400 mb-1" data-en="Name" data-ar="الاسم">Name</label>
+           <input class="form-control w-full rounded px-3 py-2" name="name" required>
+        </div>
+        <div>
+           <label class="block text-sm text-slate-400 mb-1" data-en="Branch" data-ar="الفرع">Branch</label>
+           <input class="form-control w-full rounded px-3 py-2" name="branch" required>
+        </div>
+        <div>
+           <label class="block text-sm text-slate-400 mb-1" data-en="Role" data-ar="المسمى الوظيفي">Role</label>
+           <input class="form-control w-full rounded px-3 py-2" name="role" required>
+        </div>
+        <div>
+           <label class="block text-sm text-slate-400 mb-1" data-en="Employee Status" data-ar="حالة الموظف">حالة الموظف</label>
+           <select class="form-control w-full rounded px-3 py-2" name="status">
+             <option value="active" selected>نشط</option>
+             <option value="inactive">غير نشط</option>
+             <option value="vacation">إجازة</option>
+             <option value="suspended">موقوف</option>
+             <option value="resigned">مستقيل</option>
+           </select>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+          <button id="add-close" class="px-4 py-2 rounded text-slate-300 hover:bg-white/5" type="button" onclick="document.getElementById('add-modal').classList.remove('open')" data-en="Cancel" data-ar="إلغاء">Cancel</button>
+          <button class="btn-primary text-white px-4 py-2 rounded" type="submit" data-en="Save" data-ar="حفظ">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/api-client.js"></script>
+  <script src="app.js?v=8"></script>
+  <script>
+    function setLang(l) {
+      App.setLang(l);
+      document.body.className = l === 'ar' ? 'ar' : 'en';
+    }
+    App.init('employees');
+    function openMenu(){ var ov=document.getElementById('sideMenuOverlay'); var m=document.getElementById('sideMenu'); if(ov) ov.classList.add('open'); if(m) m.classList.add('open'); }
+    function closeMenu(){ var ov=document.getElementById('sideMenuOverlay'); var m=document.getElementById('sideMenu'); if(ov) ov.classList.remove('open'); if(m) m.classList.remove('open'); }
+    function toggleMenu(){ var m=document.getElementById('sideMenu'); if(m && m.classList.contains('open')) closeMenu(); else openMenu(); }
+
+    // Employee Page Logic
+    var grid = document.getElementById('emp-grid');
+    var mOverlay = document.getElementById('emp-modal');
+    var aOverlay = document.getElementById('add-modal');
+    var selectedId = null;
+    var __docUploadState = {};
+    
+    function initials(name){ var s=(name||'').trim(); if(!s) return 'NA'; var parts=s.split(' '); var i1=parts[0]?parts[0][0]:'N'; var i2=parts[1]?parts[1][0]:'A'; return (i1+i2).toUpperCase(); }
+    function hueFromString(str){ var h=0; for(var i=0;i<(str||'').length;i++){ h=(h*31+str.charCodeAt(i))%360; } return h; }
+    function avatarStyle(name){ var h=hueFromString(name||''); var h2=(h+45)%360; return 'display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,hsl('+h+',70%,45%),hsl('+h2+',70%,30%));color:#fff;font-weight:700;font-size:1.5rem;width:100%;height:100%;'; }
+    function escapeHtml(str){
+      return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+    function normalizeImageSrc(src){
+      var s = String(src || '').trim();
+      if (!s) return '';
+      if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('data:') || s.startsWith('blob:')) return s;
+      if (s.startsWith('/storage/')) return s;
+      if (s.startsWith('/attachments/')) return '/storage' + s;
+      if (s.startsWith('attachments/')) return '/storage/' + s;
+      if (s.startsWith('/')) return s;
+      return '/storage/' + s.replace(/^\/+/, '');
+    }
+    function employeePhotoSrc(rec){
+      return normalizeImageSrc((rec && (rec.photoData || rec.profile_image || rec.profileImage || rec.avatar || rec.photo)) || '');
+    }
+    function renderModalPhoto(rec){
+      var ph = document.getElementById('m-photo');
+      if (!ph) return;
+      var src = employeePhotoSrc(rec);
+      var fallback = '<div style="width:80px;height:80px;border-radius:50%;overflow:hidden;' + avatarStyle(rec && rec.name) + '">' + initials(rec && rec.name) + '</div>';
+      var photoHtml = src
+        ? '<img src="' + src + '" alt="profile" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.25);">'
+        : fallback;
+      ph.innerHTML = '<div style="position:relative;width:80px;height:80px;">'
+        + photoHtml
+        + '<button id="m-photo-upload-btn" type="button" style="position:absolute;right:-2px;bottom:-2px;width:26px;height:26px;border-radius:50%;background:rgba(59,130,246,.9);color:#fff;border:1px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font-size:14px;line-height:1;">+</button>'
+        + '</div>';
+      var btn = document.getElementById('m-photo-upload-btn');
+      var fileInput = document.getElementById('m-profile-file');
+      if (btn && fileInput) btn.onclick = function(){ fileInput.click(); };
+    }
+    
+    function deriveBrand(rec){
+      var t = ((rec && (rec.brand || rec.branch || rec.role)) || '').toLowerCase();
+      if(t.includes('burger') || t.includes('bk') || t.includes('burger king')) return 'bk';
+      if(t.includes('kfc')) return 'kfc';
+      if(t.includes('pizza') || t.includes('ph')) return 'ph';
+      if(t.includes('tex') || t.includes('txc') || t.includes('t.x.c')) return 'txc';
+      return 'olayan';
+    }
+    function applyBrandHeader(rec){
+      var h = document.getElementById('m-header');
+      var logo = document.getElementById('m-logo');
+      var badge = document.getElementById('m-brand-badge');
+      var b = deriveBrand(rec);
+      var palettes = {
+        olayan: 'linear-gradient(135deg,#0ea5e9,#7c3aed,#1e293b)',
+        bk: 'linear-gradient(135deg,#f59e0b,#ec4899,#6366f1)',
+        kfc: 'linear-gradient(135deg,#ef4444,#f59e0b,#1f2937)',
+        ph: 'linear-gradient(135deg,#22c55e,#14b8a6,#1e293b)',
+        txc: 'linear-gradient(135deg,#06b6d4,#0ea5e9,#1f2937)'
+      };
+      if(h) h.style.background = palettes[b] || palettes.olayan;
+      if(badge) badge.textContent = 'CompliQ';
+      // نستخدم شعار عام، ويمكن ربط شعارات مخصصة لاحقًا إن توفرت أصولها
+      if(logo) logo.src = '/logos/CompliQ.svg';
+    }
+    function parseYMD(s){
+      if(!s) return null;
+      var t = String(s).trim().replace(/\\/g,'/').replace(/-/g,'/');
+      var m = t.match(/^(\d{4})[\\/-](\d{1,2})[\\/-](\d{1,2})$/);
+      if(!m) return null;
+      var y = +m[1], mo = +m[2]-1, d = +m[3];
+      var dt = new Date(y, mo, d);
+      if(isNaN(dt)) return null;
+      return dt;
+    }
+    function normalizeArabicDateDigits(val){
+      return String(val || '').replace(/[٠-٩]/g, function(d){ return '٠١٢٣٤٥٦٧٨٩'.indexOf(d); });
+    }
+    function formatDateInputValue(val){
+      var normalized = normalizeArabicDateDigits(val);
+      var clean = normalized.replace(/\D/g, '');
+      if(clean.length > 8) clean = clean.substring(0, 8);
+      var formatted = '';
+      if(clean.length > 0){
+        formatted = clean.substring(0, 4);
+        if(clean.length >= 5) formatted += '/' + clean.substring(4, 6);
+        if(clean.length >= 7) formatted += '/' + clean.substring(6, 8);
+      }
+      return formatted;
+    }
+    function convertHijriLikeDate(val){
+      if(!val || val.length !== 10) return val;
+      var parts = val.split('/');
+      if(parts.length !== 3) return val;
+      var y = parseInt(parts[0], 10);
+      var m = parseInt(parts[1], 10);
+      var d = parseInt(parts[2], 10);
+      if(!(y > 1300 && y < 1500)) return val;
+      var jd = Math.floor((11 * y + 3) / 30) + 354 * y + 30 * m - Math.floor((m - 1) / 2) + d + 1948440 - 385;
+      var l = jd + 68569;
+      var n = Math.floor((4 * l) / 146097);
+      l = l - Math.floor((146097 * n + 3) / 4);
+      var i = Math.floor((4000 * (l + 1)) / 1461001);
+      l = l - Math.floor((1461 * i) / 4) + 31;
+      var j = Math.floor((80 * l) / 2447);
+      var day = l - Math.floor((2447 * j) / 80);
+      l = Math.floor(j / 11);
+      var month = j + 2 - 12 * l;
+      var year = 100 * (n - 49) + i + l;
+      var checkDate = new Date(year, month - 1, day);
+      return checkDate.getFullYear() + '/' + String(checkDate.getMonth() + 1).padStart(2,'0') + '/' + String(checkDate.getDate()).padStart(2,'0');
+    }
+    (function(){
+      if(window.__employeesDateInputFixWired) return;
+      window.__employeesDateInputFixWired = true;
+      document.addEventListener('input', function(e){
+        if(!e.target || !e.target.classList || !e.target.classList.contains('date-input-fix')) return;
+        var formatted = formatDateInputValue(e.target.value);
+        if(e.target.value !== formatted) e.target.value = formatted;
+      });
+      document.addEventListener('change', function(e){
+        if(!e.target || !e.target.classList || !e.target.classList.contains('date-input-fix')) return;
+        var before = formatDateInputValue(e.target.value);
+        if(before !== e.target.value) e.target.value = before;
+        var converted = convertHijriLikeDate(e.target.value);
+        if(converted !== e.target.value){
+          e.target.value = converted;
+          try { e.target.dispatchEvent(new Event('input', { bubbles: true })); } catch(_){}
+          try { e.target.dispatchEvent(new Event('change', { bubbles: true })); } catch(_){}
+          if(typeof toast === 'function') toast('success', 'تم التحويل', 'تم تحويل التاريخ إلى الصيغة الميلادية: ' + converted);
+        }
+      });
+    })();
+    function daysUntil(dt){
+      if(!dt) return null;
+      var now = new Date();
+      var diff = dt.getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      return Math.round(diff / 86400000);
+    }
+    function setBadge(el, days){
+      if(!el) return;
+      // إزالة شارات سابقة
+      var next = el.nextElementSibling;
+      if(next && next.classList && next.classList.contains('status-badge')) next.remove();
+      var span = document.createElement('span');
+      span.className = 'status-badge';
+      if(days === null){
+        span.textContent = '';
+        return;
+      }
+      if(days < 0){ span.textContent = 'Expired'; span.style.background='rgba(239,68,68,.2)'; span.style.color='#ef4444'; span.style.border='1px solid rgba(239,68,68,.3)'; }
+      else if(days <= 30){ span.textContent = 'Expiring'; span.style.background='rgba(245,158,11,.2)'; span.style.color='#f59e0b'; span.style.border='1px solid rgba(245,158,11,.3)'; }
+      else { span.textContent = 'Active'; span.style.background='rgba(16,185,129,.2)'; span.style.color='#34d399'; span.style.border='1px solid rgba(16,185,129,.3)'; }
+      span.style.marginInlineStart = '8px';
+      el.insertAdjacentElement('afterend', span);
+    }
+    
+    function seed() {
+      var list = App.store.list('employees');
+      if (list.length) return;
+      App.store.create('employees', { name: 'Ahmed Mohammed', branch: 'Riyadh', role: 'Supervisor' });
+      App.store.create('employees', { name: 'Sarah Ali', branch: 'Jeddah', role: 'Staff' });
+    }
+    
+    async function syncEmployeesFromAPI() {
+      if (!(window.APIClient && APIClient.fetchData)) return;
+      try {
+        const rows = await APIClient.fetchData('employees');
+        if (Array.isArray(rows) && rows.length) {
+          if (window.App && App.store && App.store.set) {
+            App.store.set('employees', rows);
+          }
+          renderGrid();
+        }
+      } catch (e) {
+        console.warn('Sync employees from API failed', e);
+      }
+    }
+    
+    function renderGrid() {
+      var rows = App.store.list('employees');
+      rows = Array.isArray(rows) ? rows.filter(function(r){ return r && r.archived !== true; }) : [];
+      
+      // RBAC Filter
+      if(window.canAccessEmployee && window.getCurrentMember) {
+         var me = getCurrentMember();
+         rows = rows.filter(function(r){ return canAccessEmployee(r, me); });
+      }
+
+      grid.innerHTML = '';
+      if(rows.length === 0) {
+        seed();
+        // إعادة جلب البيانات بعد إضافة الموظفين الافتراضيين
+        rows = App.store.list('employees');
+        rows = Array.isArray(rows) ? rows.filter(function(r){ return r && r.archived !== true; }) : [];
+      }
+      
+      rows.forEach(function (r) {
+        var card = document.createElement('div');
+        card.className = 'emp-card';
+        card.tabIndex = 0;
+        card.setAttribute('role', 'button');
+        card.setAttribute('aria-label', 'فتح ملف الموظف ' + (r.name || ''));
+
+        var topBadge = document.createElement('div');
+        topBadge.className = 'emp-card-top-badge';
+        topBadge.innerHTML = '<span class="arrow">↗</span><span>الملف الشخصي</span>';
+        
+        var imgWrapper = document.createElement('div');
+        imgWrapper.className = 'emp-photo';
+        var cardPhoto = employeePhotoSrc(r);
+        imgWrapper.innerHTML = cardPhoto
+          ? '<img src="' + cardPhoto + '" alt="' + (r.name || '') + '" style="width:100%;height:100%;object-fit:cover;">'
+          : '<div style="'+avatarStyle(r.name)+'">'+initials(r.name)+'</div>';
+        
+        var name = document.createElement('div');
+        name.className = 'emp-name';
+        name.textContent = r.name || '';
+        
+        var role = document.createElement('div');
+        role.className = 'emp-role';
+        role.textContent = r.role || '';
+        
+        var det = document.createElement('div');
+        det.className = 'emp-detail';
+        det.innerHTML = '<span>Branch</span><span>' + (r.branch || '') + '</span>';
+        
+        var st = document.createElement('div');
+        var stat = String(r.status || 'active').toLowerCase();
+        var label = 'غير نشط';
+        var cls = 'status-badge';
+        if (stat === 'active') { label = 'نشط'; cls += ' status-valid'; }
+        else if (stat === 'inactive') { label = 'غير نشط'; }
+        else if (stat === 'vacation') { label = 'إجازة'; }
+        else if (stat === 'suspended') { label = 'موقوف'; }
+        else if (stat === 'resigned') { label = 'مستقيل'; }
+        else { label = stat; }
+        st.className = cls;
+        st.textContent = label;
+
+        var openHint = document.createElement('div');
+        openHint.className = 'emp-open-hint';
+        openHint.innerHTML = '<span>👁</span><span>فتح الملف الشخصي</span>';
+        
+        card.appendChild(topBadge);
+        card.appendChild(imgWrapper);
+        card.appendChild(name);
+        card.appendChild(role);
+        card.appendChild(det);
+        card.appendChild(st);
+        card.appendChild(openHint);
+        card.onclick = function () { openModal(r.id); };
+        card.onkeydown = function (e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openModal(r.id);
+          }
+        };
+        grid.appendChild(card);
+      });
+    }
+    
+    function openModal(id) {
+      selectedId = id;
+      var r = App.store.get('employees', id);
+      if (!r) return;
+      
+      applyBrandHeader(r);
+      renderModalPhoto(r);
+      
+      document.getElementById('m-name').textContent = r.name || '';
+      document.getElementById('m-branch').textContent = r.branch || '';
+      renderDocs();
+      renderMeta();
+      mOverlay.classList.add('open');
+    }
+    
+    function closeModal() { mOverlay.classList.remove('open'); selectedId = null; }
+    document.getElementById('m-close').onclick = closeModal;
+    var saveBtn = document.getElementById('m-save');
+    if (saveBtn) {
+      saveBtn.onclick = function(){
+        var form = document.getElementById('m-meta-form');
+        if (form) form.requestSubmit();
+      };
+    }
+    var closeActionBtn = document.getElementById('m-close-action');
+    if (closeActionBtn) {
+      closeActionBtn.onclick = function(){
+        closeModal();
+        if (typeof toast === 'function') toast('info', 'إغلاق', 'تم إغلاق نافذة الموظف');
+      };
+    }
+    var refreshActionBtn = document.getElementById('m-refresh-action');
+    if (refreshActionBtn) {
+      refreshActionBtn.onclick = function(){
+        if (!selectedId) return;
+        var rec = App.store.get('employees', selectedId);
+        if (rec) {
+          applyBrandHeader(rec);
+          renderModalPhoto(rec);
+          document.getElementById('m-name').textContent = rec.name || '';
+          document.getElementById('m-branch').textContent = rec.branch || '';
+        }
+        renderMeta();
+        renderDocs();
+        if (typeof toast === 'function') toast('success', 'تحديث', 'تم تحديث البيانات');
+      };
+    }
+    var profileFileInput = document.getElementById('m-profile-file');
+    if (profileFileInput) {
+      profileFileInput.addEventListener('change', function(e){
+        var file = e.target.files && e.target.files[0];
+        if (!file || !selectedId) return;
+        if (!String(file.type || '').startsWith('image/')) {
+          if (typeof toast === 'function') toast('warning', 'تنبيه', 'يرجى اختيار صورة فقط');
+          e.target.value = '';
+          return;
+        }
+        fileToDataUrl(file).then(function(dataUrl){
+          App.store.update('employees', selectedId, { photoData: dataUrl });
+          var rec = App.store.get('employees', selectedId);
+          renderModalPhoto(rec || {});
+          renderGrid();
+          if (typeof toast === 'function') toast('success', 'تم', 'تم تحديث الصورة الشخصية');
+        }).catch(function(){
+          if (typeof toast === 'function') toast('error', 'خطأ', 'تعذر رفع الصورة');
+        }).finally(function(){
+          e.target.value = '';
+        });
+      });
+    }
+    
+    function fileToDataUrl(file){ 
+      return new Promise((res, rej)=>{ 
+        const r = new FileReader(); 
+        r.onload = ()=> res(String(r.result||"")); 
+        r.onerror = rej; 
+        r.readAsDataURL(file); 
+      }); 
+    } 
+    function kb(n){ return Math.round((n||0)/1024); }
+
+    function handleDocUpload(file, category) {
+      if (!file || !selectedId) return;
+      var cat = category || 'General';
+      __docUploadState[cat] = { loading: true, name: file.name || 'file' };
+      renderDocs();
+      var isImage = file.type.startsWith("image/");
+      var isPdf = file.type === "application/pdf";
+      var isVideo = file.type.startsWith("video/");
+      var MAX_STORE = 450 * 1024;
+      var doc = {
+        employeeId: selectedId,
+        title: file.name,
+        type: file.type || "application/octet-stream",
+        size: file.size || 0,
+        category: cat,
+        archived: false,
+        createdAt: Date.now()
+      };
+      var shouldSavePreview = (isImage || isPdf || isVideo) && file.size <= MAX_STORE;
+      var saveTask = shouldSavePreview
+        ? fileToDataUrl(file).then(function(dataUrl){ doc.dataUrl = dataUrl; }).catch(function(){ doc.dataUrl = null; })
+        : Promise.resolve().then(function(){ doc.dataUrl = null; });
+      return saveTask.then(function(){
+        App.store.create('employee_docs', doc);
+        renderDocs();
+        if(typeof toast === 'function') toast("success", "Attachment", "Attached: " + file.name + " (" + kb(file.size) + " KB)");
+      }).catch(function(){
+        if(typeof toast === 'function') toast("error", "خطأ", "فشل رفع المرفق");
+      }).finally(function(){
+        delete __docUploadState[cat];
+        renderDocs();
+      });
+    }
+
+    function bindDocUpload(inputId, buttonId, category) {
+      var input = document.getElementById(inputId);
+      var button = document.getElementById(buttonId);
+      if (!input || !button) return;
+      button.onclick = function(){ input.click(); };
+      input.addEventListener('change', function(e){
+        var file = e.target.files && e.target.files[0];
+        handleDocUpload(file, category).finally(function(){ input.value = ''; });
+      });
+    }
+
+    bindDocUpload('m-file-id', 'btn-upload-id', 'idImage');
+    bindDocUpload('m-file-health', 'btn-upload-health', 'healthCard');
+    bindDocUpload('m-file-permit', 'btn-upload-permit', 'airportPermit');
+    
+    function archiveCategory(category) {
+      if (!selectedId) return;
+      var docs = App.store.list('employee_docs').filter(function(d){
+        return sameEmployeeId(d.employeeId, selectedId) && String(d.category || '') === String(category || '') && !d.archived;
+      });
+      docs.forEach(function(d){ App.store.update('employee_docs', d.id, { archived: true }); });
+      renderDocs();
+      if(typeof toast === 'function' && docs.length) toast("success", "Archive", "Archived " + docs.length + " item(s)");
+    }
+
+    var archiveIdBtn = document.getElementById('btn-archive-id');
+    if (archiveIdBtn) archiveIdBtn.onclick = function(){ archiveCategory('idImage'); };
+    var archiveHealthBtn = document.getElementById('btn-archive-health');
+    if (archiveHealthBtn) archiveHealthBtn.onclick = function(){ archiveCategory('healthCard'); };
+    var archivePermitBtn = document.getElementById('btn-archive-permit');
+    if (archivePermitBtn) archivePermitBtn.onclick = function(){ archiveCategory('airportPermit'); };
+    
+    function daysLeft(dateStr){ if(!dateStr) return ''; var d=new Date(dateStr); if(isNaN(d.getTime())) return ''; var diff=d.getTime()-Date.now(); return Math.ceil(diff/86400000); }
+    function sameEmployeeId(a, b){
+      return String(a == null ? '' : a) === String(b == null ? '' : b);
+    }
+    function makeLegacyDocEntries(row, list, category, prefix){
+      var arr = Array.isArray(list) ? list : [];
+      return arr.map(function(item, idx){
+        var name = item && (item.name || item.title || (prefix + ' ' + (idx + 1))) || (prefix + ' ' + (idx + 1));
+        var dataUrl = item && (item.data || item.dataUrl || item.url || item.src || '') || '';
+        var type = item && item.type ? item.type : (String(dataUrl).startsWith('data:video/') ? 'video/mp4' : (String(dataUrl).startsWith('data:application/pdf') ? 'application/pdf' : 'image/*'));
+        return {
+          id: 'legacy-' + category + '-' + idx,
+          employeeId: selectedId,
+          title: name,
+          type: type,
+          size: item && item.size ? item.size : 0,
+          category: category,
+          archived: false,
+          createdAt: item && item.createdAt ? item.createdAt : 0,
+          dataUrl: dataUrl,
+          source: 'legacy'
+        };
+      }).filter(function(item){ return !!(item.dataUrl || item.title); });
+    }
+    function collectEmployeeDocuments() {
+      var current = App.store.get('employees', selectedId) || {};
+      var docs = App.store.list('employee_docs').filter(function (d) { return sameEmployeeId(d.employeeId, selectedId) && !d.archived; }).map(function(d){
+        return Object.assign({ source: 'store' }, d);
+      });
+      var legacyDocs = []
+        .concat(makeLegacyDocEntries(current, current.idAttachments, 'idImage', 'صورة الهوية'))
+        .concat(makeLegacyDocEntries(current, current.healthAttachments, 'healthCard', 'كرت التدريب الصحي'))
+        .concat(makeLegacyDocEntries(current, current.permitAttachments, 'airportPermit', 'تصريح المطار'));
+      var seen = {};
+      return docs.concat(legacyDocs).filter(function(doc){
+        var key = [
+          String(doc.category || ''),
+          String(doc.title || ''),
+          String(doc.dataUrl || ''),
+          String(doc.source || '')
+        ].join('||');
+        if (seen[key]) return false;
+        seen[key] = true;
+        return true;
+      }).sort(function(a, b){
+        return Number(b.createdAt || 0) - Number(a.createdAt || 0);
+      });
+    }
+    function openDocPreview(id){
+      var docs = collectEmployeeDocuments();
+      var doc = docs.find(function(item){ return String(item.id) === String(id); });
+      if (!doc || !doc.dataUrl) return;
+      try {
+        var win = window.open(doc.dataUrl, '_blank', 'noopener,noreferrer');
+        if (!win) window.location.href = doc.dataUrl;
+      } catch(_) {
+        window.location.href = doc.dataUrl;
+      }
+    }
+    window.openDocPreview = openDocPreview;
+    
+    function renderDocs() {
+      var box = document.getElementById('m-docs');
+      var docs = collectEmployeeDocuments();
+      var idBox = document.getElementById('m-doc-id');
+      var healthBox = document.getElementById('m-doc-health');
+      var permitBox = document.getElementById('m-doc-permit');
+      function renderCategory(target, cat) {
+        if (!target) return;
+        var list = docs.filter(function(d){ return String(d.category || '') === String(cat || ''); });
+        var uploadState = __docUploadState[cat];
+        if (!list.length) {
+          target.innerHTML = uploadState && uploadState.loading
+            ? '<div class="text-blue-300 text-xs animate-pulse">جاري رفع المرفق: ' + escapeHtml(uploadState.name || '') + ' ...</div>'
+            : '<div class="text-slate-500 text-xs">لا يوجد</div>';
+          return;
+        }
+        var itemsHtml = list.slice(0, 3).map(function(d){
+          var canPreview = !!d.dataUrl && (String(d.type).startsWith("image/") || d.type === "application/pdf" || String(d.type).startsWith("video/"));
+          return '<div class="rounded border border-white/10 p-2 flex items-center justify-between gap-2">'
+            + '<div class="truncate text-slate-200">' + escapeHtml(d.title || '') + '</div>'
+            + '<div class="flex items-center gap-1">'
+            + (canPreview ? '<button class="text-[10px] px-1.5 py-0.5 rounded border border-blue-400/40 text-blue-300" onclick="openDocPreview(\'' + d.id + '\')">👁</button>' : '')
+            + (d.source === 'store' ? '<button class="text-[10px] px-1.5 py-0.5 rounded border border-white/20 text-slate-300" data-archive="' + d.id + '">أرشفة</button>' : '')
+            + '</div></div>';
+        }).join('');
+        if (uploadState && uploadState.loading) {
+          itemsHtml += '<div class="text-blue-300 text-xs animate-pulse">جاري رفع المرفق: ' + escapeHtml(uploadState.name || '') + ' ...</div>';
+        }
+        target.innerHTML = itemsHtml;
+      }
+      renderCategory(idBox, 'idImage');
+      renderCategory(healthBox, 'healthCard');
+      renderCategory(permitBox, 'airportPermit');
+      
+      var loadingCats = Object.keys(__docUploadState || {}).filter(function(k){ return __docUploadState[k] && __docUploadState[k].loading; });
+      if(docs.length === 0 && !loadingCats.length) {
+        box.innerHTML = '<div class="text-slate-500 text-center py-4 text-sm">لا توجد مرفقات</div>';
+        return;
+      }
+      var docsHtml = docs.map(function (d) {
+        var dl = daysLeft(d.expiresAt);
+        var cat = d.category || 'General';
+        var info = [];
+        if (d.number) info.push('#'+d.number);
+        if (d.expiresAt) info.push('Exp: '+d.expiresAt);
+        if (dl!=='' ) info.push(dl+' days left');
+        info.push(kb(d.size) + ' KB');
+        
+        var canPreview = !!d.dataUrl && (String(d.type).startsWith("image/") || d.type === "application/pdf" || String(d.type).startsWith("video/"));
+        
+        return `
+        <div class="glass-card" style="padding:10px; margin-bottom:10px; background:rgba(255,255,255,0.02);">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div style="min-width:0">
+               <div style="font-weight:600; font-size:0.9rem;">${escapeHtml(cat)}</div>
+               <div style="color:#cbd5e1; font-size:0.85rem; word-break:break-all;">${escapeHtml(d.title||"")}</div>
+               <div style="color:#94a3b8; font-size:0.75rem;">${info.join(' | ')}</div>
+            </div>
+            ${canPreview ? `<button class="text-xs px-2 py-1 rounded border border-blue-400/30 text-blue-400 hover:bg-blue-500/20 whitespace-nowrap ml-2" onclick="openDocPreview('${d.id}')">👁 Preview</button>` : ''}
+          </div>
+          <div style="display:flex; gap:8px; margin-top:8px; justify-content:flex-end;">
+             ${d.dataUrl ? `<a class="text-xs px-2 py-1 rounded border border-white/20 text-slate-300 hover:bg-white/10" href="${d.dataUrl}" download="${escapeHtml(d.title||'file')}">⬇ Save</a>` : ''}
+             ${d.source === 'store' ? `<button class="text-xs px-2 py-1 rounded border border-white/20 hover:bg-white/10 text-slate-300" data-archive="${d.id}">أرشفة</button>` : ''}
+             ${d.source === 'store' ? `<button class="text-xs px-2 py-1 rounded border border-red-500/30 hover:bg-red-500/20 text-red-400" data-delete="${d.id}">حذف</button>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+      if (loadingCats.length) {
+        docsHtml = '<div class="glass-card" style="padding:10px; margin-bottom:10px; background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.25);"><div class="text-blue-300 text-sm animate-pulse">جاري التحميل... يتم رفع المرفق وسيظهر فوراً</div></div>' + docsHtml;
+      }
+      box.innerHTML = docsHtml || '<div class="text-slate-500 text-center py-4 text-sm">لا توجد مرفقات</div>';
+      
+      var docsRoot = document.getElementById('emp-modal');
+      Array.prototype.forEach.call((docsRoot || box).querySelectorAll('[data-archive]'), function(btn){
+        btn.onclick = function(){
+          var id = btn.getAttribute('data-archive');
+          var rec = App.store.get('employee_docs', id);
+          if(!rec) return;
+          App.store.update('employee_docs', id, { archived: !rec.archived });
+          renderDocs();
+        };
+      });
+      
+      Array.prototype.forEach.call((docsRoot || box).querySelectorAll('[data-delete]'), function(btn){
+        btn.onclick = function(){
+          var id = btn.getAttribute('data-delete');
+          if(!confirm('Delete this document?')) return;
+          App.store.remove('employee_docs', id);
+          renderDocs();
+        };
+      });
+    }
+    
+    function renderMeta(){
+      var f = document.getElementById('m-meta-form');
+      if(!f || !selectedId) return;
+      var base = App.store.get('employees', selectedId) || {};
+      var rec = App.store.list('employee_meta').find(function(m){ return m.employeeId === selectedId; }) || {};
+      var merged = Object.assign({}, base, rec);
+      var defaults = { region: 'Western Region', status: 'active' };
+      ['name','sapId','idNumber','refNumber','phone','costCenter','brand','branch','region','status','tcoeEnd','healthCardExp','airportPermitNo','airportPermitExp','notes'].forEach(function(k){
+        if(f[k]) f[k].value = merged[k] || defaults[k] || '';
+      });
+      function paintStatusByDate(inputName, targetId) {
+        var target = document.getElementById(targetId);
+        var input = f[inputName];
+        if (!target || !input) return;
+        var days = daysUntil(parseYMD(input.value));
+        if (days === null) { target.textContent = 'غير محدد'; target.className = 'text-[11px] mt-1 px-2 py-1 rounded bg-slate-500/15 text-slate-300 border border-slate-500/25 w-fit'; return; }
+        if (days < 0) { target.textContent = 'منتهي منذ ' + Math.abs(days) + ' يوم'; target.className = 'text-[11px] mt-1 px-2 py-1 rounded bg-rose-500/15 text-rose-300 border border-rose-500/25 w-fit'; return; }
+        if (days === 0) { target.textContent = 'ينتهي اليوم'; target.className = 'text-[11px] mt-1 px-2 py-1 rounded bg-amber-500/15 text-amber-300 border border-amber-500/25 w-fit'; return; }
+        if (days <= 30) { target.textContent = 'متبقي ' + days + ' يوم'; target.className = 'text-[11px] mt-1 px-2 py-1 rounded bg-amber-500/15 text-amber-300 border border-amber-500/25 w-fit'; return; }
+        target.textContent = 'متبقي ' + days + ' يوم';
+        target.className = 'text-[11px] mt-1 px-2 py-1 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 w-fit';
+      }
+      paintStatusByDate('tcoeEnd', 'm-tcoe-status');
+      paintStatusByDate('healthCardExp', 'm-health-status');
+      paintStatusByDate('airportPermitExp', 'm-permit-status');
+      if (f['tcoeEnd']) f['tcoeEnd'].oninput = function(){ paintStatusByDate('tcoeEnd', 'm-tcoe-status'); };
+      if (f['healthCardExp']) f['healthCardExp'].oninput = function(){ paintStatusByDate('healthCardExp', 'm-health-status'); };
+      if (f['airportPermitExp']) f['airportPermitExp'].oninput = function(){ paintStatusByDate('airportPermitExp', 'm-permit-status'); };
+    }
+    
+    // Form Bindings
+    (function(){
+
+
+      var mMeta = document.getElementById('m-meta-form');
+      if(mMeta) {
+        mMeta.addEventListener('submit', function(e){
+          e.preventDefault();
+          if(!selectedId) return;
+          var fd = new FormData(mMeta);
+          var data = Object.fromEntries(fd.entries());
+          data.employeeId = selectedId;
+          var empUpdates = {
+            name: data.name || '',
+            branch: data.branch || '',
+            brand: data.brand || '',
+            region: data.region || '',
+            status: data.status || '',
+            phone: data.phone || '',
+            sapId: data.sapId || '',
+            idNumber: data.idNumber || '',
+            refNumber: data.refNumber || '',
+            costCenter: data.costCenter || ''
+          };
+          App.store.update('employees', selectedId, empUpdates);
+          // Check if exists
+          var existing = App.store.list('employee_meta').find(function(m){ return m.employeeId === selectedId; });
+          if(existing) App.store.update('employee_meta', existing.id, data);
+          else App.store.create('employee_meta', data);
+          if(typeof toast === 'function') toast('success','تم','تم حفظ التفاصيل');
+          else alert('Saved details');
+          var r = App.store.get('employees', selectedId);
+          if (r) {
+            document.getElementById('m-name').textContent = r.name || '';
+            document.getElementById('m-branch').textContent = r.branch || '';
+          }
+        });
+      }
+      
+      var addForm = document.getElementById('emp-add-form');
+      if(addForm) {
+        addForm.addEventListener('submit', function(e){
+          e.preventDefault();
+          var fd = new FormData(addForm);
+          var data = Object.fromEntries(fd.entries());
+          data.archived = false;
+          App.store.create('employees', data);
+          document.getElementById('add-modal').classList.remove('open');
+          renderGrid();
+          addForm.reset();
+        });
+      }
+    })();
+
+    var EMP_SYNC_KEYS = [
+      'db:employees', 'employees', 'ofs_employees_v1', 'ofs_employees',
+      'employees_data', 'ofs_staff', 'staff'
+    ];
+
+    window.addEventListener('storage', function(e){
+      if (EMP_SYNC_KEYS.indexOf(e.key) >= 0) {
+        renderGrid();
+      }
+    });
+
+    // Initial Render + Sync
+    document.addEventListener('DOMContentLoaded', function(){
+       if (window.APIClient && APIClient.fetchData) {
+         syncEmployeesFromAPI();
+       } else {
+         setTimeout(function(){ if (typeof syncEmployeesFromAPI === 'function') syncEmployeesFromAPI(); }, 500);
+       }
+       renderGrid();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>التدريب وبطاقات الصحة</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style-base.css">
+  <link rel="stylesheet" href="style-home.css">
+  <link rel="icon" type="image/svg+xml" href="olayan-mark.svg">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+  <script>
+    (function(){
+      function load(src, cb){ var s=document.createElement('script'); s.src=src; s.onload=function(){ cb(true); }; s.onerror=function(){ cb(false); }; document.head.appendChild(s); }
+      function ensureXLSX(){ if (window.XLSX) return; var sources=['https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js','https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js']; var i=0; (function next(){ if (window.XLSX || i>=sources.length) return; load(sources[i++], next); })(); }
+      if (!window.XLSX) ensureXLSX(); window.addEventListener('load', ensureXLSX);
+    })();
+  </script>
+</head>
+<body class="ar">
+  <canvas id="bg-canvas"></canvas>
+  <header class="top-nav">
+    <div class="top-left">
+      <img src="olayan-mark.svg" alt="Olayan">
+      <div class="division">
+        <div class="division-name" data-en="Olayan Food Division" data-ar="قطاع الأغذية - العليان">Olayan Food Division</div>
+        <div class="division-note" data-en="Your only limit is your mind." data-ar="حدودك الوحيدة هي عقلك">Your only limit is your mind.</div>
+      </div>
+    </div>
+    <nav class="top-links">
+      <a href="index.html" class="nav-link" data-en="Home" data-ar="الرئيسية">Home</a>
+      <a href="violations.html" class="nav-link" data-en="Violations" data-ar="المخالفات">Violations</a>
+      <a href="training.html" class="nav-link active" data-en="Training" data-ar="التدريب">Training</a>
+      <a href="branches.html" class="nav-link" data-en="Branches" data-ar="الفروع">Branches</a>
+      <a href="reports.html" class="nav-link" data-en="Board Report" data-ar="تقرير الإدارة">Board Report</a>
+      <a href="login.html" class="nav-link" data-en="Login" data-ar="تسجيل الدخول">Login</a>
+      <a href="mailto:b1.ahmed@olayanfood.com" class="nav-link" data-en="Support" data-ar="الدعم">Support</a>
+      <button id="help-toggle" class="px-3 py-1 rounded bg-gray-100 text-gray-800"></button>
+      <div class="user-slot">
+        <div id="user-badge" class="user-badge">
+          <div class="user-avatar"></div>
+          <span id="user-badge-name"></span>
+        </div>
+        <div id="user-menu" class="user-menu">
+          <a href="#" data-en="My Profile" data-ar="ملفّي">My Profile</a>
+          <button onclick="App.logout()" data-en="Logout" data-ar="تسجيل الخروج">Logout</button>
+        </div>
+        <button class="logout-btn" onclick="App.logout()" data-en="Logout" data-ar="تسجيل الخروج">Logout</button>
+      </div>
+    </nav>
+  </header>
+  <section class="hero-section">
+    <h1 class="hero-title" data-en="Training & Health Cards" data-ar="التدريب وبطاقات الصحة">Training & Health Cards</h1>
+    <div class="hero-divider"></div>
+  </section>
+  <section style="padding:16px;">
+    <div class="dashboard-container">
+      <div class="sidebar">
+        <div class="data-card">
+          <div class="card-header" data-en="Upload Excel" data-ar="رفع Excel">Upload Excel</div>
+          <input id="excel-input" type="file" accept=".xlsx,.xls" class="form-control w-full rounded px-3 py-2">
+          <button id="import-btn" class="btn-primary text-white px-4 py-2 rounded" style="margin-top:10px;">استيراد</button>
+        </div>
+        <div class="data-card">
+          <div class="card-header" data-en="Health Cards Compliance" data-ar="التزام بطاقات الصحة">Health Cards Compliance</div>
+          <div id="health-compliance" style="font-size:2rem; font-weight:700; text-align:center;">--%</div>
+        </div>
+      </div>
+      <div class="main-content">
+        <div class="data-card">
+          <div class="card-header" data-en="Training Completion by Branch" data-ar="إكمال التدريب حسب الفرع">Training Completion by Branch</div>
+          <div class="charts-row">
+            <div class="chart-container" id="chart-branches"></div>
+            <div class="chart-container" id="chart-courses"></div>
+          </div>
+        </div>
+        <div class="data-card">
+          <div class="card-header" data-en="Recent Training Sessions" data-ar="جلسات تدريب حديثة">Recent Training Sessions</div>
+          <table class="compact-table" id="sessions-table">
+            <thead><tr><th data-en="Employee" data-ar="الموظف">Employee</th><th data-en="Course" data-ar="الدورة">Course</th><th data-en="Status" data-ar="الحالة">Status</th><th data-en="Branch" data-ar="الفرع">Branch</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+  <script src="app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.37.0/lib/msal-browser.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    App.init('training');
+    function setLang(l) { App.setLang(l); document.body.className = l === 'ar' ? 'ar' : 'en'; }
+    function bar(el, label, value, color) {
+      var group = document.createElement('div');
+      group.className = 'bar-group';
+      var b = document.createElement('div');
+      b.className = 'bar';
+      b.style.background = color;
+      b.style.height = Math.max(4, Math.min(100, value)) + '%';
+      var lab = document.createElement('div');
+      lab.className = 'bar-label';
+      lab.textContent = label;
+      var val = document.createElement('div');
+      val.className = 'bar-value-top';
+      val.textContent = value + '%';
+      b.appendChild(val);
+      group.appendChild(b);
+      group.appendChild(lab);
+      el.appendChild(group);
+    }
+    function renderCharts() {
+      var rows = App.store.list('training_metrics');
+      if (!rows.length) {
+        rows = [
+          { branch: 'الرياض', course: 'سلامة الغذاء', completion: 82 },
+          { branch: 'جدة', course: 'سلامة الغذاء', completion: 68 },
+          { branch: 'الدمام', course: 'سلامة الغذاء', completion: 74 },
+          { branch: 'الرياض', course: 'إسعافات أولية', completion: 60 },
+          { branch: 'جدة', course: 'إسعافات أولية', completion: 55 }
+        ];
+        App.store.importJSON('training_metrics', JSON.stringify(rows));
+      }
+      var branchesAgg = {};
+      rows.forEach(function (r) { branchesAgg[r.branch] = Math.round(((branchesAgg[r.branch] || 0) + r.completion) / 2) || r.completion; });
+      var chartB = document.getElementById('chart-branches');
+      chartB.innerHTML = '';
+      Object.keys(branchesAgg).forEach(function (k, i) {
+        var c = ['#6a4c93', '#00d2be', '#c5a059'][i % 3];
+        bar(chartB, k, branchesAgg[k], c);
+      });
+      var coursesAgg = {};
+      rows.forEach(function (r) { coursesAgg[r.course] = Math.round(((coursesAgg[r.course] || 0) + r.completion) / 2) || r.completion; });
+      var chartC = document.getElementById('chart-courses');
+      chartC.innerHTML = '';
+      Object.keys(coursesAgg).forEach(function (k, i) {
+        var c = ['#2d6cdf', '#22d3ee', '#60a5fa'][i % 3];
+        bar(chartC, k, coursesAgg[k], c);
+      });
+    }
+    function renderTable() {
+      var tbody = document.querySelector('#sessions-table tbody');
+      var sessions = App.store.list('training_sessions');
+      if (!sessions.length) {
+        sessions = [
+          { employee: 'موظف 101', course: 'سلامة الغذاء', status: 'مكتمل', branch: 'الرياض' },
+          { employee: 'موظف 102', course: 'إسعافات أولية', status: 'قيد التنفيذ', branch: 'جدة' }
+        ];
+        App.store.importJSON('training_sessions', JSON.stringify(sessions));
+      }
+      tbody.innerHTML = sessions.map(function (s) {
+        return '<tr><td>' + s.employee + '</td><td>' + s.course + '</td><td>' + s.status + '</td><td>' + s.branch + '</td></tr>';
+      }).join('');
+      var hc = Math.round((sessions.filter(function (x) { return x.status === 'مكتمل'; }).length / sessions.length) * 100);
+      document.getElementById('health-compliance').textContent = (isNaN(hc) ? 0 : hc) + '%';
+    }
+    document.getElementById('import-btn').onclick = function () {
+      var fileInput = document.getElementById('excel-input');
+      var f = fileInput.files && fileInput.files[0];
+      if (!f) return;
+      if (!window.XLSX) { alert('تعذر تحميل مكتبة Excel. يرجى استخدام CSV أو إعادة المحاولة لاحقاً.'); return; }
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        var data = new Uint8Array(e.target.result);
+        var wb = XLSX.read(data, { type: 'array' });
+        var ws = wb.Sheets[wb.SheetNames[0]];
+        var rows = XLSX.utils.sheet_to_json(ws);
+        rows.forEach(function (r) {
+          App.store.create('training_sessions', {
+            employee: r.employee || r.Employee || '',
+            course: r.course || r.Course || '',
+            status: r.status || r.Status || '',
+            branch: r.branch || r.Branch || ''
+          });
+        });
+        renderTable();
+      };
+      reader.readAsArrayBuffer(f);
+    };
+    renderCharts();
+    renderTable();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1693 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>السكنات | Housings</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style-base.css">
+  <link rel="stylesheet" href="style-home.css">
+  <link rel="stylesheet" href="style-site.css">
+  <style>
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+    }
+    .dark .glass-panel {
+      background: rgba(17, 24, 39, 0.7);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+    .housing-card {
+      transition: all 0.3s ease;
+      border: 1px solid transparent;
+    }
+    .housing-card:hover {
+      transform: translateY(-5px);
+      border-color: #6366f1;
+      box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.3);
+    }
+    .status-badge {
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .status-available { background: rgba(16, 185, 129, 0.1); color: #059669; border: 1px solid rgba(16, 185, 129, 0.2); }
+    .status-occupied { background: rgba(239, 68, 68, 0.1); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.2); }
+    .status-maintenance { background: rgba(245, 158, 11, 0.1); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.2); }
+    
+    /* Toast Notification */
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .toast {
+      background: white;
+      border-radius: 8px;
+      padding: 12px 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      border-right: 4px solid #6366f1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: slideIn 0.3s ease-out forwards;
+      min-width: 250px;
+    }
+    .toast.success { border-right-color: #10b981; }
+    .toast.error { border-right-color: #ef4444; }
+    .toast.info { border-right-color: #3b82f6; }
+    @keyframes slideIn {
+      from { transform: translateX(-100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(-100%); opacity: 0; }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+  <canvas id="bg-canvas"></canvas>
+  
+  <!-- Navigation -->
+  <nav class="top-nav">
+    <div class="top-left">
+      <img src="/logos/CompliQ.svg" alt="CompliQ">
+      <div class="division">
+        <div class="division-name" data-en="Housings Management" data-ar="إدارة السكنات">إدارة السكنات</div>
+        <div class="division-note" data-en="Olayan Food Division" data-ar="شركة العليان للخدمات الغذائية">شركة العليان للخدمات الغذائية</div>
+      </div>
+    </div>
+    <div class="top-links hidden md:flex">
+      <a href="index.html" class="nav-link" data-en="Home" data-ar="الرئيسية">الرئيسية</a>
+      <a href="employees.html" class="nav-link" data-en="Employees" data-ar="الموظفون">الموظفون</a>
+      <a href="housings.html" class="nav-link active" data-en="Housings" data-ar="السكنات">السكنات</a>
+      <a href="transports.html" class="nav-link" data-en="Transports" data-ar="المواصلات">المواصلات</a>
+    </div>
+    <div class="user-slot">
+       <div id="user-badge" class="user-badge" onclick="document.getElementById('user-menu').classList.toggle('open')">
+          <div class="user-avatar"></div>
+          <span id="user-badge-name"></span>
+       </div>
+       <div id="user-menu" class="user-menu">
+         <a href="#" onclick="window.showProfile(); return false;" data-en="My Profile" data-ar="ملفّي">ملفّي</a>
+         <button onclick="App.logout()" data-en="Logout" data-ar="تسجيل الخروج">تسجيل الخروج</button>
+       </div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 py-8 pt-24 min-h-screen relative z-10">
+    <!-- Header & Stats -->
+    <div class="mb-8">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 class="text-3xl font-bold text-white mb-2" data-i18n="housings.title">السكنات والمجمعات</h1>
+        </div>
+        <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl shadow-lg shadow-indigo-500/30 flex items-center gap-2 transition-all" onclick="openAddHousing()">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          <span data-i18n="housings.add">إضافة سكن جديد</span>
+        </button>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+        <!-- Total Housings -->
+        <div class="glass-panel p-4 rounded-2xl">
+          <div class="text-xs text-slate-500 mb-1">إجمالي السكنات</div>
+          <div class="text-2xl font-bold text-slate-800" id="stat-total">0</div>
+        </div>
+        <!-- Total Capacity -->
+        <div class="glass-panel p-4 rounded-2xl">
+          <div class="text-xs text-slate-500 mb-1">إجمالي السعة (أسرة)</div>
+          <div class="text-2xl font-bold text-indigo-600" id="stat-capacity-total">0</div>
+        </div>
+        <!-- Current Occupants -->
+        <div class="glass-panel p-4 rounded-2xl">
+          <div class="text-xs text-slate-500 mb-1">المقيمين الآن</div>
+          <div class="text-2xl font-bold text-emerald-600" id="stat-occupants">0</div>
+        </div>
+        <!-- Occupancy Rate -->
+        <div class="glass-panel p-4 rounded-2xl">
+          <div class="text-xs text-slate-500 mb-1">نسبة الإشغال</div>
+          <div class="text-2xl font-bold text-blue-600" id="stat-occupancy-rate">0%</div>
+        </div>
+        <!-- Monthly Expenses -->
+        <div class="glass-panel p-4 rounded-2xl">
+          <div class="text-xs text-slate-500 mb-1">مصاريف الشهر</div>
+          <div class="text-2xl font-bold text-amber-600" id="stat-expenses">0</div>
+          <div class="text-[10px] text-slate-400">ريال سعودي</div>
+        </div>
+        <!-- License Alerts -->
+        <div class="glass-panel p-4 rounded-2xl border-l-4 border-red-500">
+          <div class="text-xs text-slate-500 mb-1">تنبيهات الرخص</div>
+          <div class="flex items-end gap-1">
+             <div class="text-2xl font-bold text-red-600" id="stat-alerts">0</div>
+             <span class="text-xs text-red-400 mb-1">منتهية/قريبة</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="glass-panel p-4 rounded-2xl mb-8">
+        <div class="flex flex-wrap gap-4 items-center mb-4">
+           <div class="flex-1 min-w-[200px] relative">
+             <span class="absolute right-3 top-2.5 text-slate-400">🔍</span>
+             <input type="text" id="search-housings" placeholder="بحث باسم السكن، المدينة..." class="w-full pl-4 pr-10 py-2 rounded-xl border border-slate-200 focus:border-indigo-500 outline-none">
+           </div>
+           <select id="filter-city" class="px-4 py-2 rounded-xl border border-slate-200 bg-white outline-none">
+             <option value="">كل المدن</option>
+             <option value="Riyadh">الرياض</option>
+             <option value="Jeddah">جدة</option>
+             <option value="Dammam">الدمام</option>
+           </select>
+           <select id="filter-status" class="px-4 py-2 rounded-xl border border-slate-200 bg-white outline-none">
+             <option value="">كل الحالات</option>
+             <option value="available">متاح</option>
+             <option value="occupied">ممتلئ</option>
+             <option value="maintenance">تحت الصيانة</option>
+             <option value="closed">مغلق</option>
+           </select>
+           <select id="filter-cost-center" class="px-4 py-2 rounded-xl border border-slate-200 bg-white outline-none hidden md:block">
+             <option value="">Cost Center</option>
+             <option value="CC-100">CC-100</option>
+             <option value="CC-101">CC-101</option>
+             <option value="CC-102">CC-102</option>
+             <option value="CC-103">CC-103</option>
+             <option value="CC-104">CC-104</option>
+           </select>
+           <select id="filter-supervisor" class="px-4 py-2 rounded-lg border border-slate-200 bg-white outline-none hidden md:block">
+             <option value="">المشرف</option>
+           </select>
+        </div>
+        <!-- Quick Filters Chips -->
+        <div class="flex flex-wrap gap-2">
+          <button class="px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-sm hover:bg-slate-200 transition-colors" onclick="window.applyQuickFilter('expiry')">⚠️ قريبة انتهاء الرخصة</button>
+          <button class="px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-sm hover:bg-slate-200 transition-colors" onclick="window.applyQuickFilter('expenses')">💰 أعلى مصاريف</button>
+          <button class="px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-sm hover:bg-slate-200 transition-colors" onclick="window.applyQuickFilter('reset')">↺ إعادة تعيين</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grid -->
+    <div id="housings-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <!-- Cards will be injected here -->
+    </div>
+  </main>
+  <div id="housing-modal" class="fixed inset-0 hidden items-center justify-center bg-black/50 z-50">
+    <div class="bg-white w-full max-w-xl rounded-2xl p-5 shadow-xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-3">
+        <div class="text-lg font-bold">السكن</div>
+        <button class="px-3 py-1 rounded-lg border border-slate-200" onclick="closeHousingModal()">إغلاق</button>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="col-span-2">
+          <label class="text-sm text-slate-600">الاسم</label>
+          <input id="h-name" type="text" class="w-full px-3 py-2 rounded-lg border border-slate-300">
+        </div>
+        <div>
+          <label class="text-sm text-slate-600">المدينة</label>
+          <select id="h-city" class="w-full px-3 py-2 rounded-lg border border-slate-300" onchange="toggleCustomInput('h-city', 'h-city-custom')">
+            <option value="">اختر</option>
+            <option value="Riyadh">الرياض</option>
+            <option value="Jeddah">جدة</option>
+            <option value="Dammam">الدمام</option>
+            <option value="custom">أخرى...</option>
+          </select>
+          <input id="h-city-custom" type="text" class="w-full px-3 py-2 mt-2 rounded-lg border border-slate-300 hidden" placeholder="أدخل اسم المدينة">
+        </div>
+        <div>
+          <label class="text-sm text-slate-600">الحالة</label>
+          <select id="h-status" class="w-full px-3 py-2 rounded-lg border border-slate-300">
+            <option value="available">متاح</option>
+            <option value="occupied">ممتلئ</option>
+            <option value="maintenance">تحت الصيانة</option>
+            <option value="closed">مغلق</option>
+          </select>
+        </div>
+        <div class="col-span-2 grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-sm text-slate-600">السعة (أفراد)</label>
+            <input id="h-capacity" type="number" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-sm">
+          </div>
+          <div>
+            <label class="text-sm text-slate-600">المقيمين الآن</label>
+            <input id="h-occupants" type="number" min="0" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-sm">
+          </div>
+        </div>
+        <div>
+          <label class="text-sm text-slate-600">عدد الغرف</label>
+          <input id="h-rooms" type="number" class="w-full px-3 py-2 rounded-lg border border-slate-300">
+        </div>
+        <div>
+          <label class="text-sm text-slate-600">المشرف</label>
+          <select id="h-supervisor" class="w-full px-3 py-2 rounded-lg border border-slate-300">
+             <option value="">اختر موظف...</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-sm text-slate-600">Cost Center</label>
+          <select id="h-cost-center" class="w-full px-3 py-2 rounded-lg border border-slate-300" onchange="toggleCustomInput('h-cost-center', 'h-cc-custom')">
+            <option value="">اختر</option>
+            <option value="CC-100">CC-100</option>
+            <option value="CC-101">CC-101</option>
+            <option value="CC-102">CC-102</option>
+            <option value="CC-103">CC-103</option>
+            <option value="CC-104">CC-104</option>
+            <option value="custom">أخرى...</option>
+          </select>
+          <input id="h-cc-custom" type="text" class="w-full px-3 py-2 mt-2 rounded-lg border border-slate-300 hidden" placeholder="أدخل Cost Center">
+        </div>
+        <div class="col-span-2 grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-100">
+            <div class="col-span-2 text-sm font-bold text-slate-700 mb-1">المصاريف</div>
+            <div class="col-span-2">
+              <div id="exp-list" class="space-y-2"></div>
+              <div class="flex items-center gap-3 mt-2">
+                <button type="button" class="px-3 py-1 rounded-lg border border-slate-200 hover:bg-slate-100 text-sm" onclick="addExpenseRow()">إضافة بند</button>
+                <div class="text-sm text-slate-700">المجموع الشهري: <span id="exp-total" class="font-bold">0</span></div>
+              </div>
+            </div>
+        </div>
+        <div class="col-span-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
+          <div class="text-sm font-bold text-slate-700 mb-2 text-right">الرخص والتصاريح</div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div class="bg-white/70 rounded-xl border border-slate-200 p-3 flex flex-col gap-2">
+              <div class="text-xs font-semibold text-slate-600 text-right mb-1">رخصة البلدية</div>
+              <div>
+                <label class="text-xs text-slate-500">رقم الرخصة</label>
+                <input id="h-municipality-license" type="text" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm">
+              </div>
+              <div>
+                <label class="text-xs text-slate-500">تاريخ الانتهاء</label>
+                <input id="h-expiry" type="date" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" onchange="updateMunicipalityStatusFromDate()">
+              </div>
+              <div class="flex items-center justify-between mt-1">
+                <span class="text-xs text-slate-500">الحالة:</span>
+                <div id="h-muni-status" class="inline-block text-[12px] px-2 py-1 rounded bg-slate-100 text-slate-600 border border-slate-200">غير محدد</div>
+              </div>
+            </div>
+            <div class="bg-white/70 rounded-xl border border-slate-200 p-3 flex flex-col gap-2">
+              <div class="text-xs font-semibold text-slate-600 text-right mb-1">تصريح الدفاع المدني</div>
+              <div>
+                <label class="text-xs text-slate-500">رقم التصريح</label>
+                <input id="h-cd-license" type="text" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm">
+              </div>
+              <div>
+                <label class="text-xs text-slate-500">تاريخ الانتهاء</label>
+                <input id="h-cd-expiry" type="date" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" onchange="updateCivilDefenseStatusFromDate()">
+              </div>
+              <div class="flex items-center justify-between mt-1">
+                <span class="text-xs text-slate-500">الحالة:</span>
+                <div id="h-cd-status" class="inline-block text-[12px] px-2 py-1 rounded bg-slate-100 text-slate-600 border border-slate-200">غير محدد</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-span-2">
+          <label class="text-sm text-slate-600">الموقع</label>
+          <input id="h-location" type="text" class="w-full px-3 py-2 rounded-lg border border-slate-300">
+        </div>
+        <div class="col-span-2">
+          <label class="text-sm text-slate-600">الصور</label>
+          <input id="h-files" type="file" class="w-full px-3 py-2 rounded-lg border border-slate-300" accept="image/*" multiple onchange="previewHousingImages()">
+          <div id="h-images" class="mt-3 grid grid-cols-4 gap-2"></div>
+          <div id="h-img-err" class="mt-2 text-sm text-red-600 hidden"></div>
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-2 mt-4">
+        <button class="px-4 py-2 rounded-lg border border-slate-200" onclick="closeHousingModal()">إلغاء</button>
+        <button class="px-4 py-2 rounded-lg bg-indigo-600 text-white" onclick="saveHousing()">حفظ</button>
+      </div>
+    </div>
+  </div>
+  <div id="housing-assign" class="fixed inset-0 hidden items-center justify-center bg-black/50 z-50">
+    <div class="bg-white w-full max-w-3xl rounded-2xl p-5 shadow-xl">
+      <div class="flex items-center justify-between mb-3">
+        <div class="text-lg font-bold">توزيع الموظفين</div>
+        <button class="px-3 py-1 rounded-lg border border-slate-200" onclick="closeAssignHousing()">إغلاق</button>
+      </div>
+      <div class="mb-3">
+        <input id="assign-search" type="text" class="w-full px-3 py-2 rounded-lg border border-slate-300" placeholder="ابحث بالاسم أو الرقم">
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <div class="text-sm text-slate-600 mb-2">الموظفون</div>
+          <div id="assign-list" class="max-h-80 overflow-auto border border-slate-200 rounded-xl p-2"></div>
+        </div>
+        <div>
+          <div class="text-sm text-slate-600 mb-2">المقيمون المحددون</div>
+          <div id="assign-selected" class="max-h-80 overflow-auto border border-slate-200 rounded-xl p-2 flex flex-wrap gap-2"></div>
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-2 mt-4">
+        <button class="px-4 py-2 rounded-lg border border-slate-200" onclick="closeAssignHousing()">إلغاء</button>
+        <button class="px-4 py-2 rounded-lg bg-indigo-600 text-white" onclick="saveAssign()">حفظ</button>
+      </div>
+    </div>
+  </div>
+  <div id="housing-details" class="fixed inset-0 hidden items-center justify-center bg-black/50 z-50">
+    <div class="bg-white w-full max-w-2xl rounded-2xl p-5 shadow-xl">
+      <div class="flex items-center justify-between mb-3">
+        <div class="text-lg font-bold">تفاصيل السكن</div>
+        <button class="px-3 py-1 rounded-lg border border-slate-200" onclick="closeHousingDetails()">إغلاق</button>
+      </div>
+      <div id="h-details-body" class="space-y-3"></div>
+    </div>
+  </div>
+  
+
+  <script src="js/api-client.js?v=202602071015"></script>
+  <script src="app.js?v=202602071015"></script>
+  <script>
+    let currentQuickFilter = null;
+
+    window.applyQuickFilter = function(type) {
+        if (type === 'reset') {
+            currentQuickFilter = null;
+            document.getElementById('search-housings').value = '';
+            document.getElementById('filter-city').value = '';
+            document.getElementById('filter-status').value = '';
+            document.getElementById('filter-cost-center').value = '';
+            document.getElementById('filter-supervisor').value = '';
+        } else {
+            currentQuickFilter = type;
+        }
+        renderGrid();
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Init App
+      if(window.App && App.init) App.init('housings');
+      
+      // Populate Supervisors
+      if(typeof populateSupervisors === 'function') populateSupervisors();
+
+      // Initial Render
+      renderGrid();
+
+      // Try to sync from API on load
+      if (typeof syncHousingsFromAPI === 'function') {
+        syncHousingsFromAPI();
+      } else {
+        setTimeout(() => { if (typeof syncHousingsFromAPI === 'function') syncHousingsFromAPI(); }, 500);
+      }
+
+      // Listeners
+      document.getElementById('search-housings')?.addEventListener('input', renderGrid);
+      document.getElementById('filter-city')?.addEventListener('change', renderGrid);
+      document.getElementById('filter-status')?.addEventListener('change', renderGrid);
+      document.getElementById('filter-cost-center')?.addEventListener('change', renderGrid);
+      document.getElementById('filter-supervisor')?.addEventListener('change', renderGrid);
+
+      // Storage Sync
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'admin_housings_data' || e.key === 'housings_data' || e.key === 'db:housings') renderGrid();
+        if (e.key === 'db:employees' || e.key === 'employees_data') populateSupervisors();
+      });
+    });
+
+    async function syncHousingsFromAPI() {
+      if (!(window.APIClient && APIClient.fetchData)) return;
+      try {
+        const rows = await APIClient.fetchData('housings');
+        if (Array.isArray(rows) && rows.length) {
+          if (window.App && App.store && App.store.set) {
+            App.store.set('housings', rows);
+          }
+          renderGrid();
+        }
+      } catch (e) {
+        console.warn('Sync from API failed', e);
+      }
+    }
+
+    function renderGrid() {
+      const container = document.getElementById('housings-grid');
+      const search = document.getElementById('search-housings')?.value.toLowerCase();
+      const cityFilter = document.getElementById('filter-city')?.value;
+      const statusFilter = document.getElementById('filter-status')?.value;
+      const ccFilter = document.getElementById('filter-cost-center')?.value;
+      const supervisorFilter = document.getElementById('filter-supervisor')?.value;
+      
+      if (!container) return;
+
+      // Get Data
+      let data = [];
+      if(window.App && App.store) {
+        data = App.store.list('housings') || [];
+      }
+
+      // Pre-process Data (Mock Logic + تطبيع أسماء الحقول مع MySQL)
+      data = data.map(item => {
+        const capacity = Number(item.capacity) || 0;
+        
+        // تطبيع الحقول القادمة من MySQL
+        if (!item.cost_center && Array.isArray(item.cost_centers) && item.cost_centers.length) {
+          item.cost_center = item.cost_centers[0];
+        }
+        if (!item.municipality_license && item.municipality_license_number) {
+          item.municipality_license = item.municipality_license_number;
+        }
+        if (!item.license_expiry && item.municipality_expiry_date) {
+          item.license_expiry = item.municipality_expiry_date;
+        }
+        if (!item.civil_defense_license && item.civil_defense_license_number) {
+          item.civil_defense_license = item.civil_defense_license_number;
+        }
+        if (!item.civil_defense_expiry && item.civil_defense_expiry_date) {
+          item.civil_defense_expiry = item.civil_defense_expiry_date;
+        }
+        if (item.monthly_expenses == null && item.monthly_expense_total != null) {
+          item.monthly_expenses = Number(item.monthly_expense_total);
+        }
+
+        // Mock Fields if missing
+        item._cc = item.cost_center || `CC-10${item.id % 5}`;
+        item._supervisor = item.supervisor || '-';
+        if (Array.isArray(item.expenses) && item.expenses.length) {
+          item._monthly_expenses = item.expenses.reduce((acc, it) => acc + (Number(it.amount)||0), 0);
+        } else if (item.monthly_expenses != null) {
+          item._monthly_expenses = Number(item.monthly_expenses) || 0;
+        } else if (item.monthly_expense_total != null) {
+          item._monthly_expenses = Number(item.monthly_expense_total) || 0;
+        } else {
+          item._monthly_expenses = capacity * 500;
+        }
+        item._rooms = item.rooms_count || Math.ceil(capacity / 2);
+        
+        if (item.license_expiry) {
+            const diff = new Date(item.license_expiry) - new Date();
+            item._expiry_days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+        } else if (item.municipality_expiry_days != null) {
+            item._expiry_days = item.municipality_expiry_days;
+        } else {
+            item._expiry_days = (item.id * 17) % 150; // Mock days until expiry
+        }
+        
+        if (item.civil_defense_expiry) {
+            const diffCd = new Date(item.civil_defense_expiry) - new Date();
+            item._cd_expiry_days = Math.ceil(diffCd / (1000 * 60 * 60 * 24));
+        } else if (item.civil_defense_expiry_days != null) {
+            item._cd_expiry_days = item.civil_defense_expiry_days;
+        } else {
+            item._cd_expiry_days = null;
+        }
+        
+        return item;
+      });
+
+      // Filter
+      let filtered = data.filter(item => {
+        const matchSearch = !search || (item.name && item.name.toLowerCase().includes(search)) || (item.location && item.location.toLowerCase().includes(search));
+        const matchCity = !cityFilter || (item.city && item.city === cityFilter);
+        const matchStatus = !statusFilter || (item.status && item.status === statusFilter);
+        const matchCC = !ccFilter || item._cc === ccFilter;
+        const matchSup = !supervisorFilter || item._supervisor === supervisorFilter;
+        return matchSearch && matchCity && matchStatus && matchCC && matchSup;
+      });
+
+      // Quick Filters Logic
+      if (currentQuickFilter === 'expiry') {
+          // Expiry < 30 days
+          filtered = filtered.filter(item => item._expiry_days < 30);
+      } else if (currentQuickFilter === 'expenses') {
+          // Sort by expenses DESC
+          filtered.sort((a, b) => b._monthly_expenses - a._monthly_expenses);
+      }
+
+      // Update Stats
+      updateStats(filtered);
+
+      container.innerHTML = '';
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full text-center py-16">
+            <div class="bg-slate-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+              <svg class="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+            </div>
+            <h3 class="text-xl font-medium text-slate-600">لا توجد سكنات مطابقة</h3>
+            <p class="text-slate-400 mt-2">جرب تغيير فلاتر البحث</p>
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'glass-panel housing-card rounded-2xl overflow-hidden bg-white';
+        
+        let statusClass = 'bg-emerald-100 text-emerald-700';
+        let statusText = 'متاح';
+        if (item.status === 'occupied') { statusClass = 'bg-red-100 text-red-700'; statusText = 'ممتلئ'; }
+        else if (item.status === 'maintenance') { statusClass = 'bg-amber-100 text-amber-700'; statusText = 'صيانة'; }
+        else if (item.status === 'closed') { statusClass = 'bg-slate-200 text-slate-600'; statusText = 'مغلق'; }
+
+        const occCount = (item.occupants_count != null)
+          ? Number(item.occupants_count || 0)
+          : (Array.isArray(item.occupants)
+              ? item.occupants.length
+              : (Array.isArray(item.assigned_employees)
+                  ? item.assigned_employees.length
+                  : Number(item.current_occupants || 0)));
+        const capacity = Number(item.capacity) || 0;
+        const occRate = capacity > 0 ? Math.round((occCount / capacity) * 100) : 0;
+        
+        const expMonth = item._monthly_expenses.toLocaleString();
+        let expYearNum = 0;
+        if (Array.isArray(item.expenses) && item.expenses.length) {
+          let rentSum = 0, nonRentSum = 0;
+          item.expenses.forEach(function(ex){
+            const amt = Number(ex.amount)||0;
+            if ((ex.type||'').toLowerCase() === 'rent') rentSum += amt;
+            else nonRentSum += amt;
+          });
+          expYearNum = rentSum * 12 + nonRentSum;
+        } else {
+          expYearNum = item._monthly_expenses * 12;
+        }
+        const expYear = expYearNum.toLocaleString();
+        const rooms = item._rooms;
+        
+        // Expiry Logic
+        let expiryBadge = '';
+        if (item._expiry_days < 30) {
+            expiryBadge = `<span class="text-red-700 bg-red-100 px-2 py-0.5 rounded font-bold">باقي ${item._expiry_days} يوم</span>`;
+        } else {
+            expiryBadge = `<span class="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded font-bold">باقي ${item._expiry_days} يوم</span>`;
+        }
+        
+        let cdBadge = '';
+        if (item._cd_expiry_days != null) {
+            if (item._cd_expiry_days < 30) {
+                cdBadge = `<span class="text-red-700 bg-red-100 px-2 py-0.5 rounded font-bold">باقي ${item._cd_expiry_days} يوم</span>`;
+            } else {
+                cdBadge = `<span class="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded font-bold">باقي ${item._cd_expiry_days} يوم</span>`;
+            }
+        } else {
+            const st = item.civil_defense_status || 'valid';
+            if (st === 'expired') {
+                cdBadge = '<span class="text-red-700 bg-red-100 px-2 py-0.5 rounded font-bold">منتهي</span>';
+            } else if (st === 'pending') {
+                cdBadge = '<span class="text-amber-700 bg-amber-100 px-2 py-0.5 rounded font-bold">قيد التجديد</span>';
+            } else {
+                cdBadge = '<span class="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded font-bold">ساري</span>';
+            }
+        }
+
+        
+
+        card.innerHTML = `
+          <!-- A) Header -->
+          <div class="p-4 border-b border-slate-100 flex justify-between items-start bg-slate-50/50">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                 <h3 class="font-bold text-slate-800 text-lg">${item.name || 'سكن بدون اسم'}</h3>
+              </div>
+              <div class="flex items-center gap-2 text-xs text-slate-500 mb-2">
+                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 text-white shadow-sm">
+                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c1.657 0 3-1.343 3-3S13.657 5 12 5 9 6.343 9 8s1.343 3 3 3z"/>
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.5 8a7.5 7.5 0 11-15 0C4.5 4.41 8.47 2 12 2s7.5 2.41 7.5 6z"/>
+                   </svg>
+                   <span>${item.city || 'المدينة غير محددة'}</span>
+                 </span>
+                 <span>•</span>
+                 <span>${
+                   item.location
+                     ? (/^https?:\/\//.test(item.location)
+                         ? '<a href="'+item.location+'" target="_blank" class="text-indigo-600 underline">الخريطة</a>'
+                         : item.location)
+                     : '-'
+                 }</span>
+              </div>
+              <div class="flex gap-2">
+                 <span class="text-[10px] px-2 py-0.5 rounded-full ${statusClass} font-bold border border-current/10">${statusText}</span>
+                 <span class="text-[10px] px-2 py-0.5 rounded-full text-white bg-gradient-to-br from-sky-500 to-indigo-600 shadow-sm inline-flex items-center gap-1 font-bold">
+                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" ry="2" stroke-width="2"></rect><path d="M3 10h18" stroke-width="2"></path></svg>
+                   <span>${item._cc}</span>
+                 </span>
+                 <span class="text-[10px] px-2 py-0.5 rounded-full text-white bg-gradient-to-br from-emerald-500 to-teal-500 shadow-sm inline-flex items-center gap-1 font-bold">
+                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A7 7 0 1118 10v1M12 14a7 7 0 00-6.879 3.804"/></svg>
+                   <span>${item._supervisor}</span>
+                 </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- B) Indicators -->
+          <div class="p-4 space-y-4">
+             <!-- Occupancy Bar -->
+             <div>
+               <div class="flex justify-between text-xs mb-1">
+                 <span class="text-slate-500">الإشغال (${occRate}%)</span>
+                 <span class="font-medium text-slate-700">${occCount} / ${capacity}</span>
+               </div>
+               <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                 <div class="bg-indigo-500 h-full rounded-full transition-all duration-500" style="width: ${occRate}%"></div>
+               </div>
+             </div>
+             
+             <!-- Stats Row -->
+             <div class="grid grid-cols-3 gap-2 text-center">
+               <div class="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                 <div class="text-[10px] text-slate-400 mb-1">الغرف</div>
+                 <div class="font-bold text-slate-700">${rooms}</div>
+               </div>
+               <div class="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                 <div class="text-[10px] text-slate-400 mb-1">الأسرة</div>
+                 <div class="font-bold text-slate-700">${capacity}</div>
+               </div>
+               <div class="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                 <div class="text-[10px] text-slate-400 mb-1">المقيمين</div>
+                 <div class="font-bold text-slate-700">${occCount}</div>
+               </div>
+             </div>
+
+             <!-- Expenses -->
+             <div class="flex items-center justify-between bg-amber-50 p-3 rounded-lg border border-amber-100">
+               <div class="flex items-center gap-2">
+                 <div class="p-1.5 bg-amber-100 rounded text-amber-600">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                 </div>
+                 <div class="text-xs text-amber-900 font-bold">المصاريف</div>
+               </div>
+               <div class="text-left">
+                 <div class="text-xs font-bold text-amber-700">${expMonth} <span class="text-[9px] font-normal opacity-70">/شهر</span></div>
+                 <div class="text-[10px] text-amber-600/80">${expYear} <span class="opacity-70">/سنة</span></div>
+               </div>
+             </div>
+          </div>
+
+          <!-- C) Expiry Alerts -->
+          <div class="px-4 pb-3 space-y-2">
+             <div class="flex justify-between items-center text-[10px] p-1.5 rounded bg-slate-50">
+               <span class="text-slate-500 font-medium">البلدية</span>
+               ${expiryBadge}
+             </div>
+             <div class="flex justify-between items-center text-[10px] p-1.5 rounded bg-slate-50">
+               <span class="text-slate-500 font-medium">الدفاع المدني</span>
+               ${cdBadge}
+             </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="p-3 border-t border-slate-100 flex items-center gap-2">
+            <button class="flex-1 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold hover:bg-indigo-100 transition-colors btn-view">التفاصيل</button>
+            <button class="flex-1 py-2 border border-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-50 transition-colors btn-assign">توزيع</button>
+            <div class="relative">
+                <button class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors btn-more">⋮</button>
+                <div class="absolute left-0 bottom-full mb-2 w-40 bg-white rounded-lg shadow-xl border border-slate-100 hidden housing-card-menu">
+                   <button class="w-full text-right px-3 py-2 text-xs hover:bg-slate-50 text-slate-600 btn-edit">تعديل</button>
+                   <button class="w-full text-right px-3 py-2 text-xs hover:bg-slate-50 text-slate-600 btn-print">طباعة الملف</button>
+                   <div class="border-t border-slate-100"></div>
+                   <button class="w-full text-right px-3 py-2 text-xs hover:bg-red-50 text-red-600 btn-del">حذف</button>
+                   <div class="px-3 py-2 space-y-2 hidden del-confirm">
+                     <div class="text-[11px] text-slate-600">تأكيد الحذف؟</div>
+                     <div class="flex items-center gap-2">
+                       <button class="px-2 py-1 text-[11px] rounded bg-red-600 text-white btn-del-yes">نعم</button>
+                       <button class="px-2 py-1 text-[11px] rounded border border-slate-200 text-slate-700 btn-del-no">إلغاء</button>
+                     </div>
+                   </div>
+                </div>
+            </div>
+          </div>
+        `;
+        const v = card.querySelector('.btn-view');
+        const e = card.querySelector('.btn-edit');
+        const d = card.querySelector('.btn-del');
+        const pBtn = card.querySelector('.btn-print');
+        const a = card.querySelector('.btn-assign');
+        const more = card.querySelector('.btn-more');
+        const menu = card.querySelector('.housing-card-menu');
+        const delConfirm = card.querySelector('.del-confirm');
+        const delYes = card.querySelector('.btn-del-yes');
+        const delNo = card.querySelector('.btn-del-no');
+        if (v) v.onclick = function(){ openHousingDetails(item.id); };
+        if (e) e.onclick = function(){ openEditHousing(item.id); };
+        if (pBtn) pBtn.onclick = function(ev){ ev.stopPropagation(); if (menu) menu.classList.add('hidden'); printHousing(item); };
+        if (d && delConfirm) d.onclick = function(ev){
+          ev.stopPropagation();
+          // إغلاق أي قوائم تأكيد مفتوحة أخرى
+          document.querySelectorAll('.del-confirm').forEach(function(x){ x.classList.add('hidden'); });
+          delConfirm.classList.toggle('hidden');
+        };
+        if (delYes) delYes.onclick = function(ev){
+          ev.stopPropagation();
+          delConfirm.classList.add('hidden');
+          if (menu) menu.classList.add('hidden');
+          deleteHousing(item.id);
+        };
+        if (delNo) delNo.onclick = function(ev){
+          ev.stopPropagation();
+          delConfirm.classList.add('hidden');
+        };
+        if (a) a.onclick = function(){ openAssignHousing(item.id); };
+        if (more && menu) {
+          more.onclick = function(ev){
+            ev.stopPropagation();
+            const isOpen = !menu.classList.contains('hidden');
+            document.querySelectorAll('.housing-card-menu').forEach(function(m){ m.classList.add('hidden'); });
+            if (!isOpen) menu.classList.remove('hidden');
+          };
+          menu.onclick = function(ev){ ev.stopPropagation(); };
+        }
+        container.appendChild(card);
+      });
+    }
+
+    document.addEventListener('click', function(){
+      const menus = document.querySelectorAll('.housing-card-menu');
+      menus.forEach(function(m){ m.classList.add('hidden'); });
+      const dels = document.querySelectorAll('.del-confirm');
+      dels.forEach(function(d){ d.classList.add('hidden'); });
+    });
+
+    function updateStats(data) {
+      const total = data.length;
+      const capacity = data.reduce((acc, item) => acc + (Number(item.capacity)||0), 0);
+      const occupants = data.reduce((acc, item) => {
+        if (item.occupants_count != null) return acc + Number(item.occupants_count || 0);
+        if (Array.isArray(item.occupants)) return acc + item.occupants.length;
+        if (Array.isArray(item.assigned_employees)) return acc + item.assigned_employees.length;
+        return acc + Number(item.current_occupants || 0);
+      }, 0);
+      const occRate = capacity > 0 ? Math.round((occupants / capacity) * 100) : 0;
+      
+      // Calculate expenses based on mocked/real data
+      const expenses = data.reduce((acc, item) => acc + (item._monthly_expenses || (Number(item.capacity||0) * 500)), 0);
+      
+      // Calculate expiring alerts
+      const alerts = data.filter(item => (item._expiry_days !== undefined && item._expiry_days < 30)).length;
+
+      if(document.getElementById('stat-total')) document.getElementById('stat-total').textContent = total;
+      if(document.getElementById('stat-capacity-total')) document.getElementById('stat-capacity-total').textContent = capacity;
+      if(document.getElementById('stat-occupants')) document.getElementById('stat-occupants').textContent = occupants;
+      if(document.getElementById('stat-occupancy-rate')) document.getElementById('stat-occupancy-rate').textContent = occRate + '%';
+      if(document.getElementById('stat-expenses')) document.getElementById('stat-expenses').textContent = expenses.toLocaleString();
+      if(document.getElementById('stat-alerts')) document.getElementById('stat-alerts').textContent = alerts;
+    }
+  </script>
+  <script>
+    var __hCtx = null;
+    var __hImages = [];
+    var __hExpenses = [];
+
+    // Toast Notification Helper
+    function showToast(msg, type='info') {
+      const container = document.querySelector('.toast-container') || (function(){
+        const c = document.createElement('div');
+        c.className = 'toast-container';
+        document.body.appendChild(c);
+        return c;
+      })();
+      
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `<span>${msg}</span>`;
+      container.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease-out forwards';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // Confirm Dialog Helper
+    function confirmDialog(opts) {
+        return new Promise((resolve) => {
+            const result = confirm(opts.message || 'هل أنت متأكد؟');
+            resolve(result);
+        });
+    }
+
+    function copyText(txt){
+        if (!txt) { showToast('لا يوجد نص لنسخه','error'); return; }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(txt).then(function(){
+                showToast('تم نسخ الرابط','success');
+            }).catch(function(){
+                try {
+                    var ta = document.createElement('textarea');
+                    ta.value = txt;
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    showToast('تم نسخ الرابط','success');
+                } catch(_) {
+                    showToast('تعذر النسخ','error');
+                }
+            });
+        } else {
+            try {
+                var ta = document.createElement('textarea');
+                ta.value = txt;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                showToast('تم نسخ الرابط','success');
+            } catch(_) {
+                showToast('تعذر النسخ','error');
+            }
+        }
+    }
+
+    function toggleCustomInput(selectId, inputId) {
+        const select = document.getElementById(selectId);
+        const input = document.getElementById(inputId);
+        if (select.value === 'custom') {
+            input.classList.remove('hidden');
+            input.focus();
+        } else {
+            input.classList.add('hidden');
+            input.value = '';
+        }
+    }
+
+    function computeCdStatus(dateStr){
+        if (!dateStr) return 'valid';
+        var diff = new Date(dateStr) - new Date();
+        var days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+        if (days < 0) return 'expired';
+        if (days <= 30) return 'pending';
+        return 'valid';
+    }
+    function computeLicenseStatus(dateStr){
+        if (!dateStr) return 'valid';
+        var diff = new Date(dateStr) - new Date();
+        var days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+        if (days < 0) return 'expired';
+        if (days <= 30) return 'pending';
+        return 'valid';
+    }
+    function updateCivilDefenseStatusFromDate() {
+        var expInput = document.getElementById('h-cd-expiry');
+        var badge = document.getElementById('h-cd-status');
+        if (!expInput || !badge) return;
+        var status = computeLicenseStatus(expInput.value);
+        var text = status === 'expired' ? 'منتهي' : (status === 'pending' ? 'قيد التجديد' : 'ساري');
+        badge.textContent = text;
+        badge.className = 'inline-block text-[12px] px-2 py-1 rounded border ' + (status==='expired'
+          ? 'bg-red-100 text-red-700 border-red-200'
+          : status==='pending'
+            ? 'bg-amber-100 text-amber-700 border-amber-200'
+            : 'bg-emerald-100 text-emerald-700 border-emerald-200');
+    }
+    function updateMunicipalityStatusFromDate() {
+        var expInput = document.getElementById('h-expiry');
+        var badge = document.getElementById('h-muni-status');
+        if (!expInput || !badge) return;
+        var status = computeLicenseStatus(expInput.value);
+        var text = status === 'expired' ? 'منتهي' : (status === 'pending' ? 'قيد التجديد' : 'ساري');
+        badge.textContent = text;
+        badge.className = 'inline-block text-[12px] px-2 py-1 rounded border ' + (status==='expired'
+          ? 'bg-red-100 text-red-700 border-red-200'
+          : status==='pending'
+            ? 'bg-amber-100 text-amber-700 border-amber-200'
+            : 'bg-emerald-100 text-emerald-700 border-emerald-200');
+    }
+
+    function renderExpenses(){
+      var wrap = document.getElementById('exp-list');
+      var totalEl = document.getElementById('exp-total');
+      if (!wrap) return;
+      wrap.innerHTML = '';
+      var total = 0;
+      __hExpenses.forEach(function(row, idx){
+        var amount = Number(row.amount||0);
+        total += amount;
+        var div = document.createElement('div');
+        div.className = 'flex items-center gap-2';
+        div.innerHTML = '' +
+          '<select class="px-2 py-1 rounded border border-slate-300 text-sm">' +
+            '<option value="rent">إيجار</option>' +
+            '<option value="maintenance">صيانة دورية</option>' +
+            '<option value="repair">إصلاحات</option>' +
+            '<option value="other">أخرى</option>' +
+          '</select>' +
+          '<input type="number" class="w-32 px-2 py-1 rounded border border-slate-300 text-sm" placeholder="0.00">' +
+          '<input type="text" class="flex-1 px-2 py-1 rounded border border-slate-300 text-sm" placeholder="ملاحظة (اختياري)">' +
+          '<button type="button" class="px-2 py-1 rounded bg-red-600 text-white text-xs">حذف</button>';
+        var sel = div.querySelector('select');
+        var amt = div.querySelector('input[type=number]');
+        var note = div.querySelector('input[type=text]');
+        var del = div.querySelector('button');
+        sel.value = row.type || 'other';
+        amt.value = row.amount || '';
+        note.value = row.note || '';
+        sel.onchange = function(){ __hExpenses[idx].type = sel.value; };
+        amt.oninput = function(){ __hExpenses[idx].amount = Number(amt.value||0); updateExpenseTotalUI(); };
+        note.oninput = function(){ __hExpenses[idx].note = note.value; };
+        del.onclick = function(){ __hExpenses.splice(idx,1); renderExpenses(); };
+        wrap.appendChild(div);
+      });
+      if (totalEl) totalEl.textContent = total.toLocaleString();
+    }
+    function addExpenseRow(){
+      __hExpenses.push({ type: 'other', amount: 0, note: '' });
+      renderExpenses();
+    }
+    function updateExpenseTotalUI(){
+      var totalEl = document.getElementById('exp-total');
+      var total = __hExpenses.reduce(function(acc, it){ return acc + (Number(it.amount)||0); }, 0);
+      if (totalEl) totalEl.textContent = total.toLocaleString();
+    }
+
+    function populateSupervisors() {
+        // Fetch Employees
+        let employees = [];
+        if (window.App && App.store) {
+            employees = App.store.list('employees') || [];
+        }
+        
+        // 1. Populate Modal Select
+        const modalSelect = document.getElementById('h-supervisor');
+        if (modalSelect) {
+            const currentVal = modalSelect.getAttribute('data-val') || modalSelect.value;
+            let html = '<option value="">اختر موظف...</option>';
+            employees.forEach(emp => {
+                const n = emp.name || ('Employee ' + emp.id);
+                html += `<option value="${n}">${n}</option>`;
+            });
+            modalSelect.innerHTML = html;
+            if (currentVal) modalSelect.value = currentVal;
+        }
+
+        // 2. Populate Filter Select
+        const filterSelect = document.getElementById('filter-supervisor');
+        if (filterSelect) {
+             const currentFilter = filterSelect.value;
+             let html = '<option value="">المشرف</option>';
+             employees.forEach(emp => {
+                const n = emp.name || ('Employee ' + emp.id);
+                html += `<option value="${n}">${n}</option>`;
+             });
+             filterSelect.innerHTML = html;
+             if (currentFilter) filterSelect.value = currentFilter;
+        }
+    }
+
+    function openAddHousing(){
+      __hCtx = null;
+      __hImages = [];
+      
+      document.getElementById('h-name').value = '';
+      
+      const citySel = document.getElementById('h-city');
+      citySel.value = '';
+      toggleCustomInput('h-city', 'h-city-custom');
+      
+      document.getElementById('h-status').value = 'available';
+      document.getElementById('h-capacity').value = '';
+      document.getElementById('h-rooms').value = '';
+      
+      populateSupervisors();
+      document.getElementById('h-supervisor').value = '';
+      
+      const ccSel = document.getElementById('h-cost-center');
+      ccSel.value = '';
+      toggleCustomInput('h-cost-center', 'h-cc-custom');
+      
+      __hExpenses = [];
+      renderExpenses();
+      
+      document.getElementById('h-municipality-license').value = '';
+      document.getElementById('h-expiry').value = '';
+      document.getElementById('h-cd-license').value = '';
+      document.getElementById('h-cd-expiry').value = '';
+      updateCivilDefenseStatusFromDate();
+      updateMunicipalityStatusFromDate();
+      
+      document.getElementById('h-location').value = '';
+      renderHousingImages();
+      
+      var m = document.getElementById('housing-modal');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+
+    function openEditHousing(id){
+      var rows = (App && App.store && App.store.list) ? App.store.list('housings') : [];
+      var item = rows.find(function(r){ return r.id === id; });
+      if (!item) return;
+      __hCtx = id;
+      __hImages = Array.isArray(item.images) ? item.images.slice() : [];
+      
+      document.getElementById('h-name').value = item.name || '';
+      
+      // City
+      const citySel = document.getElementById('h-city');
+      const cityOpts = Array.from(citySel.options).map(o => o.value);
+      if (item.city && !cityOpts.includes(item.city)) {
+          citySel.value = 'custom';
+          document.getElementById('h-city-custom').value = item.city;
+      } else {
+          citySel.value = item.city || '';
+      }
+      toggleCustomInput('h-city', 'h-city-custom');
+      
+      document.getElementById('h-status').value = item.status || 'available';
+      document.getElementById('h-capacity').value = item.capacity || '';
+      document.getElementById('h-rooms').value = item.rooms_count || '';
+      var occInit = (item.occupants_count != null) ? Number(item.occupants_count||0)
+                  : (Array.isArray(item.occupants) ? item.occupants.length
+                    : (Array.isArray(item.assigned_employees) ? item.assigned_employees.length
+                      : Number(item.current_occupants || 0)));
+      var occEl = document.getElementById('h-occupants');
+      if (occEl) occEl.value = isFinite(occInit) ? occInit : '';
+      
+      populateSupervisors();
+      const supSel = document.getElementById('h-supervisor');
+      supSel.value = item.supervisor || '';
+      supSel.setAttribute('data-val', item.supervisor || '');
+      
+      // Cost Center
+      const ccSel = document.getElementById('h-cost-center');
+      const ccOpts = Array.from(ccSel.options).map(o => o.value);
+      if (item.cost_center && !ccOpts.includes(item.cost_center)) {
+          ccSel.value = 'custom';
+          document.getElementById('h-cc-custom').value = item.cost_center;
+      } else {
+          ccSel.value = item.cost_center || '';
+      }
+      toggleCustomInput('h-cost-center', 'h-cc-custom');
+      
+      if (Array.isArray(item.expenses) && item.expenses.length) {
+        __hExpenses = item.expenses.map(function(it){ return { type: it.type||'other', amount: Number(it.amount||0), note: it.note||'' }; });
+      } else {
+        var baseAmt = item.monthly_expenses != null ? Number(item.monthly_expenses||0) : Number(item.monthly_expense_total||0);
+        if (baseAmt > 0) {
+          __hExpenses = [{ type: item.expense_type || 'other', amount: baseAmt, note: '' }];
+        } else {
+          __hExpenses = [];
+        }
+      }
+      renderExpenses();
+      
+      document.getElementById('h-municipality-license').value = item.municipality_license || item.municipality_license_number || '';
+      document.getElementById('h-expiry').value = item.license_expiry || item.municipality_expiry_date || '';
+      document.getElementById('h-cd-license').value = item.civil_defense_license || item.civil_defense_license_number || '';
+      document.getElementById('h-cd-expiry').value = item.civil_defense_expiry || item.civil_defense_expiry_date || '';
+      updateCivilDefenseStatusFromDate();
+      updateMunicipalityStatusFromDate();
+      
+      document.getElementById('h-location').value = item.location || '';
+      renderHousingImages();
+      
+      var m = document.getElementById('housing-modal');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+
+    function closeHousingModal(){
+      var m = document.getElementById('housing-modal');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+
+    function diffDays(dateStr){
+      if (!dateStr) return null;
+      var d = new Date(dateStr);
+      if (isNaN(d.getTime())) return null;
+      var diff = d - new Date();
+      return Math.ceil(diff / (1000 * 60 * 60 * 24));
+    }
+
+    async function saveHousing(){
+      const name = document.getElementById('h-name').value.trim();
+      if (!name) { showToast('يرجى إدخال اسم السكن', 'error'); return; }
+      
+      let city = document.getElementById('h-city').value;
+      if (city === 'custom') city = document.getElementById('h-city-custom').value.trim();
+      if (!city) { showToast('يرجى تحديد المدينة', 'error'); return; }
+
+      let cc = document.getElementById('h-cost-center').value;
+      if (cc === 'custom') cc = document.getElementById('h-cc-custom').value.trim();
+      
+      var totalExpenses = __hExpenses.reduce(function(acc, it){ return acc + (Number(it.amount)||0); }, 0);
+      var muniDate = document.getElementById('h-expiry').value;
+      var cdDate = document.getElementById('h-cd-expiry').value;
+      var muniLicense = document.getElementById('h-municipality-license').value;
+      var cdLicense = document.getElementById('h-cd-license').value;
+      var data = {
+        name: name,
+        city: city,
+        status: document.getElementById('h-status').value,
+        capacity: Number(document.getElementById('h-capacity').value || 0),
+        rooms_count: Number(document.getElementById('h-rooms').value || 0),
+        occupants_count: Number(document.getElementById('h-occupants')?.value || 0),
+        supervisor: document.getElementById('h-supervisor').value,
+        cost_center: cc,
+        cost_centers: cc ? [cc] : [],
+        monthly_expenses: totalExpenses,
+        monthly_expense_total: totalExpenses,
+        expense_type: (__hExpenses.length === 1 ? (__hExpenses[0].type||'other') : 'multiple'),
+        expenses: __hExpenses.slice(),
+        municipality_license: muniLicense,
+        municipality_license_number: muniLicense,
+        license_expiry: muniDate,
+        municipality_expiry_date: muniDate,
+        municipality_expiry_days: diffDays(muniDate),
+        civil_defense_license: cdLicense,
+        civil_defense_license_number: cdLicense,
+        civil_defense_expiry: cdDate,
+        civil_defense_expiry_date: cdDate,
+        civil_defense_expiry_days: diffDays(cdDate),
+        civil_defense_status: computeCdStatus(cdDate),
+        location: document.getElementById('h-location').value.trim(),
+        images: __hImages.slice()
+      };
+      
+      let apiOk = false;
+      try {
+        if (window.APIClient && APIClient.housings) {
+          if (__hCtx) {
+            await APIClient.housings.update(__hCtx, data);
+          } else {
+            await APIClient.housings.create(data);
+          }
+          apiOk = true;
+        }
+      } catch (e) {
+        console.error('API save failed, will fallback to local storage', e);
+      }
+
+      if (apiOk) {
+        try {
+          if (typeof syncHousingsFromAPI === 'function') {
+            await syncHousingsFromAPI();
+          }
+          showToast(__hCtx ? 'تم تحديث السكن (☑️)' : 'تم إضافة سكن (☑️)', 'success (☑️) ');
+        } catch (e) {
+          showToast('تم الحفظ في الخادم، تحديث الواجهة لاحقًا', 'info');
+        }
+      } else {
+        if (__hCtx) {
+          App.store.update('housings', __hCtx, data);
+          showToast('تم تحديث السكن محليًا (☑️) ', 'success (☑️) ');
+        } else {
+          App.store.create('housings', data);
+          showToast('تم إضافة سكن محليًا (☑️) ', 'success (☑️) ');
+        }
+        renderGrid();
+      }
+      closeHousingModal();
+    }
+
+    function deleteHousing(id){
+      confirmDialog({message:'هل أنت متأكد من حذف هذا السكن؟'}).then(function(ok){
+        if(!ok) return;
+        (async function(){
+          var apiOk = false;
+          try {
+            if (window.APIClient && APIClient.housings && typeof APIClient.housings.delete === 'function') {
+              await APIClient.housings.delete(id);
+              apiOk = true;
+            }
+          } catch (e) {
+            console.error('API delete failed, will fallback to local storage', e);
+          }
+
+          if (apiOk) {
+            try {
+              if (typeof syncHousingsFromAPI === 'function') {
+                await syncHousingsFromAPI();
+              }
+              showToast('تم حذف السكن (☑️)', 'success (☑️) ');
+            } catch (e) {
+              showToast('تم الحذف في الخادم، تحديث الواجهة لاحقًا', 'info');
+            }
+          } else {
+            App.store.remove('housings', id);
+            showToast('تم حذف السكن محليًا', 'info');
+            renderGrid();
+          }
+        })();
+      });
+    }
+
+    function printHousing(item){
+      if (!item) return;
+      var cap = Number(item.capacity)||0;
+      var occ = (item.occupants_count != null)
+        ? Number(item.occupants_count||0)
+        : (Array.isArray(item.occupants) ? item.occupants.length
+          : (Array.isArray(item.assigned_employees) ? item.assigned_employees.length
+            : Number(item.current_occupants||0)));
+      if (isNaN(occ)) occ = 0;
+      var avail = Math.max(cap - occ, 0);
+      var imgs = Array.isArray(item.images) ? item.images : [];
+      var safe = function(v){ return (v==null?'':String(v)).replace(/</g,'&lt;'); };
+      var fields = [
+        {k:'الاسم', v: safe(item.name || 'بدون اسم')},
+        {k:'المدينة', v: safe(item.city || '-')},
+        {k:'المشرف', v: safe(item.supervisor || '-')},
+        {k:'Cost Center', v: safe(item._cc || item.cost_center || '-')},
+        {k:'السعة', v: String(cap)},
+        {k:'المقيمون', v: String(occ)},
+        {k:'المتاح', v: String(avail)},
+        {k:'الموقع', v: safe(item.location || 'غير محدد')}
+      ];
+      var rows = fields.map(function(f){
+        return '<div class="cell"><div class="label">'+f.k+'</div><div class="val">'+f.v+'</div></div>';
+      }).join('');
+      var imgsHtml = imgs.length ? ('<div class="section"><div class="title">المرفقات</div><div class="imgs">'+ imgs.map(function(s){ return '<img src="'+s+'">'; }).join('') +'</div></div>') : '';
+      var html = ''+
+        '<html dir="rtl"><head><meta charset="utf-8"><title>طباعة السكن</title>'+
+        '<style>'+
+        'body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:#0f172a;padding:16px}'+
+        'h2{margin:0 0 12px 0} .section{margin-bottom:16px} .title{font-weight:700;margin-bottom:8px}'+
+        '.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}'+
+        '.cell{border:1px solid #e2e8f0;border-radius:10px;padding:8px} .label{font-size:12px;color:#64748b} .val{font-weight:600}'+
+        '.imgs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px} img{width:100%;height:140px;object-fit:cover;border:1px solid #e2e8f0;border-radius:10px}'+
+        '@media print{.print-btn{display:none} body{padding:0}}'+
+        '</style></head><body>'+
+        '<h2>بيانات السكن</h2>'+
+        '<div class="section grid">'+ rows +'</div>'+
+        imgsHtml +
+        '<button class="print-btn" onclick="window.print()">طباعة</button>'+
+        '</body></html>';
+      var w = window.open('', '_blank');
+      if (!w) return;
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+    }
+
+    function removeOccupant(housingId, empId){
+      var pool = (App && App.store && App.store.list) ? (App.store.list('employees')||[]) : [];
+      var emp = pool.find(function(e){ return e.id===empId; }) || {};
+      var msg = emp.name ? ('هل تريد إزالة '+emp.name+'؟') : 'هل تريد إزالة هذا المقيم؟';
+      confirmDialog({message: msg}).then(function(ok){
+        if(!ok) return;
+        var rows = (App && App.store && App.store.list) ? App.store.list('housings') : [];
+        var item = rows.find(function(r){ return r.id === housingId; });
+        if (!item) return;
+        var arr = Array.isArray(item.occupants) ? item.occupants.slice()
+                : (Array.isArray(item.assigned_employees) ? item.assigned_employees.slice() : []);
+        var empIdStr = String(empId);
+        var next = arr.filter(function(x){ return String(x) !== empIdStr; });
+        (async function(){
+          var apiOk = false;
+          try {
+            if (window.APIClient && APIClient.housings && typeof APIClient.housings.update === 'function') {
+              await APIClient.housings.update(housingId, { assigned_employees: next, occupants_count: next.length });
+              apiOk = true;
+            }
+          } catch (e) {
+            console.error('API update failed, will fallback to local storage', e);
+          }
+
+          if (apiOk) {
+            try {
+              if (typeof syncHousingsFromAPI === 'function') {
+                await syncHousingsFromAPI();
+              }
+              showToast('تم إزالة المقيم (☑️)', 'success');
+            } catch (e) {
+              showToast('تم الحفظ في الخادم، تحديث الواجهة لاحقًا', 'info');
+            }
+          } else {
+            App.store.update('housings', housingId, { occupants: next, assigned_employees: next, occupants_count: next.length });
+            showToast('تم إزالة المقيم محليًا', 'info');
+            renderGrid();
+          }
+          openHousingDetails(housingId);
+        })();
+      });
+    }
+
+    function previewHousingImages(){
+      var filesEl = document.getElementById('h-files');
+      var error = document.getElementById('h-img-err');
+      if (!filesEl || !filesEl.files) return;
+      if (error) error.classList.add('hidden');
+      var maxSize = 5 * 1024 * 1024;
+      var valid = ['image/jpeg','image/jpg','image/png','image/gif','image/webp'];
+      var queue = [];
+      for (var i=0; i<filesEl.files.length; i++){
+        var f = filesEl.files[i];
+        if (valid.indexOf(f.type) === -1){ if(error){ error.textContent='صيغة غير مدعومة'; error.classList.remove('hidden'); } continue; }
+        if (f.size > maxSize){ if(error){ error.textContent='الحجم أكبر من 5MB'; error.classList.remove('hidden'); } continue; }
+        queue.push(new Promise(function(resolve){ var fr=new FileReader(); fr.onload=function(){ resolve(fr.result); }; fr.readAsDataURL(f); }));
+      }
+      Promise.all(queue).then(function(arr){
+        arr.forEach(function(d){ __hImages.push(d); });
+        renderHousingImages();
+        filesEl.value = '';
+      });
+    }
+
+    function renderHousingImages(){
+      var wrap = document.getElementById('h-images');
+      if (!wrap) return;
+      wrap.innerHTML = '';
+      __hImages.forEach(function(src, idx){
+        var box = document.createElement('div');
+        box.className = 'relative';
+        box.innerHTML = '<img src="'+src+'" class="w-full h-20 object-cover rounded-lg border border-slate-200"><button type="button" class="absolute -top-2 -left-2 w-7 h-7 rounded-full bg-red-600 text-white text-xs flex items-center justify-center">×</button>';
+        var btn = box.querySelector('button');
+        btn.onclick = function(e){ e.stopPropagation(); __hImages.splice(idx,1); renderHousingImages(); };
+        wrap.appendChild(box);
+      });
+    }
+
+    function openHousingDetails(id){
+      var item = (App && App.store && App.store.get) ? App.store.get('housings', id) : null;
+      if (!item) return;
+      var body = document.getElementById('h-details-body');
+      body.innerHTML = '';
+      
+      // Calculate Days
+      let expiryDays = 'غير محدد';
+      var licDate = item.license_expiry || item.municipality_expiry_date;
+      if (licDate) {
+          const diff = new Date(licDate) - new Date();
+          expiryDays = Math.ceil(diff / (1000 * 60 * 60 * 24)) + ' يوم';
+      } else if (item.municipality_expiry_days != null) {
+          expiryDays = item.municipality_expiry_days + ' يوم';
+      }
+      let cdExpiryText = 'غير محدد';
+      var cdDate = item.civil_defense_expiry || item.civil_defense_expiry_date;
+      if (cdDate) {
+          const diffCd = new Date(cdDate) - new Date();
+          cdExpiryText = Math.ceil(diffCd / (1000 * 60 * 60 * 24)) + ' يوم';
+      } else if (item.civil_defense_expiry_days != null) {
+          cdExpiryText = item.civil_defense_expiry_days + ' يوم';
+      }
+      let cdStatusText = 'غير محدد';
+      if (item.civil_defense_status === 'valid') cdStatusText = 'ساري';
+      else if (item.civil_defense_status === 'expired') cdStatusText = 'منتهي';
+      else if (item.civil_defense_status === 'pending') cdStatusText = 'قيد التجديد';
+
+      var h = document.createElement('div');
+      h.className = 'space-y-4';
+      
+      var imgs = Array.isArray(item.images) ? item.images : [];
+      var imgsHtml = imgs.length ? ('<div class="grid grid-cols-3 gap-2 mt-2">' + imgs.map(function(s){ return '<img src="'+s+'" class="w-full h-24 object-cover rounded-lg border border-slate-200">'; }).join('') + '</div>') : '';
+
+      var muniStatusTxt = 'غير محددة';
+      if (licDate) {
+        const d = new Date(licDate);
+        const days = Math.ceil((d - new Date())/(1000*60*60*24));
+        if (isFinite(days)) {
+          muniStatusTxt = days < 0 ? 'منتهية' : (days <= 30 ? 'قيد التجديد' : 'سارية');
+        }
+      }
+      var totalExp = (Array.isArray(item.expenses) && item.expenses.length)
+        ? item.expenses.reduce(function(a,b){ return a + (Number(b.amount)||0); }, 0)
+        : (item.monthly_expenses!=null ? item.monthly_expenses : (item.monthly_expense_total || 0));
+      var cap = Number(item.capacity)||0;
+      var rooms = Number(item.rooms_count)||0;
+      var occCount = (item.occupants_count != null)
+        ? Number(item.occupants_count||0)
+        : (Array.isArray(item.occupants) ? item.occupants.length
+          : (Array.isArray(item.assigned_employees) ? item.assigned_employees.length
+            : Number(item.current_occupants||0)));
+      if (isNaN(occCount)) occCount = 0;
+      var avail = Math.max(cap - occCount, 0);
+
+      function icoHome(){ return '<svg class="w-5 h-5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 1.293a1 1 0 00-1.414 0L2 8.586V18a2 2 0 002 2h4a1 1 0 001-1v-5h2v5a1 1 0 001 1h4a2 2 0 002-2V8.586l-7.293-7.293z"/></svg>'; }
+      function icoPin(){ return '<span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 shadow-sm"><svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c1.657 0 3-1.343 3-3S13.657 5 12 5 9 6.343 9 8s1.343 3 3 3z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.5 8a7.5 7.5 0 11-15 0C4.5 4.41 8.47 2 12 2s7.5 2.41 7.5 6z"/></svg></span>'; }
+      function icoUser(){ return '<span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 shadow-sm"><svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A7 7 0 1118 10v1M12 14a7 7 0 00-6.879 3.804"/></svg></span>'; }
+      function icoCC(){ return '<span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-br from-sky-500 to-indigo-600 shadow-sm"><svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" ry="2" stroke-width="2"></rect><path d="M3 10h18" stroke-width="2"></path></svg></span>'; }
+      function icoGroup(){ return '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M17 20v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4" stroke-width="2"/><path stroke-width="2" d="M23 20v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>'; }
+      function icoWarn(){ return '<svg class="w-4 h-4 text-amber-600" fill="currentColor" viewBox="0 0 20 20"><path d="M8.257 3.099c.765-1.36 2.72-1.36 3.485 0l6.516 11.59A2 2 0 0116.516 18H3.484a2 2 0 01-1.742-3.31l6.515-11.59zM11 14H9v2h2v-2zm0-8H9v6h2V6z"/></svg>'; }
+      function icoDoc(){ return '<svg class="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M7 3h8l4 4v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z"/></svg>'; }
+      function icoCheck(){ return '<svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>'; }
+      function icoClock(){ return '<svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-width="2"></circle><path stroke-width="2" d="M12 7v5l3 3"></path></svg>'; }
+      function icoAlert(){ return '<svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M12 9v4m0 4h.01"/><path stroke-width="2" d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>'; }
+      function icoBuilding(){ return '<svg class="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M3 21h18M5 21V5a2 2 0 012-2h6a2 2 0 012 2v16"/><path stroke-width="2" d="M9 9h2M9 13h2M15 13h2M15 9h2"/></svg>'; }
+      function icoShield(){ return '<svg class="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>'; }
+      function icoCalendar(){ return '<svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" stroke-width="2"></rect><path stroke-width="2" d="M16 2v4M8 2v4M3 10h18"/></svg>'; }
+      function icoRent(){ return '<svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M3 11l9-7 9 7v9a2 2 0 01-2 2h-4v-6H9v6H5a2 2 0 01-2-2z"/></svg>'; }
+      function icoMaint(){ return '<svg class="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M3 8l7.5 7.5M14 6l4 4M3 21l3-3"/></svg>'; }
+      function icoRepair(){ return '<svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M17 8l-6 6M11 6l7 7M3 21l3-3"/></svg>'; }
+      function icoOther(){ return '<svg class="w-4 h-4 text-slate-500" fill="currentColor" viewBox="0 0 20 20"><circle cx="4" cy="10" r="2"></circle><circle cx="10" cy="10" r="2"></circle><circle cx="16" cy="10" r="2"></circle></svg>'; }
+      function statusBadgeByText(t){ 
+        var cls='bg-emerald-100 text-emerald-700 border-emerald-200', ico=icoCheck();
+        if ((t||'')==='قيد التجديد'){ cls='bg-amber-100 text-amber-700 border-amber-200'; ico=icoClock(); }
+        else if ((t||'')==='منتهية' || (t||'')==='منتهي'){ cls='bg-red-100 text-red-700 border-red-200'; ico=icoAlert(); }
+        return '<span class="px-2 py-0.5 rounded text-xs font-bold border inline-flex items-center gap-1 '+cls+'">'+ico+'<span>'+t+'</span></span>';
+      }
+
+      var statusText = 'متاح';
+      var statusColor = 'bg-emerald-100 text-emerald-700';
+      if (item.status === 'occupied') { statusText = 'ممتلئ'; statusColor = 'bg-red-100 text-red-700'; }
+      else if (item.status === 'maintenance') { statusText = 'صيانة'; statusColor = 'bg-amber-100 text-amber-700'; }
+      else if (item.status === 'closed') { statusText = 'مغلق'; statusColor = 'bg-slate-200 text-slate-700'; }
+      var statusBadge = '<span class="px-3 py-1 rounded-full '+statusColor+' font-bold text-sm inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-current opacity-80"></span>'+statusText+'</span>';
+      var locHtml = item.location
+        ? (/^https?:\/\//.test(item.location)
+            ? '<a href="'+item.location+'" target="_blank" class="text-indigo-600 underline">فتح الموقع في الخريطة</a> <button class="ml-2 text-xs px-2 py-0.5 rounded border border-slate-200 hover:bg-slate-50" onclick="copyText(\''+String(item.location).replace(/"/g,'&quot;')+'\')">نسخ</button>'
+            : item.location)
+        : 'الموقع غير محدد';
+
+      // Occupants panel content (compact, scrollable)
+      var occIds = Array.isArray(item.occupants) ? item.occupants.slice()
+                 : (Array.isArray(item.assigned_employees) ? item.assigned_employees.slice() : []);
+      var empPool = (App && App.store && App.store.list) ? (App.store.list('employees')||[]) : [];
+      var occRows = occIds.map(function(id){
+        var emp = empPool.find(function(e){ return String(e.id)===String(id); }) || { id:id };
+        var nm = emp.name || ('ID:'+id);
+        var cd = emp.code ? (' • '+emp.code) : '';
+        var hidLit = (typeof item.id === 'number') ? String(item.id) : ("'"+String(item.id).replace(/'/g,"\\'")+"'"); 
+        var sidLit = "'"+String(id).replace(/'/g,"\\'")+"'";
+        return '<div class="flex items-center justify-between gap-2 px-2 py-1 rounded-full bg-slate-50 border border-slate-200 text-[11px] text-slate-700" title="'+(nm+cd).replace(/"/g,'&quot;')+'">'+
+                 '<span class="truncate">'+ nm + cd +'</span>'+
+                 '<button class="w-5 h-5 rounded-full bg-red-600 text-white text-[10px] leading-none flex items-center justify-center" onclick="removeOccupant('+hidLit+', '+sidLit+')">×</button>'+
+               '</div>';
+      }).join('');
+      var occPanelHtml = '<div class="p-3 bg-white rounded-xl border border-slate-200">'+
+                           '<div class="text-slate-600 mb-2 font-semibold">المقيمون</div>'+
+                           (occIds.length ? '<div class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">'+occRows+'</div>' : '<div class="text-xs text-slate-400">لا يوجد مقيمون</div>')+
+                         '</div>';
+
+      h.innerHTML = `
+        <div class="flex justify-between items-start">
+          <div>
+            <div class="flex items-center gap-2">
+              <div class="text-xl font-bold text-slate-800">${item.name || 'بدون اسم'}</div>
+              <div class="p-1.5 bg-indigo-50 rounded-lg border border-indigo-100">${icoHome()}</div>
+            </div>
+            <div class="mt-1 text-slate-500 text-sm">
+              ${locHtml}
+              <button id="occ-toggle" class="ml-2 text-xs px-2 py-0.5 rounded border border-slate-200 hover:bg-slate-50">👥 ${occIds.length||0}</button>
+              <button id="occ-manage" class="ml-1 text-xs px-2 py-0.5 rounded border border-slate-200 hover:bg-slate-50" title="تعديل المقيمين">⚙️</button>
+            </div>
+          </div>
+          ${statusBadge}
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div class="p-3 bg-white rounded-xl border border-slate-200">
+            <div class="text-slate-600 mb-2 font-semibold">البيانات الأساسية</div>
+            <div class="flex items-center gap-2 mb-1"><span class="text-slate-500">${icoPin()}</span><span class="text-slate-500">المدينة:</span><span class="font-medium text-slate-800">${item.city || '-'}</span></div>
+            <div class="flex items-center gap-2 mb-1"><span class="text-slate-500">${icoUser()}</span><span class="text-slate-500">المشرف:</span><span class="font-medium text-slate-800">${item.supervisor || '-'}</span></div>
+            <div class="flex items-center gap-2">
+              <span class="text-slate-500">${icoCC()}</span>
+              <span class="text-slate-500">Cost Center:</span>
+              <span class="font-medium text-slate-800">${item._cc || item.cost_center || '-'}</span>
+            </div>
+          </div>
+          <div class="p-3 bg-white rounded-xl border border-slate-200">
+            <div class="text-slate-600 mb-2 font-semibold">السعة والإشغال</div>
+            <div class="grid grid-cols-2 gap-2">
+              <div class="bg-slate-50 p-2 rounded-lg border border-slate-100 flex items-center justify-between">
+                <div class="text-[11px] text-slate-500">السعة الكلية</div>
+                <div class="flex items-center gap-1 font-bold text-slate-700">${icoGroup()} <span>${cap}</span></div>
+              </div>
+              <div class="bg-slate-50 p-2 rounded-lg border border-slate-100 flex items-center justify-between">
+                <div class="text-[11px] text-slate-500">المتاح</div>
+                <div class="flex items-center gap-1 font-bold text-emerald-700">${icoCheck()} <span>${avail}</span></div>
+              </div>
+            </div>
+            <div class="mt-2 flex items-center justify-between bg-amber-50 p-2 rounded border border-amber-100">
+              <div class="flex items-center gap-2">
+                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 shadow-sm">
+                  <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="9" stroke-width="2"></circle>
+                    <path stroke-width="2" d="M9 12h6M12 7v10" />
+                  </svg>
+                </span>
+                <div class="text-[11px] text-amber-900 font-bold">المصاريف الشهرية</div>
+              </div>
+              <div class="text-xs font-bold text-amber-700">${(totalExp||0).toLocaleString()}</div>
+            </div>
+            ${
+              (Array.isArray(item.expenses) && item.expenses.length) ? (function(){
+                var rows = item.expenses.map(function(ex){
+                  var t = (ex.type||'other').toLowerCase();
+                  var label = t==='rent' ? 'إيجار' : (t==='maintenance' ? 'صيانة دورية' : (t==='repair' ? 'إصلاحات' : 'أخرى'));
+                  var ico = t==='rent' ? icoRent() : (t==='maintenance' ? icoMaint() : (t==='repair' ? icoRepair() : icoOther()));
+                  var amt = (Number(ex.amount)||0).toLocaleString();
+                  var note = ex.note ? ('<span class="text-xs text-slate-400"> - '+String(ex.note).replace(/</g,'&lt;')+'</span>') : '';
+                  return '<div class="flex items-center justify-between bg-white p-2 rounded-lg border border-slate-100">'+
+                           '<div class="flex items-center gap-2">'+ico+'<span class="text-[12px] text-slate-700">'+label+'</span>'+note+'</div>'+
+                           '<div class="text-[12px] font-bold text-slate-800">'+amt+'</div>'+
+                         '</div>';
+                }).join('');
+                return '<div class="mt-2 space-y-1">'+
+                         '<div class="text-[11px] text-slate-500 mb-1">تفاصيل البنود</div>'+
+                         rows +
+                       '</div>';
+              })() : ''
+            }
+          </div>
+          <div class="col-span-2 p-3 bg-amber-50 rounded-xl border border-amber-200">
+            <div class="flex items-center gap-2 text-amber-700 mb-2 font-bold">${icoWarn()} حالة الرخص والتصاريح</div>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="bg-white rounded-lg border border-amber-100 p-3">
+                <div class="flex items-center gap-2 text-slate-700 font-semibold mb-2">${icoBuilding()} رخصة البلدية</div>
+                <div class="space-y-1 text-[13px]">
+                  <div class="flex items-center justify-between">
+                    <span class="text-slate-500">رقم الرخصة</span>
+                    <span class="font-medium text-slate-800">${item.municipality_license || '-'}</span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-slate-500 flex items-center gap-1">${icoCalendar()} <span>تاريخ الانتهاء</span></span>
+                    <span class="font-medium">${licDate || '-'}</span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-slate-500">الأيام المتبقية</span>
+                    <span class="font-medium">${expiryDays || 'غير محدد'}</span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-slate-500">الحالة</span>
+                    <span>${statusBadgeByText(muniStatusTxt)}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="bg-white rounded-lg border border-amber-100 p-3">
+                <div class="flex items-center gap-2 text-slate-700 font-semibold mb-2">${icoShield()} تصريح الدفاع المدني</div>
+                <div class="space-y-1 text-[13px]">
+                  <div class="flex items-center justify-between">
+                    <span class="text-slate-500">رقم التصريح</span>
+                    <span class="font-medium text-slate-800">${item.civil_defense_license || '-'}</span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-slate-500 flex items-center gap-1">${icoCalendar()} <span>تاريخ الانتهاء</span></span>
+                    <span class="font-medium">${cdDate || '-'}</span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-slate-500">الأيام المتبقية</span>
+                    <span class="font-medium">${cdExpiryText || 'غير محدد'}</span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-slate-500">الحالة</span>
+                    <span>${statusBadgeByText(cdStatusText)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="occ-panel" class="hidden">${occPanelHtml}</div>
+        ${imgsHtml}
+      `;
+      body.appendChild(h);
+      var occT = h.querySelector('#occ-toggle');
+      if (occT) occT.onclick = function(){ var p = h.querySelector('#occ-panel'); if (p) p.classList.toggle('hidden'); };
+      var occM = h.querySelector('#occ-manage');
+      if (occM) occM.onclick = function(){ openAssignHousing(item.id); };
+      var m = document.getElementById('housing-details');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+
+    function closeHousingDetails(){
+      var m = document.getElementById('housing-details');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+
+    var __assignCtx = null;
+    var __assignMembers = [];
+    function openAssignHousing(id){
+      __assignCtx = id;
+      var rows = (App && App.store && App.store.list) ? App.store.list('housings') : [];
+      var item = rows.find(function(r){ return r.id === id; });
+      if (!item) return;
+      __assignMembers = Array.isArray(item.occupants) ? item.occupants.slice() : [];
+      var m = document.getElementById('housing-assign');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+      var s = document.getElementById('assign-search');
+      if (s){ s.value=''; s.oninput = renderAssign; }
+      renderAssign();
+    }
+    function closeAssignHousing(){
+      var m = document.getElementById('housing-assign');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+    function getEmployeesPool(){
+      var list = (App && App.store && App.store.list) ? (App.store.list('employees')||[]) : [];
+      return Array.isArray(list) ? list : [];
+    }
+    function renderAssign(){
+      var search = (document.getElementById('assign-search')?.value||'').toLowerCase();
+      var pool = getEmployeesPool().filter(function(e){
+        var n = (e.name||'').toLowerCase();
+        var c = (e.code||'').toLowerCase();
+        return !search || n.indexOf(search) !== -1 || c.indexOf(search) !== -1;
+      });
+      var listEl = document.getElementById('assign-list');
+      var selEl = document.getElementById('assign-selected');
+      if (!listEl || !selEl) return;
+      listEl.innerHTML = '';
+      selEl.innerHTML = '';
+      pool.forEach(function(emp){
+        var isSel = __assignMembers.indexOf(emp.id) !== -1;
+        var row = document.createElement('div');
+        row.className = 'flex items-center justify-between p-2 rounded-lg hover:bg-slate-50';
+        row.innerHTML = '<div class="text-sm text-slate-700">'+(emp.name||('ID:'+emp.id))+'</div><button class="px-2 py-1 rounded-lg text-sm '+(isSel?'bg-emerald-600 text-white':'border border-slate-200 text-slate-700')+'">'+(isSel?'✓':'إضافة')+'</button>';
+        row.querySelector('button').onclick = function(){
+          toggleAssign(emp.id);
+        };
+        listEl.appendChild(row);
+      });
+      __assignMembers.forEach(function(id){
+        var emp = pool.find(function(e){ return e.id===id; }) || { id:id, name: ('ID:'+id) };
+        var chip = document.createElement('div');
+        chip.className = 'px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-sm flex items-center gap-2';
+        chip.innerHTML = '<span>'+(emp.name||('ID:'+id))+'</span><button class="w-6 h-6 rounded-full bg-red-600 text-white text-xs">×</button>';
+        chip.querySelector('button').onclick = function(){ toggleAssign(id); };
+        selEl.appendChild(chip);
+      });
+    }
+    function toggleAssign(empId){
+      var rows = (App && App.store && App.store.list) ? App.store.list('housings') : [];
+      var item = rows.find(function(r){ return r.id === __assignCtx; });
+      if (!item) return;
+      var idx = __assignMembers.indexOf(empId);
+      if (idx !== -1){
+        __assignMembers.splice(idx,1);
+      } else {
+        var cap = Number(item.capacity||0);
+        if (cap > 0 && __assignMembers.length >= cap) { showToast('تم الوصول للسعة القصوى', 'error'); return; }
+        __assignMembers.push(empId);
+      }
+      renderAssign();
+    }
+    function saveAssign(){
+      if (!__assignCtx) return;
+      App.store.update('housings', __assignCtx, { occupants: __assignMembers.slice() });
+      showToast('تم تحديث قائمة المقيمين (☑️)  ', 'success (☑️) ');
+      closeAssignHousing();
+      renderGrid();
+    }
+  </script>
+</body>
+</html>

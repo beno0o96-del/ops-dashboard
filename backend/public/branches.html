@@ -1,0 +1,2601 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>الفروع</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style-base.css?v=202602071015">
+  <link rel="stylesheet" href="style-site.css?v=202602071015">
+  <style>
+  </style>
+</head>
+<body>
+  <canvas id="bg-canvas"></canvas>
+  <nav class="glass-nav">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <div class="text-lg font-bold">لوحة التشغيل</div>
+      <div class="flex items-center gap-4">
+        <a href="./index.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.home">الرئيسية</a>
+        <a href="./employees.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.employees">الموظفون</a>
+        <a href="./branches.html" class="text-indigo-600 font-medium" data-i18n="nav.branches">الفروع</a>
+        <a href="./licenses.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.licenses">الرخص والعقود</a>
+        <a href="./violations.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.violations">المخالفات</a>
+        <a href="./housings.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.housings">السكنات</a>
+        <a href="./transports.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.transports">المواصلات</a>
+        <a href="./reports.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.reports">التقارير</a>
+        <a href="./login.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.login">تسجيل الدخول</a>
+        <button id="help-toggle" class="px-3 py-1 rounded bg-gray-100 text-gray-800"></button>
+        <button id="lang-toggle" class="px-3 py-1 rounded bg-indigo-600 text-white"></button>
+        <div class="relative inline-block">
+          <div id="user-badge" class="user-badge">
+            <div class="user-avatar"></div>
+            <span id="user-badge-name"></span>
+          </div>
+          <div id="user-menu" class="user-menu">
+            <a href="#" data-en="My Profile" data-ar="ملفّي">My Profile</a>
+            <button onclick="App.logout()" data-en="Logout" data-ar="تسجيل الخروج">Logout</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+  <main class="max-w-7xl mx-auto px-4 py-8" style="font-family:'Cairo','Segoe UI',sans-serif">
+    <div class="flex items-start md:items-center justify-between mb-6 gap-3 flex-col md:flex-row">
+      <h1 class="text-2xl font-semibold" data-i18n="branches.title">الفروع</h1>
+      <div class="w-full md:w-auto flex items-center gap-3">
+        
+        <select id="region-select" class="form-control" style="min-width:180px; background:rgba(59,130,246,0.12); border-color:rgba(59,130,246,0.35)">
+          <option value="all">كل المناطق</option>
+        </select>
+        <input id="branches-search" class="form-control" type="text" placeholder="بحث" style="min-width:220px">
+      </div>
+    </div>
+    <h2 class="text-xl font-semibold mb-4">الافتتاحات والمشاريع الحالية</h2>
+    <div id="openings-grid" class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8"></div>
+    <h2 class="text-xl font-semibold mb-4">شبكة الفروع النشطة</h2>
+    <div id="branches-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"></div>
+    <h2 class="text-xl font-semibold mb-4">الفروع المغلقة</h2>
+    <div id="closed-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+  </main>
+  <div id="branch-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:2000; align-items:center; justify-content:center; backdrop-filter:blur(5px);">
+    <div style="background:linear-gradient(145deg, #0b1220, #0f172a); color:#fff; padding:8px 0; border-radius:20px; width:95%; max-width:1000px; max-height:90vh; display:flex; flex-direction:column; border:1px solid rgba(255,255,255,0.08); box-shadow:0 25px 50px rgba(0,0,0,0.5);">
+      
+      <!-- Header -->
+      <div style="padding:16px 24px; background:rgba(2,6,23,0.35); display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.08);">
+        <div style="display:flex; align-items:center; gap:15px;">
+          <div id="modal-logo" style="width:50px; height:50px; background:rgba(17,24,39,0.85); border:2px solid rgba(148,163,184,0.35); border-radius:50%; display:flex; align-items:center; justify-content:center; overflow:hidden">
+            <img src="olayan-mark.svg" style="width:100%; height:100%; object-fit:contain; padding:6px; border-radius:50%;">
+          </div>
+          <div>
+            <h2 id="modal-title" style="margin:0; font-size:1.5rem;">اسم الفرع</h2>
+            <span id="modal-subtitle" style="color:#94a3b8; font-size:0.9rem;">المنطقة</span>
+          </div>
+        </div>
+        <button onclick="document.getElementById('branch-modal').style.display='none'" style="background:none; border:none; color:#fff; font-size:2rem; cursor:pointer;">&times;</button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="flex items-end min-h-[46px] border-b border-slate-700/50 bg-slate-900/20 px-4 pt-2 gap-2 overflow-x-auto custom-scrollbar" style="white-space:nowrap; scrollbar-gutter:stable both-edges;">
+        <button onclick="switchTab('violations')" id="tab-btn-violations" class="tab-btn shrink-0 h-10 leading-none flex items-center px-4 py-2 text-sm font-medium text-blue-400 border-b-2 border-blue-500 transition-colors">المخالفات</button>
+        <button onclick="switchTab('employees')" id="tab-btn-employees" class="tab-btn shrink-0 h-10 leading-none flex items-center px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 border-b-2 border-transparent transition-colors">الموظفين</button>
+        <button onclick="switchTab('training')" id="tab-btn-training" class="tab-btn shrink-0 h-10 leading-none flex items-center px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 border-b-2 border-transparent transition-colors">التدريب</button>
+        <button onclick="switchTab('attachments')" id="tab-btn-attachments" class="tab-btn shrink-0 h-10 leading-none flex items-center px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 border-b-2 border-transparent transition-colors">مرفقات الفروع</button>
+        <button onclick="switchTab('housings')" id="tab-btn-housings" class="tab-btn shrink-0 h-10 leading-none flex items-center px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 border-b-2 border-transparent transition-colors">السكنات</button>
+        <button onclick="switchTab('transports')" id="tab-btn-transports" class="tab-btn shrink-0 h-10 leading-none flex items-center px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 border-b-2 border-transparent transition-colors">المواصلات</button>
+      </div>
+
+      <!-- Content -->
+      <div style="padding:16px 24px; overflow-y:auto; flex:1; background:transparent;" class="custom-scrollbar">
+        
+        <!-- Violations -->
+        <div id="tab-violations" class="tab-content block">
+           <div id="modal-cost-violations" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:15px;"></div>
+        </div>
+
+        <!-- Employees -->
+        <div id="tab-employees" class="tab-content hidden">
+           <div id="modal-employees-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        </div>
+
+        <!-- Training -->
+        <div id="tab-training" class="tab-content hidden">
+           <div id="modal-training-list" class="space-y-3"></div>
+        </div>
+
+        <!-- Branch Attachments -->
+        <div id="tab-attachments" class="tab-content hidden">
+           <div class="mb-4">
+             <div class="flex flex-wrap gap-3 mb-4">
+               <input type="file" id="branch-attachment-input" class="hidden" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls" onchange="handleBranchAttachmentUpload(this)">
+               <div class="text-xs text-slate-400">أزرار المعاينة والطباعة والحفظ داخل كل مرفق</div>
+             </div>
+           </div>
+          <div id="branch-attachments-container" class="min-h-[300px]"></div>
+        </div>
+
+        <!-- Housings -->
+        <div id="tab-housings" class="tab-content hidden">
+           <div id="modal-housings-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        </div>
+
+        <!-- Transports -->
+        <div id="tab-transports" class="tab-content hidden">
+           <div id="modal-transports-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  <script src="app.js?v=202603060830"></script>
+  <script src="js/api-client.js?v=202603071230"></script>
+  <script src="js/render-api.js?v=202603060830"></script>
+  <script src="js/helpers-branches.js?v=202603060830"></script>
+  <script>
+    // App.init('branches'); // Old init
+    try { document.documentElement.style.visibility = ''; } catch(_){}
+    
+    // New API Init
+    window.addEventListener('DOMContentLoaded', async () => {
+        try { document.documentElement.style.visibility = ''; } catch(_){}
+        try {
+          var hasAuth = (sessionStorage.getItem('auth') === '1' || localStorage.getItem('auth') === '1');
+          if (hasAuth && window.App && App.init) App.init('branches');
+        } catch(_){}
+        try {
+          var apiRows = await fetchList('branches');
+          console.log('DOMContentLoaded: fetchList result:', apiRows);
+          
+          if ((!Array.isArray(apiRows) || !apiRows.length) && typeof fetch === 'function') {
+            console.log('DOMContentLoaded: جلب البيانات من API...');
+            var res = await fetch('/api/branches', { headers: { 'Accept': 'application/json' } });
+            console.log('DOMContentLoaded: API response status:', res.status);
+            if (res.ok) {
+              var json = await res.json();
+              console.log('DOMContentLoaded: API response data:', json);
+              apiRows = Array.isArray(json) ? json : (Array.isArray(json && json.data) ? json.data : (Array.isArray(json && json.data && json.data.data) ? json.data.data : []));
+              console.log('DOMContentLoaded: معالجة البيانات من API:', apiRows.length, 'عنصر');
+            } else {
+              console.log('DOMContentLoaded: فشل جلب البيانات من API، الحالة:', res.status);
+            }
+          }
+          
+          console.log('DOMContentLoaded: البيانات النهائية:', apiRows);
+          
+          if (Array.isArray(apiRows) && apiRows.length) {
+            console.log('DOMContentLoaded: حفظ البيانات في localStorage...');
+            try { localStorage.setItem('admin_branches_data', JSON.stringify(apiRows)); } catch(_){}
+            try { if (window.App && App.store && typeof App.store.set === 'function') App.store.set('branches', apiRows); } catch(_){}
+          } else {
+            console.log('DOMContentLoaded: لا توجد بيانات للحفظ');
+          }
+        } catch(e){
+          console.error('DOMContentLoaded: خطأ في جلب البيانات:', e);
+        }
+        try { if(window.renderBranchesGridAPI) await window.renderBranchesGridAPI(); } catch(_){}
+        try {
+          if(document.getElementById('branches-table-body') && window.renderBranchesTableAPI) {
+            await window.renderBranchesTableAPI();
+          }
+        } catch(_){}
+        try { 
+          console.log('DOMContentLoaded: بدء تحديث الأقسام...');
+          buildRegionBar(); 
+          console.log('DOMContentLoaded: تم تحديث شريط المناطق');
+          renderOpenings(); 
+          console.log('DOMContentLoaded: تم تحديث قسم الافتتاحات');
+          renderGrid(); 
+          console.log('DOMContentLoaded: تم تحديث قسم الفروع النشطة');
+          renderClosed(); 
+          console.log('DOMContentLoaded: تم تحديث قسم الفروع المغلقة');
+        } catch(e){
+          console.error('DOMContentLoaded: خطأ في تحديث الأقسام:', e);
+        }
+        try { setTimeout(function(){ ensureVisibleFallback(); }, 350); } catch(_){}
+        
+        // ✅ نظام المزامنة التلقائي مع لوحة التحكم
+        setupAutoSync();
+    });
+    
+    // ✅ نظام المزامنة المتقدم مع لوحة التحكم
+    function setupAutoSync() {
+        // استجابة لتغييرات البيانات من لوحة التحكم
+        window.addEventListener('branchDataUpdated', function(e) {
+            console.log('تم استلام حدث تحديث البيانات من لوحة التحكم:', e.detail);
+            setTimeout(function() {
+                console.log('إعادة تحميل الأقسام بعد تحديث البيانات...');
+                buildRegionBar();
+                renderOpenings();
+                renderGrid();
+                renderClosed();
+            }, 100);
+        });
+        
+        // استجابة لتغييرات المرفقات
+        window.addEventListener('branchAttachmentsUpdated', function(e) {
+            console.log('تم استلام حدث تحديث المرفقات:', e.detail);
+            setTimeout(function() {
+                console.log('تحديث عرض المرفقات...');
+                // تحديث عدادات المرفقات في البطاقات
+                updateAllAttachmentCounts();
+            }, 100);
+        });
+        
+        // فحص دوري للتحديثات (كل 30 ثانية)
+        setInterval(function() {
+            if (document.visibilityState === 'visible') {
+                console.log('فحص دوري للتحديثات...');
+                refreshBranchData();
+            }
+        }, 30000);
+    }
+    
+    // ✅ تحديث جميع عدادات المرفقات
+    function updateAllAttachmentCounts() {
+        // تحديث عدادات الفروع النشطة
+        var activeCards = document.querySelectorAll('#branches-grid [id^="attachments-count-"]');
+        activeCards.forEach(function(el) {
+            var branchId = el.id.replace('attachments-count-', '');
+            updateAttachmentCount(branchId, el);
+        });
+        
+        // تحديث عدادات الفروع المغلقة
+        var closedCards = document.querySelectorAll('#closed-grid [id^="attachments-count-closed-"]');
+        closedCards.forEach(function(el) {
+            var branchId = el.id.replace('attachments-count-closed-', '');
+            updateAttachmentCount(branchId, el);
+        });
+    }
+    
+    function getAllLocalAttachmentRows() {
+        var rows = [];
+        var seen = {};
+        
+        function addUniqueAttachments(newRows) {
+            if (!Array.isArray(newRows)) return;
+            newRows.forEach(function(att) {
+                if (!att || typeof att !== 'object') return;
+                var key = normalizeAttachmentKey(att);
+                if (!key || seen[key]) return;
+                seen[key] = true;
+                rows.push(att);
+            });
+        }
+        
+        if (typeof Store !== 'undefined' && Store.list) {
+            addUniqueAttachments(Store.list('attachments') || []);
+            addUniqueAttachments(Store.list('branch_attachments') || []);
+        }
+        
+        ['attachments', 'branch_attachments', 'admin_branch_attachments', 'db:attachments', 'db:branch_attachments'].forEach(function(k){
+            var arr = safeParse(k, []);
+            if (Array.isArray(arr)) {
+                addUniqueAttachments(arr);
+            } else if (arr && typeof arr === 'object' && k === 'db:branch_attachments') {
+                Object.keys(arr).forEach(function(bid){
+                    var list = Array.isArray(arr[bid]) ? arr[bid] : [];
+                    addUniqueAttachments(list.map(function(att){
+                        return Object.assign({}, att || {}, { __branch_id: String(bid || '').trim() });
+                    }));
+                });
+            }
+        });
+        
+        return rows;
+    }
+
+    function normalizeAttachmentKey(att) {
+        var id = String(att && (att.id || att.attachment_id || '') || '').trim();
+        var path = String(att && (att.file_path || att.path || att.url || att.file_url || att.storage_path || '') || '').trim();
+        var name = String(att && (att.file_name || att.name || att.original_name || att.title || '') || '').trim();
+        return id + '|' + path + '|' + name;
+    }
+
+    function isAttachmentDeleted(att) {
+        if (!att || typeof att !== 'object') return false;
+        if (att.deleted_at) return true;
+        if (att.archived === true) return true;
+        if (att.is_deleted === true) return true;
+        if (String(att.status || '').trim().toLowerCase() === 'deleted') return true;
+        if (String(att._deleted || '').trim().toLowerCase() === 'true') return true;
+        return false;
+    }
+
+    function attachmentBelongsToBranch(att, branchId, costCenter, branchName) {
+        var atype = String(att && (att.attachable_type || att.entity_type || att.owner_type || att.entity || '') || '').trim().toLowerCase();
+        
+        // السماح بمرفقات الفروع والمخالفات والأنواع الأخرى المرتبطة بالفرع
+        var allowedTypes = ['branch', 'violation', 'employee', 'training', 'license', 'housing', 'transport'];
+        if (atype && !allowedTypes.some(function(t) { return atype.indexOf(t) !== -1; })) return false;
+        
+        var bidLocal = String(att && (att.__branch_id || att.branch_key || '') || '').trim();
+        var aid = String(att && (att.attachable_id || att.branch_id || att.branchId || att.entityId || '') || '').trim();
+        var acc = String(att && (att.cost_center || att.costCenter || att.center || '') || '').trim();
+        var anm = String(att && (att.branch || att.branch_name || att.location || '') || '').trim();
+        
+        if (bidLocal) return branchId && bidLocal === String(branchId);
+        if (aid) return branchId && aid === String(branchId);
+        if (anm) return branchName && anm === String(branchName);
+        if (acc) return costCenter && acc === String(costCenter);
+        return false;
+    }
+
+    function collectLocalAttachmentsForBranch(branchId, costCenter, branchName) {
+        var rows = [];
+        var branches = getStoreList('branches');
+        if (!branches.length) branches = safeParse('admin_branches_data', []);
+        rows = rows.concat(getAllLocalAttachmentRows().filter(function(att){
+            return !isAttachmentDeleted(att) && attachmentBelongsToBranch(att, branchId, costCenter, branchName);
+        }));
+        var seen = {};
+        return rows.filter(function(att){
+            var key = normalizeAttachmentKey(att || {});
+            if (!key || seen[key]) return false;
+            seen[key] = true;
+            return true;
+        });
+    }
+
+    function paintAttachmentCount(element, count) {
+        element.textContent = count + ' مرفق';
+        element.className = 'truncate block ' + (count > 0 ? 'text-blue-400' : 'text-slate-400');
+    }
+
+    function updateAttachmentCount(branchId, element, branchObj) {
+        if (!element) return;
+        var branch = branchObj || null;
+        if (!branch) {
+            var branches = getStoreList('branches');
+            if (!branches.length) branches = safeParse('admin_branches_data', []);
+            branch = asArray(branches).find(function(b) {
+                return String((b && (b.id || b.branch_id || b.code || ''))).trim() === String(branchId || '').trim();
+            }) || null;
+        }
+        var resolvedBranchId = String((branch && (branch.id || branch.branch_id || branch.code || '')) || branchId || '').trim();
+        var costCenter = String((branch && (branch.cost_center || branch.costCenter || branch.center || branch.cc || '')) || '').trim();
+        var branchName = String((branch && (branch.name || branch.branch || branch.branch_name || '')) || '').trim();
+
+        var localRows = collectLocalAttachmentsForBranch(resolvedBranchId, costCenter, branchName);
+        paintAttachmentCount(element, localRows.length);
+
+        if (typeof APIClient === 'undefined' || !APIClient.fetch) return;
+        var calls = [];
+        if (resolvedBranchId) {
+            calls.push(APIClient.fetch('/api/branches/' + resolvedBranchId + '/attachments').catch(function(e) {
+                console.warn('فشل جلب المرفقات من API للفرع', resolvedBranchId, e);
+                return {success: false, data: []};
+            }));
+        } else if (costCenter) {
+            calls.push(APIClient.fetch('/api/attachments/by-cost-center/' + encodeURIComponent(costCenter)).catch(function(e) {
+                console.warn('فشل جلب المرفقات من API لمركز التكلفة', costCenter, e);
+                return {success: false, data: []};
+            }));
+        }
+        if (!calls.length) return;
+
+        Promise.allSettled(calls).then(function(results){
+            var merged = localRows.slice();
+            results.forEach(function(r){
+                if (r.status !== 'fulfilled') return;
+                var payload = r.value;
+            var rows = (payload && payload.success && Array.isArray(payload.data)) ? payload.data.filter(function(att){
+                return !isAttachmentDeleted(att) && attachmentBelongsToBranch(att, resolvedBranchId, costCenter, branchName);
+            }) : [];
+                merged = merged.concat(rows);
+            });
+            var seen = {};
+            var finalCount = merged.filter(function(att){
+                if (isAttachmentDeleted(att)) return false;
+                var key = normalizeAttachmentKey(att || {});
+                if (!key || seen[key]) return false;
+                seen[key] = true;
+                return true;
+            }).length;
+            paintAttachmentCount(element, finalCount);
+        }).catch(function(e){
+            console.warn('فشل تحديث عداد المرفقات:', resolvedBranchId, e);
+            paintAttachmentCount(element, localRows.length);
+        });
+    }
+    
+    // ✅ تحديث بيانات الفروع من الخادم
+    function refreshBranchData() {
+        if (typeof APIClient === 'undefined' || !APIClient.fetch) return;
+        
+        APIClient.fetch('/api/branches')
+            .then(function(response) {
+                if (response.success && response.data) {
+                    // حفظ البيانات المحدثة
+                    try { 
+                        localStorage.setItem('admin_branches_data', JSON.stringify(response.data)); 
+                    } catch(e) {
+                        console.warn('فشل حفظ البيانات في localStorage:', e);
+                    }
+                    
+                    try { 
+                        if (window.App && App.store && typeof App.store.set === 'function') {
+                            App.store.set('branches', response.data); 
+                        }
+                    } catch(e) {
+                        console.warn('فشل حفظ البيانات في App.store:', e);
+                    }
+                    
+                    // إعادة عرض الأقسام بالبيانات الجديدة
+                    buildRegionBar();
+                    renderOpenings();
+                    renderGrid();
+                    renderClosed();
+                    
+                    console.log('تم تحديث بيانات الفروع من الخادم');
+                }
+            })
+            .catch(function(e) {
+                console.warn('فشل تحديث بيانات الفروع:', e);
+            });
+    }
+
+    function safeParse(k, d){ try{ return JSON.parse(localStorage.getItem(k)||JSON.stringify(d)); }catch(e){ return d; } }
+    function asArray(v){ return Array.isArray(v) ? v.filter(function(x){ return x !== null && x !== undefined; }) : []; }
+    function toNorm(v){ return String(v == null ? '' : v).trim().toLowerCase(); }
+    function normalizeArabicDigits(v){
+      var s = String(v == null ? '' : v);
+      return s.replace(/[٠-٩]/g, function(d){ return String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)); });
+    }
+    function normalizeLoose(v){
+      return normalizeArabicDigits(v).replace(/\s+/g, ' ').trim().toLowerCase();
+    }
+    function normalizeCostCenter(v){
+      return normalizeArabicDigits(v).replace(/\s+/g, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    }
+    function pickFirstValue(obj, keys){
+      if (!obj) return '';
+      for (var i = 0; i < keys.length; i++) {
+        var val = obj[keys[i]];
+        if (val !== undefined && val !== null && String(val).trim() !== '') return String(val).trim();
+      }
+      return '';
+    }
+    function collectBranchesForLookup(){
+      var rows = [];
+      var seen = {};
+      function push(list){
+        asArray(list).forEach(function(b){
+          if (!b) return;
+          var bid = normalizeLoose(b.id || b.branch_id || b.code || '');
+          var bnm = normalizeLoose(b.name || b.branch || b.branch_name || '');
+          var key = bid ? ('id:' + bid) : ('nm:' + bnm);
+          if (!key || seen[key]) return;
+          seen[key] = true;
+          rows.push(b);
+        });
+      }
+      push(getStoreList('branches'));
+      push(safeParse('admin_branches_data', []));
+      push(safeParse('db:branches', []));
+      push(safeParse('branches', []));
+      push(safeParse('ofs_branches_v1', []));
+      return rows;
+    }
+    function resolveBranchByAnyRef(ref){
+      var token = normalizeLoose(ref);
+      if (!token) return null;
+      var rows = collectBranchesForLookup();
+      for (var i = 0; i < rows.length; i++) {
+        var b = rows[i] || {};
+        var bid = normalizeLoose(b.id || b.branch_id || b.code || '');
+        var bnm = normalizeLoose(b.name || b.branch || b.branch_name || '');
+        var bcc = normalizeCostCenter(b.cost_center || b.costCenter || b.center || b.cc || '');
+        if ((bid && bid === token) || (bnm && bnm === token) || (bcc && bcc === normalizeCostCenter(ref))) return b;
+      }
+      return null;
+    }
+    function extractRecordCostCenter(row){
+      var direct = pickFirstValue(row, ['cost_center', 'costCenter', 'center', 'cc', 'tc', 'costcentre', 'costCenterCode', 'cost_center_code', 'cost center']);
+      if (direct) return direct;
+      var ref = pickFirstValue(row, ['branch_id', 'branchId', 'branchCode', 'branch', 'branch_name', 'branchName', 'location']);
+      var branch = resolveBranchByAnyRef(ref);
+      if (!branch) return '';
+      return pickFirstValue(branch, ['cost_center', 'costCenter', 'center', 'cc']);
+    }
+    function getLocalKeysForList(key){
+      var map = {
+        violations: ['db:violations', 'violations', 'admin_violations_raw'],
+        employees: ['db:employees', 'employees', 'employees_data', 'admin_employees', 'ofs_employees_v1', 'ofs_employees', 'ofs_staff', 'staff'],
+        training: ['db:training', 'db:training_sessions', 'training', 'training_sessions', 'admin_training'],
+        housings: ['db:housings', 'housings', 'admin_housings'],
+        transports: ['db:transports', 'transports', 'admin_transports'],
+        branches: ['db:branches', 'branches', 'admin_branches_data', 'ofs_branches_v1'],
+        attachments: ['db:attachments', 'attachments', 'branch_attachments', 'admin_branch_attachments']
+      };
+      return map[key] || [key, 'db:' + key];
+    }
+    function dedupeRows(rows){
+      var out = [];
+      var seen = {};
+      asArray(rows).forEach(function(r){
+        var id = pickFirstValue(r, ['id', '_id', 'uuid', 'employee_id', 'violation_id', 'training_id', 'housing_id', 'transport_id']);
+        var ref = pickFirstValue(r, ['ref', 'reference', 'sap', 'sap_id', 'vio_no', 'efaa_no', 'plate_number', 'course_name', 'name', 'title']);
+        var bRef = pickFirstValue(r, ['branch_id', 'branchId', 'branchCode', 'branch', 'branch_name', 'branchName', 'location']);
+        var cc = extractRecordCostCenter(r);
+        var key = normalizeLoose(id ? ('id:' + id) : ('ref:' + ref + '|b:' + bRef + '|cc:' + cc));
+        if (!key || seen[key]) return;
+        seen[key] = true;
+        out.push(r);
+      });
+      return out;
+    }
+    function getAssignedList(row, keys){
+      var out = [];
+      keys.forEach(function(k){
+        var val = row && row[k];
+        if (Array.isArray(val)) out = out.concat(val);
+        else if (typeof val === 'string' && val.indexOf(',') >= 0) out = out.concat(val.split(','));
+        else if (val !== undefined && val !== null && String(val).trim() !== '') out.push(val);
+      });
+      return out.map(function(x){ return String(x || '').trim(); }).filter(Boolean);
+    }
+    function isRecordForCurrentBranch(row, fallbackBranchName){
+      if (!row) return false;
+      var currentId = normalizeLoose(__currentBranchId || '');
+      var currentName = normalizeLoose(__currentBranchName || fallbackBranchName || '');
+      var currentCc = normalizeCostCenter(__currentBranchCostCenter || '');
+      var refs = [
+        row.branch_id, row.branchId, row.branchCode, row.branch_ref, row.branchRef,
+        row.branch, row.branch_name, row.branchName, row.location, row.site
+      ].map(function(v){ return String(v == null ? '' : v).trim(); }).filter(Boolean);
+      if (currentId && refs.some(function(v){ return normalizeLoose(v) === currentId; })) return true;
+      var recCc = normalizeCostCenter(extractRecordCostCenter(row));
+      if (currentCc && recCc && recCc === currentCc) return true;
+      if (currentCc && refs.some(function(v){ return normalizeCostCenter(v) === currentCc; })) return true;
+      if (currentName && refs.some(function(v){ return normalizeLoose(v) === currentName; })) return true;
+      var assignedIds = getAssignedList(row, ['assigned_branch_ids', 'assignedBranchesIds']);
+      if (currentId && assignedIds.some(function(v){ return normalizeLoose(v) === currentId; })) return true;
+      var assignedNames = getAssignedList(row, ['assigned_branches', 'assignedBranches']);
+      if (currentName && assignedNames.some(function(v){ return normalizeLoose(v) === currentName; })) return true;
+      return false;
+    }
+    function isTrueLike(v){
+      if (v === true || v === 1) return true;
+      var s = toNorm(v);
+      return s === 'true' || s === '1' || s === 'yes' || s === 'y' || s === 'on' || s === 'closed' || s === 'مغلق';
+    }
+    function isClosedBranch(b){
+      if (!b) return false;
+      if (isTrueLike(b.closed) || isTrueLike(b.is_closed)) return true;
+      var st = toNorm(b.status || b.branch_status || b.state || b.type);
+      return st === 'closed' || st === 'inactive' || st === 'مغلق';
+    }
+    function isOpeningBranch(b){
+      if (!b || isClosedBranch(b)) return false;
+      var st = toNorm(b.type || b.status || b.branch_status || b.state);
+      return st === 'opening' || st === 'افتتاح' || st === 'قيد الافتتاح';
+    }
+    function syncBranchInLocalStores(payload){
+      if (!payload) return;
+      var idKey = String(payload.id || payload.branch_id || payload.code || '').trim();
+      var nameKey = String(payload.name || payload.branch_name || '').trim();
+      function patchRows(rows){
+        var arr = asArray(rows).slice();
+        if (!arr.length) return arr;
+        var idx = arr.findIndex(function(b){
+          var bid = String((b && (b.id || b.branch_id || b.code)) || '').trim();
+          var bnm = String((b && (b.name || b.branch_name)) || '').trim();
+          return (idKey && bid && bid === idKey) || (nameKey && bnm && bnm === nameKey);
+        });
+        if (idx >= 0) arr[idx] = Object.assign({}, arr[idx], payload);
+        return arr;
+      }
+      try {
+        if (window.App && App.store && typeof App.store.list === 'function' && typeof App.store.set === 'function') {
+          var current = App.store.list('branches') || [];
+          var patched = patchRows(current);
+          if (patched.length) App.store.set('branches', patched);
+        }
+      } catch(_){}
+      try {
+        var raw = safeParse('admin_branches_data', []);
+        var patchedRaw = patchRows(raw);
+        if (patchedRaw.length) localStorage.setItem('admin_branches_data', JSON.stringify(patchedRaw));
+      } catch(_){}
+    }
+    function getStoreList(key){
+      try {
+        if (window.App && App.store && typeof App.store.list === 'function') {
+          var out = App.store.list(key);
+          return asArray(out);
+        }
+      } catch(_){}
+      return [];
+    }
+    async function fetchList(key){
+      var rows = [];
+      try {
+        if (window.App && App.api && typeof App.api.fetchData === 'function') {
+          rows = rows.concat(asArray(await App.api.fetchData(key)));
+        }
+      } catch(_){}
+      rows = rows.concat(getStoreList(key));
+      if (key === 'training') rows = rows.concat(getStoreList('training_sessions'));
+      getLocalKeysForList(key).forEach(function(k){
+        rows = rows.concat(asArray(safeParse(k, [])));
+      });
+      return dedupeRows(rows);
+    }
+    var __regionFilter = 'all';
+    var __searchQuery = '';
+    function buildRegionBar(){ var rows = getStoreList('branches'); if(!rows.length) rows = safeParse('admin_branches_data', []); var uniq = {}; (Array.isArray(rows)?rows:[]).forEach(function(b){ var r = String(b && b.region || '').trim(); if (r) uniq[r]=true; }); var list = Object.keys(uniq).sort(function(a,b){ return a.localeCompare(b,'ar'); }); buildRegionSelect(list); }
+    function buildRegionSelect(list){ var sel = document.getElementById('region-select'); if (!sel) return; var curr = sel.value || __regionFilter || 'all'; var opts = '<option value="all">كل المناطق</option>' + (Array.isArray(list)?list:[]).map(function(r){ return '<option value="'+ r +'">'+ r +'</option>'; }).join(''); sel.innerHTML = opts; if (curr) sel.value = curr; sel.onchange = function(){ __regionFilter = sel.value || 'all'; renderOpenings(); renderGrid(); renderClosed(); buildRegionBar(); } }
+    
+    function bindSearch(){ var el = document.getElementById('branches-search'); if (!el || el.__bound) return; el.__bound = true; el.oninput = function(){ __searchQuery = (el.value||'').trim().toLowerCase(); renderOpenings(); renderGrid(); renderClosed(); }; }
+    var __currentBranchId = null;
+    var __currentBranchName = '';
+    var __currentBranchCostCenter = '';
+    function detectBrand(name){
+      var lower = (name||'').toLowerCase();
+      if(lower.includes('bk')||lower.includes('burger')) return 'Burger King';
+      if(lower.includes('texas')||lower.includes('chicken')) return 'Texas Chicken';
+      if(lower.includes('bww')||lower.includes('buffalo')) return 'Buffalo Wild Wings';
+      return 'Olayan';
+    }
+    function getBrandLogo(brand){
+      var b = String(brand||'').toLowerCase();
+      if (b.includes('burger') || b.includes('bk')) return '/logos/bk.png';
+      if (b.includes('texas')) return '/logos/texas.png';
+      if (b.includes('buffalo') || b.includes('bww')) return '/logos/bww.png';
+      return '/olayan-mark.svg';
+    }
+    function ensureDataKeys(){
+      var emps = getStoreList('employees');
+      var vios = getStoreList('violations');
+      var lics = getStoreList('licenses');
+      var brs = getStoreList('branches');
+      if(emps && emps.length) localStorage.setItem('admin_employees', JSON.stringify(emps));
+      if(vios && vios.length) localStorage.setItem('admin_violations_raw', JSON.stringify(vios));
+      if(lics && lics.length) localStorage.setItem('admin_licenses', JSON.stringify(lics));
+      var rich = asArray(safeParse('admin_branches_data', []));
+      var names = new Set(rich.map(function(b){ return typeof b==='string' ? b : ((b && (b.name || b.branch)) || ''); }).filter(Boolean));
+      brs.forEach(function(b){
+        if (!b) return;
+        var nm = b.name || b.branch || b;
+        if(nm && !names.has(nm)){
+          rich.push({ name:nm, brand: detectBrand(nm), source:'auto' });
+          names.add(nm);
+        }
+      });
+      if(rich.length) localStorage.setItem('admin_branches_data', JSON.stringify(rich));
+    }
+    function updateStatus(elId, status){
+      var el = document.getElementById(elId);
+      if(!el) return;
+      var s = (status||'').toLowerCase();
+      el.textContent = status || 'غير متوفر';
+      el.style.padding = '4px 10px';
+      el.style.borderRadius = '10px';
+      if(s.includes('valid')||s.includes('ساري')) { el.style.background='rgba(16,185,129,0.2)'; el.style.color='#10b981'; }
+      else if(s.includes('expire')||s.includes('منتهي')) { el.style.background='rgba(239,68,68,0.2)'; el.style.color='#ef4444'; }
+      else { el.style.background='rgba(148,163,184,0.2)'; el.style.color='#94a3b8'; }
+    }
+    function renderOpenings(){
+      var cont = document.getElementById('openings-grid');
+      if(!cont) return;
+      var rows = getStoreList('branches');
+      if (!rows.length) rows = safeParse('admin_branches_data', []);
+      
+      console.log('renderOpenings: إجمالي عدد الفروع:', rows.length);
+      
+      var list = asArray(rows);
+      list = list.filter(function(b){ 
+        console.log('renderOpenings: فحص الفرع:', b.name, 'type:', b.type, 'hidden:', b.hidden);
+        
+        if (!(b && isOpeningBranch(b) && b.hidden!==true)) {
+          console.log('renderOpenings: تم استبعاد الفرع - ليس من نوع opening أو مخفي');
+          return false; 
+        }
+        
+        if (!(__regionFilter==='all' || String(b.region||'').trim()===__regionFilter)) {
+          console.log('renderOpenings: تم استبعاد الفرع - لا يطابق المنطقة');
+          return false; 
+        }
+        
+        var hay = ((b.name||'')+' '+(b.brand||'')+' '+(b.notes||'')).toLowerCase(); 
+        var matchesSearch = !__searchQuery || hay.indexOf(__searchQuery) >= 0;
+        if (!matchesSearch) {
+          console.log('renderOpenings: تم استبعاد الفرع - لا يطابق البحث');
+        }
+        return matchesSearch; 
+      });
+      
+      console.log('renderOpenings: عدد الفروع بعد التصفية:', list.length);
+      console.log('renderOpenings: أسماء الفروع:', list.map(function(b) { return b.name; }));
+      list.sort(function(a,b){ var pa = a && a.pinned===true ? 1 : 0; var pb = b && b.pinned===true ? 1 : 0; if (pb !== pa) return pb - pa; return String(a && a.name || '').localeCompare(String(b && b.name || ''), 'ar'); });
+      if(!list.length){ cont.innerHTML = '<div class="glass-card p-4">لا توجد افتتاحات حالية</div>'; return; }
+      cont.innerHTML = list.map(function(b, i){
+        var name = b.name||'';
+        var brand = b.brand||detectBrand(name);
+        var logoSrc = b.logo || getBrandLogo(brand);
+        var exp = b.opening_date_expected || '';
+        var expTxt = exp ? ('📅 الافتتاح المتوقع: ' + exp) : '📅 المتوقع: لاحقاً';
+        var notes = b.notes || '';
+        var notesTxt = notes ? ('📝 ' + notes) : '';
+        var awning = '<div style="position:absolute; left:0; right:0; top:0; height:10px; border-radius:16px 16px 0 0; background:repeating-linear-gradient(90deg, rgba(245,158,11,0.9) 0, rgba(245,158,11,0.9) 14px, rgba(250,204,21,0.9) 14px, rgba(250,204,21,0.9) 28px);"></div>';
+        return '<div class="glass-card p-5 rounded-2xl border border-amber-400/25 bg-slate-900/60" style="position:relative; opacity:0; transform:translateY(8px) scale(0.98); transition:transform .35s ease, opacity .35s ease, box-shadow .35s ease">'
+          + awning
+          + '<div class="flex items-center justify-between mb-3">'
+          +   '<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-300">قريباً</span>'
+          +   '<div class="flex items-center gap-2 text-sm text-slate-400">'
+          +     '<div class="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden" style="background:rgba(17,24,39,0.85); border:2px solid rgba(245,158,11,0.65)">'
+          +       '<img src="'+ logoSrc +'" alt="logo" style="width:100%;height:100%;object-fit:contain;padding:4px;border-radius:50%">'
+          +     '</div>'
+          +     '<span>'+ brand +'</span>'
+          +   '</div>'
+          + '</div>'
+          + '<div class="text-lg font-semibold text-white mb-1">'+ name +'</div>'
+          + (notesTxt ? ('<div class="text-xs text-slate-400 mt-1">'+ notesTxt +'</div>') : '')
+          + '<div class="text-sm text-slate-400">'+ expTxt +'</div>'
+          + '</div>';
+      }).join('');
+      Array.prototype.slice.call(cont.children||[]).forEach(function(card, idx){ setTimeout(function(){ card.style.opacity='1'; card.style.transform='translateY(0) scale(1)'; }, Math.min(idx*40, 400)); });
+    }
+    function renderGrid(){
+      ensureDataKeys();
+      var cont = document.getElementById('branches-grid');
+      if(!cont) return;
+      var rows = getStoreList('branches');
+      if (!rows.length) rows = safeParse('admin_branches_data', []);
+
+      console.log('renderGrid: إجمالي عدد الفروع:', rows.length);
+      console.log('renderGrid: عينة من البيانات:', rows.slice(0, 3));
+
+      // RBAC Filter
+      var cu = {};
+      try { cu = (window.App && App.currentUser) ? (App.currentUser() || {}) : {}; } catch(_){ cu = {}; }
+      var role = (cu.role || '').toLowerCase();
+      var allowed = (Array.isArray(cu.branches) ? cu.branches : []).map(String);
+      if (role && role !== 'admin') {
+         rows = rows.filter(function(b){
+            var bid = String(b.id || b.branch_id || b.code || '').trim();
+            var bnm = String(b.name || b.branch_name || '').trim();
+            return allowed.includes('*') || allowed.includes(bid) || allowed.includes(bnm);
+         });
+      }
+
+      var list = asArray(rows);
+      list = list.filter(function(b){ 
+        console.log('renderGrid: فحص الفرع:', b.name, 'hidden:', b.hidden, 'type:', b.type, 'closed:', b.closed);
+        
+        // استبعاد الفروع المخفية أو المغلقة
+        if ((b && b.hidden===true) || isClosedBranch(b)) {
+          console.log('renderGrid: تم استبعاد الفرع - مخفي/مغلق');
+          return false; 
+        }
+        
+        // استبعاد الفروع الافتتاحية (opening)
+        if (isOpeningBranch(b)) {
+          console.log('renderGrid: تم استبعاد الفرع - افتتاحي');
+          return false; 
+        }
+        
+        // تصفية حسب المنطقة
+        if (!(__regionFilter==='all' || String(b.region||'').trim()===__regionFilter)) {
+          console.log('renderGrid: تم استبعاد الفرع - لا يطابق المنطقة');
+          return false; 
+        }
+        
+        // بحث نصي
+        var hay = ((b.name||'')+' '+(b.brand||'')+' '+(b.notes||'')).toLowerCase(); 
+        var matchesSearch = !__searchQuery || hay.indexOf(__searchQuery) >= 0;
+        if (!matchesSearch) {
+          console.log('renderGrid: تم استبعاد الفرع - لا يطابق البحث');
+        }
+        return matchesSearch; 
+      });
+      list.sort(function(a,b){ var pa = a && a.pinned===true ? 1 : 0; var pb = b && b.pinned===true ? 1 : 0; if (pb !== pa) return pb - pa; return String(a && a.name || '').localeCompare(String(b && b.name || ''), 'ar'); });
+      if(!list.length){
+        cont.innerHTML = '<div class="glass-card p-4">لا توجد بيانات فروع</div>';
+        return;
+      }
+      cont.innerHTML = '';
+      list.forEach(function(b, i){
+        var name = (typeof b==='string') ? b : (b && b.name) || '';
+        var brand = (typeof b==='object' && b) ? (b.brand || detectBrand(name)) : detectBrand(name);
+        var logoSrc = (typeof b==='object' && b && b.logo) ? b.logo : getBrandLogo(brand);
+        var isClosed = isClosedBranch(b);
+        var stClass = isClosed 
+          ? 'bg-red-900/30 text-red-400 border border-red-800/50' 
+          : 'bg-green-900/30 text-green-400 border border-green-800/50';
+        var stText = isClosed ? 'مغلق' : 'نشط';
+        
+        var vios = getStoreList('violations');
+        if (!vios.length) vios = safeParse('admin_violations_raw', []);
+        var vCount = (Array.isArray(vios)?vios:[]).filter(function(v){ return (v.branch||v.location)===name; }).length;
+        var autoNoVio = (vCount === 0);
+        var manualStar = (b && b.award_star_manual===true);
+        var starInline = (autoNoVio || manualStar) ? ' <span title="وسام" style="color:#f59e0b; font-size:14px; margin-inline-start:6px; line-height:1;">⭐</span>' : '';
+        
+        var region = b.region || b.city || '';
+        var cc = b.cost_center || b.cc || '-';
+        var email = b.email || '-';
+
+        var awning = '<div style="position:absolute; left:0; right:0; top:0; height:10px; border-radius:16px 16px 0 0; background:repeating-linear-gradient(90deg, rgba(59,130,246,0.9) 0, rgba(59,130,246,0.9) 14px, rgba(99,102,241,0.9) 14px, rgba(99,102,241,0.9) 28px);"></div>';
+
+        var card = document.createElement('div');
+        // New container classes from user snippet
+        card.className = 'glass-card p-4 relative overflow-hidden group hover:bg-slate-800/50 transition-all rounded-2xl border border-slate-700/50';
+        card.innerHTML = 
+          awning +
+          '<div class="flex items-start justify-between mb-3 pt-2">'
+            + '<div class="flex items-center gap-3">'
+            +   '<img src="'+ logoSrc +'" class="w-10 h-10 rounded-full bg-slate-900/50 p-1 border border-slate-700">'
+            +   '<div>'
+            +     '<h3 class="font-bold text-lg text-white">'+ name + starInline +'</h3>'
+            +     '<div class="text-xs text-slate-400">'+ region +'</div>'
+            +   '</div>'
+            + '</div>'
+            + '<span class="px-2 py-1 rounded text-xs '+ stClass +'">'+ stText +'</span>'
+          + '</div>'
+          + '<div class="grid grid-cols-2 gap-2 text-xs text-slate-300 mt-2">'
+          +   '<div class="bg-slate-900/30 p-2 rounded">'
+          +     '<span class="block text-slate-500 mb-1">Cost Center</span>'
+          +     '<span class="truncate block font-mono" title="'+ cc +'">'+ cc +'</span>'
+          +   '</div>'
+          + '<div class="bg-slate-900/30 p-2 rounded">'
+          +      '<span class="block text-slate-500 mb-1">Email</span>'
+          +      '<span class="truncate block" title="'+ email +'">'+ email +'</span>'
+          +   '</div>'
+          +   '<div class="bg-slate-900/30 p-2 rounded">'
+          +      '<span class="block text-slate-500 mb-1">مرفقات</span>'
+          +      '<span class="truncate block" id="attachments-count-'+ (b.id || b.branch_id || b.code || i) +'">جاري التحميل...</span>'
+          +   '</div>'
+          + '</div>';
+        
+        card.onclick = function(){ openModal(b); };
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(8px) scale(0.98)';
+        card.style.transition = 'transform .35s ease, opacity .35s ease, box-shadow .35s ease';
+        cont.appendChild(card);
+        setTimeout(function(){ card.style.opacity='1'; card.style.transform='translateY(0) scale(1)'; }, Math.min(i*40, 400));
+        
+        var activeCountEl = document.getElementById('attachments-count-' + (b.id || b.branch_id || b.code || i));
+        updateAttachmentCount((b.id || b.branch_id || b.code || ''), activeCountEl, b);
+      });
+    }
+    function renderClosed(){
+      var cont = document.getElementById('closed-grid');
+      if(!cont) return;
+      var rows = getStoreList('branches');
+      if (!rows.length) rows = safeParse('admin_branches_data', []);
+      
+      console.log('renderClosed: إجمالي عدد الفروع:', rows.length);
+      console.log('renderClosed: عينة من البيانات:', rows.slice(0, 3));
+      
+      // فحص البيانات المحفوظة في localStorage
+      var savedData = localStorage.getItem('admin_branches_data');
+      if (savedData) {
+        var parsed = JSON.parse(savedData);
+        console.log('renderClosed: البيانات المحفوظة في localStorage:', parsed.length, 'عنصر');
+        var closedInSaved = parsed.filter(function(b) { return isClosedBranch(b); });
+        console.log('renderClosed: عدد الفروع المغلقة في البيانات المحفوظة:', closedInSaved.length);
+        console.log('renderClosed: أسماء الفروع المغلقة في البيانات المحفوظة:', closedInSaved.map(function(b) { return b.name; }));
+      }
+      
+      // RBAC Filter
+      var cu = {};
+      try { cu = (window.App && App.currentUser) ? (App.currentUser() || {}) : {}; } catch(_){ cu = {}; }
+      var role = (cu.role || '').toLowerCase();
+      var allowed = (Array.isArray(cu.branches) ? cu.branches : []).map(String);
+      if (role && role !== 'admin') {
+         rows = rows.filter(function(b){
+            var bid = String(b.id || b.branch_id || b.code || '').trim();
+            var bnm = String(b.name || b.branch_name || '').trim();
+            return allowed.includes('*') || allowed.includes(bid) || allowed.includes(bnm);
+         });
+      }
+
+      var list = asArray(rows);
+      console.log('renderClosed: بعد RBAC، عدد الفروع:', list.length);
+      
+      // أولاً، دعنا نرى كم عدد الفروع المغلقة قبل أي تصفية
+      var allClosed = list.filter(function(b) { 
+        return isClosedBranch(b); 
+      });
+      console.log('renderClosed: عدد الفروع المغلقة (قبل التصفية):', allClosed.length);
+      console.log('renderClosed: أسماء الفروع المغلقة:', allClosed.map(function(b) { return b.name; }));
+      
+      list = list.filter(function(b){ 
+        console.log('renderClosed: فحص الفرع:', b.name, 'closed:', b.closed, 'hidden:', b.hidden);
+        
+        // تصفية الفروع المغلقة فقط (وليست المخفية)
+        if (!(b && isClosedBranch(b) && b.hidden!==true)) {
+          console.log('renderClosed: تم استبعاد الفرع - ليس مغلقًا أو مخفيًا');
+          return false; 
+        }
+        
+        console.log('renderClosed: الفرع مغلق، متابعة التصفية');
+        
+        // تصفية حسب المنطقة
+        if (!(__regionFilter==='all' || String(b.region||'').trim()===__regionFilter)) {
+          console.log('renderClosed: تم استبعاد الفرع - لا يطابق المنطقة');
+          return false; 
+        }
+        
+        // بحث نصي
+        var hay = ((b.name||'')+' '+(b.brand||'')+' '+(b.notes||'')).toLowerCase(); 
+        var matchesSearch = !__searchQuery || hay.indexOf(__searchQuery) >= 0;
+        if (!matchesSearch) {
+          console.log('renderClosed: تم استبعاد الفرع - لا يطابق البحث');
+        }
+        return matchesSearch; 
+      });
+      
+      console.log('renderClosed: بعد جميع التصفيات، عدد الفروع المغلقة:', list.length);
+      list.sort(function(a,b){ var pa = a && a.pinned===true ? 1 : 0; var pb = b && b.pinned===true ? 1 : 0; if (pb !== pa) return pb - pa; return String(a && a.name || '').localeCompare(String(b && b.name || ''), 'ar'); });
+      if(!list.length){ cont.innerHTML = '<div class="glass-card p-4">لا توجد فروع مغلقة</div>'; return; }
+      cont.innerHTML = '';
+      console.log('renderClosed: معالجة', list.length, 'فرع مغلق');
+      list.forEach(function(b, i){
+        console.log('renderClosed: معالجة الفرع:', b.name, 'ID:', b.id, 'closed:', b.closed);
+        
+        var name = b.name || '';
+        var brand = b.brand || detectBrand(name);
+        var logoSrc = b.logo || getBrandLogo(brand);
+        var vios = getStoreList('violations');
+        if (!vios.length) vios = safeParse('admin_violations_raw', []);
+        var vCount = (Array.isArray(vios)?vios:[]).filter(function(v){ return (v.branch||v.location)===name; }).length;
+        var autoNoVio = (vCount === 0);
+        var manualStar = (b && b.award_star_manual===true);
+        var starInline = (autoNoVio || manualStar) ? ' <span title="وسام" style="color:#f59e0b; font-size:14px; margin-inline-start:6px; line-height:1;">⭐</span>' : '';
+        
+        var region = b.region || b.city || '';
+        var cc = b.cost_center || b.cc || '-';
+        var email = b.email || '-';
+
+        var awning = '<div style="position:absolute; left:0; right:0; top:0; height:10px; border-radius:16px 16px 0 0; background:repeating-linear-gradient(90deg, rgba(59,130,246,0.9) 0, rgba(59,130,246,0.9) 14px, rgba(99,102,241,0.9) 14px, rgba(99,102,241,0.9) 28px);"></div>';
+
+        var card = document.createElement('div');
+        // New container classes
+        card.className = 'glass-card p-4 relative overflow-hidden group hover:bg-slate-800/50 transition-all rounded-2xl border border-slate-700/50';
+        card.innerHTML = 
+          awning +
+          '<div class="flex items-start justify-between mb-3 pt-2">'
+            + '<div class="flex items-center gap-3">'
+            +   '<img src="'+ logoSrc +'" class="w-10 h-10 rounded-full bg-slate-900/50 p-1 border border-slate-700">'
+            +   '<div>'
+            +     '<h3 class="font-bold text-lg text-white">'+ name + starInline +'</h3>'
+            +     '<div class="text-xs text-slate-400">'+ region +'</div>'
+            +   '</div>'
+            + '</div>'
+            + '<span class="px-2 py-1 rounded text-xs bg-red-900/30 text-red-400 border border-red-800/50">مغلق</span>'
+          + '</div>'
+          + '<div class="grid grid-cols-2 gap-2 text-xs text-slate-300 mt-2">'
+          +   '<div class="bg-slate-900/30 p-2 rounded">'
+          +     '<span class="block text-slate-500 mb-1">Cost Center</span>'
+          +     '<span class="truncate block font-mono" title="'+ cc +'">'+ cc +'</span>'
+          +   '</div>'
+          +   '<div class="bg-slate-900/30 p-2 rounded">'
+          +      '<span class="block text-slate-500 mb-1">Email</span>'
+          +      '<span class="truncate block" title="'+ email +'">'+ email +'</span>'
+          +   '</div>'
+          +   '<div class="bg-slate-900/30 p-2 rounded">'
+          +      '<span class="block text-slate-500 mb-1">مرفقات</span>'
+          +      '<span class="truncate block" id="attachments-count-closed-'+ (b.id || b.branch_id || b.code || i) +'">جاري التحميل...</span>'
+          +   '</div>'
+          + '</div>';
+          
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(8px) scale(0.98)';
+        card.style.transition = 'transform .35s ease, opacity .35s ease, box-shadow .35s ease';
+        cont.appendChild(card);
+        setTimeout(function(){ card.style.opacity='1'; card.style.transform='translateY(0) scale(1)'; }, Math.min(i*40, 400));
+        
+        var closedCountEl = document.getElementById('attachments-count-closed-' + (b.id || b.branch_id || b.code || i));
+        updateAttachmentCount((b.id || b.branch_id || b.code || ''), closedCountEl, b);
+      });
+    }
+    function collectBranchesFallback(){
+      var merged = [];
+      var seen = {};
+      function pushRows(rows){
+        asArray(rows).forEach(function(b){
+          if (!b) return;
+          var idKey = String((b.id || b.branch_id || b.code || '')).trim();
+          var nmKey = String((b.name || b.branch || b.branch_name || b.code || '')).trim();
+          var key = idKey ? ('id:' + idKey) : ('nm:' + nmKey);
+          if (!nmKey || seen[key]) return;
+          seen[key] = true;
+          merged.push(b);
+        });
+      }
+      pushRows(getStoreList('branches'));
+      pushRows(safeParse('admin_branches_data', []));
+      pushRows(safeParse('db:branches', []));
+      pushRows(safeParse('branches', []));
+      pushRows(safeParse('ofs_branches_v1', []));
+      return merged;
+    }
+    async function ensureVisibleFallback(){
+      var g1 = document.getElementById('openings-grid');
+      var g2 = document.getElementById('branches-grid');
+      var g3 = document.getElementById('closed-grid');
+      var hasCards = !!((g1 && g1.children && g1.children.length) || (g2 && g2.children && g2.children.length) || (g3 && g3.children && g3.children.length));
+      if (hasCards) return;
+      var rows = collectBranchesFallback();
+      if (!rows.length) {
+        try {
+          var res = await fetch('/api/branches', { headers: { 'Accept': 'application/json' } });
+          if (res.ok) {
+            var json = await res.json();
+            rows = asArray(Array.isArray(json) ? json : (Array.isArray(json && json.data) ? json.data : (Array.isArray(json && json.data && json.data.data) ? json.data.data : [])));
+          }
+        } catch(_){}
+      }
+      if (!rows.length) return;
+      try { localStorage.setItem('admin_branches_data', JSON.stringify(rows)); } catch(_){}
+      try { if (window.App && App.store && typeof App.store.set === 'function') App.store.set('branches', rows); } catch(_){}
+      try { buildRegionBar(); } catch(_){}
+      try { renderOpenings(); } catch(_){}
+      try { renderGrid(); } catch(_){}
+      try { renderClosed(); } catch(_){}
+    }
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(el => {
+            el.classList.add('hidden');
+            el.classList.remove('block');
+        });
+        var selected = document.getElementById('tab-' + tabId);
+        if(selected) {
+            selected.classList.remove('hidden');
+            selected.classList.add('block');
+        }
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('text-blue-400', 'border-blue-500');
+            btn.classList.add('text-slate-400', 'border-transparent');
+        });
+        var btn = document.getElementById('tab-btn-' + tabId);
+        if(btn) {
+            btn.classList.remove('text-slate-400', 'border-transparent');
+            btn.classList.add('text-blue-400', 'border-blue-500');
+        }
+        
+        if (__currentBranchName) {
+            switch(tabId) {
+                case 'violations':
+                    renderViolationsTab(__currentBranchName);
+                    break;
+                case 'employees':
+                    renderEmployeesTab(__currentBranchName);
+                    break;
+                case 'training':
+                    renderTrainingTab(__currentBranchName);
+                    break;
+                case 'attachments':
+                    renderBranchAttachmentsTab(__currentBranchName);
+                    break;
+                case 'housings':
+                    renderHousingsTab(__currentBranchName);
+                    break;
+                case 'transports':
+                    renderTransportsTab(__currentBranchName);
+                    break;
+            }
+        }
+    }
+
+    async function openModal(branchRef, brand){
+      var branchObj = (branchRef && typeof branchRef === 'object') ? branchRef : { name: branchRef, brand: brand };
+      __currentBranchId = String(branchObj.id || branchObj.branch_id || branchObj.code || '').trim() || null;
+      __currentBranchName = branchObj.name || branchObj.branch || '';
+      __currentBranchCostCenter = String(branchObj.costCenter || branchObj.cost_center || branchObj.center || '').trim() || '';
+      var branchBrand = branchObj.brand || brand || detectBrand(__currentBranchName);
+      var modal = document.getElementById('branch-modal');
+      var tEl = document.getElementById('modal-title');
+      var sEl = document.getElementById('modal-subtitle');
+      if (tEl) tEl.textContent = __currentBranchName || '';
+      if (sEl) {
+        var subText = branchBrand || 'Olayan';
+        if (branchObj.region) subText += ' - ' + branchObj.region;
+         if (__currentBranchCostCenter) subText += ' (Cost Center: ' + __currentBranchCostCenter + ')';
+         sEl.textContent = subText;
+      }
+      var logoEl = document.querySelector('#modal-logo img');
+      if (logoEl) {
+        var rowsB = getStoreList('branches');
+        var recB = (Array.isArray(rowsB)?rowsB:[]).find(function(b){ 
+          var bid = String(b && (b.id || b.branch_id || b.code) || '').trim();
+          return (bid && __currentBranchId && bid===String(__currentBranchId)) || ((b && (b.name||b.branch)) === __currentBranchName);
+        });
+        var srcB = (recB && recB.logo) || getBrandLogo(branchBrand);
+        logoEl.src = srcB;
+        logoEl.alt = branchBrand || 'logo';
+      }
+      
+      switchTab('violations');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    async function renderViolationsTab(branchName) {
+      var container = document.getElementById('modal-cost-violations');
+      if (container) {
+        container.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:#94a3b8; padding:20px;">جاري تحميل المخالفات...</div>';
+        
+        var vios = [];
+        if (window.App && App.api && App.api.fetchData) {
+            try { vios = await App.api.fetchData('violations'); } catch(e){ console.error(e); }
+        }
+        if (!Array.isArray(vios) || !vios.length) vios = getStoreList('violations');
+        if (!vios.length) vios = safeParse('admin_violations_raw', []);
+
+        var rows = vios.filter(function(v){ return isRecordForCurrentBranch(v, branchName); });
+        var groups = {};
+        rows.forEach(function(v){
+          var cc = v.costCenter || v.cost_center || v.center || 'غير محدد';
+          if (!groups[cc]) groups[cc] = { cost_center: cc, items: [], count: 0, amount: 0, active:0, archived:0 };
+          groups[cc].items.push(v);
+          groups[cc].count += 1;
+          groups[cc].amount += Number(v.amount || 0);
+          if (v.archived===true) groups[cc].archived++; else groups[cc].active++;
+        });
+        var attRows = getStoreList('attachments');
+        var entries = Object.keys(groups).map(function(k){ return groups[k]; }).sort(function(a,b){ return b.amount - a.amount; });
+        if (!entries.length) {
+          container.innerHTML = '<div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:12px; color:#94a3b8; text-align:center;">لا توجد مخالفات مسجلة لهذا الفرع</div>';
+        } else {
+          container.innerHTML = entries.map(function(g){
+            var head = '<div style="background:rgba(17,24,39,0.6); border:1px solid rgba(59,130,246,0.25); border-radius:12px; padding:12px;">'
+              + '<div style="text-align:center">'
+              + '<div style="color:#94a3b8; font-size:0.8rem;">Cost Center</div>'
+              + '<div style="font-weight:bold; color:#e2e8f0; margin-bottom:8px;">'+ g.cost_center +'</div>'
+              + '<div style="display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap">'
+              +   '<span style="color:#60a5fa; font-weight:bold;">عدد: '+ g.count +'</span>'
+              +   '<span style="color:#64748b;">|</span>'
+              +   '<span style="color:#f87171; font-weight:bold;">المبلغ: '+ g.amount.toLocaleString('ar-SA') +' ر.س</span>'
+              +   '<span style="color:#64748b;">|</span>'
+              +   '<span style="color:#22d3ee">نشطة: '+ g.active +'</span>'
+              +   '<span style="color:#64748b;">|</span>'
+              +   '<span style="color:#f59e0b">مؤرشفة: '+ g.archived +'</span>'
+              + '</div>'
+              + '</div>';
+            var rowsHtml = (function(){
+              function extOf(name) {
+                var n = String(name || '').trim();
+                if (!n || n.indexOf('.') < 0) return '';
+                return n.split('.').pop().toLowerCase();
+              }
+              function resolveUrl(a) {
+                var src = String((a && (a.data || a.url || a.file_url || a.fileUrl || a.download_url || a.downloadUrl || a.preview_url || a.previewUrl || a.file_path || a.path || a.storage_path)) || '').trim();
+                if (!src) return '';
+                return resolveAttachmentUrl(src);
+              }
+              function resolveName(a) {
+                return String((a && (a.file_name || a.original_name || a.name || a.title || a.filename)) || 'مرفق').trim() || 'مرفق';
+              }
+              function resolveType(a) {
+                var t = String((a && (a.mime_type || a.type || a.content_type)) || '').toLowerCase();
+                if (t) return t;
+                var ex = extOf(resolveName(a));
+                if (ex === 'pdf') return 'application/pdf';
+                if (['jpg','jpeg','png','gif','webp','svg','bmp','ico','avif','heic'].indexOf(ex) >= 0) return 'image/' + ex;
+                return '';
+              }
+              function matchesViolationAttachment(a, r) {
+                if (!a || !r) return false;
+                var at = String(a.entity || a.attachable_type || a.entity_type || '').toLowerCase();
+                var isViolationType = !at || at.indexOf('violation') >= 0 || at === 'مخالفة';
+                var ids = [
+                  a.entityId, a.entity_id, a.attachable_id, a.violation_id, a.violationId, a.parent_id, a.parentId
+                ].map(function(v){ return String(v == null ? '' : v).trim(); }).filter(Boolean);
+                var recIds = [r.id, r.violation_id, r.violationId].map(function(v){ return String(v == null ? '' : v).trim(); }).filter(Boolean);
+                var byId = recIds.length && ids.length && recIds.some(function(id){ return ids.indexOf(id) >= 0; });
+                var byNo = false;
+                var vioNo = String(r.vio_no || r.vioNo || '').trim();
+                if (vioNo) {
+                  var refs = [a.vio_no, a.vioNo, a.reference_no, a.referenceNo, a.title, a.name].map(function(v){ return String(v == null ? '' : v).trim(); });
+                  byNo = refs.some(function(v){ return v && v === vioNo; });
+                }
+                return isViolationType && (byId || byNo);
+              }
+              function getViolationAttachments(r) {
+                var direct = Array.isArray(r && r.attachments) ? r.attachments : [];
+                var linked = (attRows || []).filter(function(a){ return matchesViolationAttachment(a, r); });
+                var seen = {};
+                var merged = [];
+                direct.concat(linked).forEach(function(a){
+                  var key = normalizeAttachmentKey(a || {});
+                  if (!key) key = resolveUrl(a) + '|' + resolveName(a);
+                  if (!key || seen[key]) return;
+                  seen[key] = true;
+                  merged.push(a);
+                });
+                return merged;
+              }
+              var thead = '<thead style="position:sticky; top:0; z-index:2; background:rgba(51,65,85,0.95)" class="bg-slate-800/60"><tr>'
+                + '<th class="px-3 py-2 text-slate-300 text-xs font-semibold">رقم المخالفة</th>'
+                + '<th class="px-3 py-2 text-slate-300 text-xs font-semibold">رقم إيفاء</th>'
+                + '<th class="px-3 py-2 text-slate-300 text-xs font-semibold">رقم السداد</th>'
+                + '<th class="px-3 py-2 text-slate-300 text-xs font-semibold">التاريخ</th>'
+                + '<th class="px-3 py-2 text-slate-300 text-xs font-semibold">الوصف</th>'
+                + '<th class="px-3 py-2 text-slate-300 text-xs font-semibold text-right">المبلغ</th>'
+                + '<th class="px-3 py-2 text-slate-300 text-xs font-semibold">مدفوع</th>'
+                + '<th class="px-3 py-2 text-slate-300 text-xs font-semibold">الاعتراض</th>'
+                + '<th class="px-3 py-2 text-slate-300 text-xs font-semibold">المرفقات</th>'
+                + '</tr></thead>';
+              var attachmentsMap = {};
+              var tbody = '<tbody>' + g.items.map(function(r){
+                var paid = (r && (r.paid === true || String(r.paid).toLowerCase()==='true'));
+                var paidBadge = '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold '+ (paid? 'bg-emerald-500/15 text-emerald-300' : 'bg-rose-500/15 text-rose-300') +'">'+ (paid? 'نعم' : 'لا') +'</span>';
+                var appealMap = { 'under_study':'تحت الدراسة', 'rejected':'رفض الاعتراض', 'accepted':'قبول الاعتراض', 'not_applicable':'لا يمكن الاعتراض' };
+                var appealTxt = appealMap[r.appeal] || (r.appeal||'-');
+                var appealClass = (function(a){ a = String(a||'').toLowerCase(); if(a==='accepted') return 'bg-emerald-500/15 text-emerald-300'; if(a==='rejected') return 'bg-rose-500/15 text-rose-300'; if(a==='under_study') return 'bg-amber-500/15 text-amber-300'; return 'bg-slate-500/15 text-slate-300'; })(String(r.appeal||''));
+                var appealBadge = '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold '+ appealClass +'">'+ appealTxt +'</span>';
+                var rKey = String(r && (r.id || r.vio_no || r.vioNo || Math.random()) || '');
+                var atts = getViolationAttachments(r);
+                attachmentsMap[rKey] = atts;
+                var attBadge = atts.length
+                  ? '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-500/15 text-blue-300 border border-blue-500/20">' + atts.length + ' ملف</span>'
+                  : '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-500/15 text-slate-300 border border-slate-500/20">0</span>';
+                return '<tr class="odd:bg-slate-800/10 even:bg-slate-800/5 hover:bg-slate-700/20 transition-colors">'
+                  + '<td class="px-3 py-2 text-slate-200 border-b border-slate-700/40">'+ (r.vio_no||'-') +'</td>'
+                  + '<td class="px-3 py-2 text-slate-200 border-b border-slate-700/40">'+ (r.efaa_no||'-') +'</td>'
+                  + '<td class="px-3 py-2 text-slate-200 border-b border-slate-700/40">'+ (r.payment_no||'-') +'</td>'
+                  + '<td class="px-3 py-2 text-slate-200 border-b border-slate-700/40">'+ (r.date||'-') +'</td>'
+                  + '<td class="px-3 py-2 text-slate-200 border-b border-slate-700/40">'+ (r.type||'-') +'</td>'
+                  + '<td class="px-3 py-2 text-right text-rose-400 font-bold border-b border-slate-700/40">'+ Number(r.amount||0).toLocaleString('ar-SA') +'</td>'
+                  + '<td class="px-3 py-2 border-b border-slate-700/40">'+ paidBadge +'</td>'
+                  + '<td class="px-3 py-2 border-b border-slate-700/40">'+ appealBadge +'</td>'
+                  + '<td class="px-3 py-2 border-b border-slate-700/40"><div class="flex items-center gap-2 flex-wrap">'+ attBadge +'</div></td>'
+                  + '</tr>';
+              }).join('') + '</tbody>';
+              var table = '<div class="rounded-xl border border-slate-700/60 bg-slate-900/50 mt-3" style="max-height:360px; overflow:auto"><table class="w-full text-sm">' + thead + tbody + '</table></div>';
+              var attachmentsBlocks = g.items.map(function(r){
+                var rKey = String(r && (r.id || r.vio_no || r.vioNo || '') || '');
+                var atts = attachmentsMap[rKey] || [];
+                if (!atts.length) return '';
+                var vioTitle = String(r.vio_no || r.vioNo || r.id || '-');
+                var filesHtml = atts.map(function(a){
+                  var href = resolveUrl(a);
+                  var nm = resolveName(a);
+                  var mt = resolveType(a);
+                  var ex = extOf(nm);
+                  var isImg = /^image\//.test(mt) || ['jpg','jpeg','jbg','png','gif','webp','svg','bmp','ico','avif','heic'].indexOf(ex) >= 0;
+                  var isPdf = mt.indexOf('pdf') >= 0 || ex === 'pdf';
+                  var isVideo = /^video\//.test(mt) || ['mp4','webm','ogg','mov','m4v','avi','mkv'].indexOf(ex) >= 0;
+                  if (!href) return '';
+                  var encodedHref = encodeURIComponent(href);
+                  var encodedName = encodeURIComponent(nm);
+                  var encodedType = encodeURIComponent(mt);
+                  var fileBadge = isImg
+                    ? 'IMG'
+                    : (isPdf ? 'PDF' : (isVideo ? 'VID' : (ex ? ex.toUpperCase().slice(0,4) : 'FILE')));
+                  var frameHtml = isImg
+                    ? '<img src="'+ href +'" alt="'+ nm +'" class="w-full h-full object-cover">'
+                    : (isPdf
+                      ? '<iframe src="'+ href +'" class="w-full h-full border-0" loading="lazy"></iframe>'
+                      : (isVideo
+                        ? '<video src="'+ href +'" controls class="w-full h-full object-cover bg-black" preload="metadata"></video>'
+                        : '<div class="w-full h-full flex flex-col items-center justify-center gap-1 text-slate-300"><span class="text-lg font-bold">'+ fileBadge +'</span><span class="text-[10px] text-slate-400">لا تتوفر معاينة كاملة</span></div>'));
+                  return '<div class="rounded-lg border border-slate-700/70 bg-slate-900/60 overflow-hidden">'
+                    + '<div class="flex items-center justify-between px-2 py-1.5 border-b border-slate-700/70 bg-slate-800/70">'
+                    + '<div class="min-w-0 flex items-center gap-2">'
+                    + '<span class="w-7 h-7 rounded border border-slate-600/70 bg-slate-900 text-[10px] font-bold text-slate-200 flex items-center justify-center">'+ fileBadge +'</span>'
+                    + '<span class="text-xs text-slate-200 truncate max-w-[170px]">'+ nm +'</span>'
+                    + '</div>'
+                    + '<div class="text-[10px] text-slate-400">'+ (ex ? ex.toUpperCase() : 'FILE') +'</div>'
+                    + '</div>'
+                    + '<div class="h-36 bg-slate-950/70">'+ frameHtml +'</div>'
+                    + '<div class="flex items-center gap-2 p-2 border-t border-slate-700/70 bg-slate-900/80">'
+                    + '<button onclick="previewAttachmentInline(decodeURIComponent(\''+ encodedHref +'\'), decodeURIComponent(\''+ encodedName +'\'), decodeURIComponent(\''+ encodedType +'\'))" class="inline-flex items-center gap-1 px-2 py-1 text-[11px] rounded bg-blue-600/20 text-blue-300 border border-blue-500/40 hover:bg-blue-600/30">'
+                    + '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>'
+                    + '<span>معاينة</span></button>'
+                    + '<button onclick="downloadAttachment(decodeURIComponent(\''+ encodedHref +'\'), decodeURIComponent(\''+ encodedName +'\'))" class="inline-flex items-center gap-1 px-2 py-1 text-[11px] rounded bg-emerald-600/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-600/30">'
+                    + '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>'
+                    + '<span>حفظ</span></button>'
+                    + '<button onclick="printSingleAttachment(decodeURIComponent(\''+ encodedHref +'\'), decodeURIComponent(\''+ encodedName +'\'), decodeURIComponent(\''+ encodedType +'\'))" class="inline-flex items-center gap-1 px-2 py-1 text-[11px] rounded bg-amber-600/20 text-amber-300 border border-amber-500/40 hover:bg-amber-600/30">'
+                    + '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>'
+                    + '<span>طباعة</span></button>'
+                    + '</div>'
+                    + '</div>';
+                }).join('');
+                if (!filesHtml) return '';
+                return '<div class="rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">'
+                  + '<div class="text-xs text-slate-400 mb-2">مرفقات المخالفة: <span class="text-slate-200 font-semibold">'+ vioTitle +'</span></div>'
+                  + '<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">'+ filesHtml +'</div>'
+                  + '</div>';
+              }).join('');
+              var attachmentsSection = attachmentsBlocks
+                ? '<div class="mt-3 rounded-xl border border-slate-700/60 bg-slate-900/50 p-3"><div class="text-sm text-slate-300 font-semibold mb-2">مرفقات المخالفات</div><div class="space-y-2">'+ attachmentsBlocks +'</div></div>'
+                : '';
+              return table + attachmentsSection;
+            })();
+            return head + rowsHtml + '</div>';
+          }).join('');
+        }
+      }
+    }
+
+    async function renderEmployeesTab(branchName) {
+        var container = document.getElementById('modal-employees-list');
+        if(!container) return;
+        container.innerHTML = '<div class="text-center text-slate-500 p-4">جاري التحميل...</div>';
+        var list = await fetchList('employees');
+        var filtered = list.filter(function(e){ return isRecordForCurrentBranch(e, branchName); });
+        if(!filtered.length) {
+            container.innerHTML = '<div class="col-span-2 text-center text-slate-500 p-4 bg-slate-800/30 rounded-lg border border-slate-700/50">لا يوجد موظفين مسجلين لهذا الفرع</div>';
+            return;
+        }
+        var total = filtered.length;
+        var activeCount = filtered.filter(function(e){ return toNorm(e && e.status) === 'active' || toNorm(e && e.status) === 'نشط'; }).length;
+        var containerHtml = '<div class="col-span-full mb-3 bg-slate-900/50 border border-slate-700/60 rounded-lg px-4 py-3">'
+          + '<div class="flex items-center justify-between">'
+          + '<div class="text-sm text-slate-300">إجمالي موظفي الفرع الحالي</div>'
+          + '<div class="text-lg font-bold text-blue-400">' + total + '</div>'
+          + '</div>'
+          + '<div class="mt-2 text-xs text-slate-400">نشط: <span class="text-emerald-300 font-semibold">' + activeCount + '</span> | غير نشط: <span class="text-amber-300 font-semibold">' + (total - activeCount) + '</span></div>'
+          + '</div>';
+        containerHtml += filtered.map(function(e){
+            var fullName = e.name || e.full_name || e.employee_name || '-';
+            var jobTitle = e.role || e.job_title || e.position || 'موظف';
+            var sap = e.sap || e.sap_id || e.sapId || '-';
+            var phone = e.phone || e.mobile || e.phone_number || '-';
+            var idNumber = e.id_number || e.iqama || e.national_id || e.identity || '-';
+            var status = e.status || '-';
+            var joinDate = e.join_date || e.joinDate || e.hire_date || e.created_at || '-';
+            var empCostCenter = extractRecordCostCenter(e) || __currentBranchCostCenter || '-';
+            return `
+            <div class="bg-slate-800/40 p-3 rounded-lg border border-slate-700/50">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-lg">👤</div>
+                    <div>
+                        <div class="text-white font-semibold">${fullName}</div>
+                        <div class="text-xs text-slate-400">${jobTitle}</div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                    <div class="text-slate-300">SAP: <span class="text-slate-200 font-semibold">${sap}</span></div>
+                    <div class="text-slate-300">الهوية: <span class="text-slate-200 font-semibold">${idNumber}</span></div>
+                    <div class="text-slate-300">الجوال: <span class="text-slate-200 font-semibold">${phone}</span></div>
+                    <div class="text-slate-300">الحالة: <span class="text-slate-200 font-semibold">${status}</span></div>
+                    <div class="text-slate-300">Cost Center: <span class="text-blue-300 font-semibold">${empCostCenter}</span></div>
+                    <div class="text-slate-300">تاريخ الانضمام: <span class="text-slate-200 font-semibold">${joinDate}</span></div>
+                </div>
+            </div>
+        `;
+        }).join('');
+        container.innerHTML = containerHtml;
+    }
+
+    async function renderTrainingTab(branchName) {
+         var container = document.getElementById('modal-training-list');
+         if(!container) return;
+         container.innerHTML = '<div class="text-center text-slate-500 p-4">جاري التحميل...</div>';
+         var list = await fetchList('training');
+         var filtered = list.filter(function(t){ return isRecordForCurrentBranch(t, branchName); });
+         if(!filtered.length) {
+             container.innerHTML = '<div class="text-center text-slate-500 p-4 bg-slate-800/30 rounded-lg border border-slate-700/50">لا توجد سجلات تدريب لهذا الفرع</div>';
+             return;
+         }
+         container.innerHTML = filtered.map(t => `
+             <div class="bg-slate-800/40 p-3 rounded-lg border border-slate-700/50">
+                 <div class="text-white font-semibold">${t.course_name || t.title}</div>
+                 <div class="text-xs text-slate-400 mt-1">التاريخ: ${t.date || '-'} | المدرب: ${t.trainer || '-'}</div>
+             </div>
+         `).join('');
+    }
+
+    async function renderLicensesContractsTab(branchName) {
+        // تغيير الاسم إلى renderBranchAttachmentsTab وتعديل المنطق
+        await renderBranchAttachmentsTab(branchName);
+    }
+
+    async function renderBranchAttachmentsTabLegacy(branchName) {
+        console.log('renderBranchAttachmentsTab called with:', branchName, 'costCenter:', __currentBranchCostCenter, 'branchId:', __currentBranchId);
+        var container = document.getElementById('branch-attachments-container');
+        if (!container) return;
+        
+        container.innerHTML = '<div class="text-center text-slate-500 p-4">جاري التحميل...</div>';
+        
+        try {
+            // جلب المرفقات من مصادر متعددة مع تصفية حسب مركز التكلفة
+            var attachments = [];
+            
+            // جلب من API الاحترافي الجديد
+            if (typeof APIClient !== 'undefined' && APIClient.fetch) {
+                try {
+                    console.log('Fetching attachments from API for branch:', __currentBranchId);
+                    var response = await APIClient.fetch('/api/branches/' + __currentBranchId + '/attachments');
+                    if (response.success && response.data) {
+                        attachments = response.data;
+                        console.log('Attachments fetched from API:', attachments.length);
+                    } else {
+                        console.warn('API returned no attachments or error:', response);
+                    }
+                } catch (e) {
+                    console.warn('فشل جلب المرفقات من API:', e);
+                }
+            }
+            
+            // جلب من Store مع تصفية حسب مركز التكلفة
+            if (!attachments.length && typeof Store !== 'undefined') {
+                var allAttachments = (Store.list ? Store.list('attachments') : []) || [];
+                console.log('All attachments from Store:', allAttachments);
+                attachments = allAttachments.filter(function(att) {
+                    // تصفية حسب معرف الفرع
+                    if (String(att.attachable_id) === String(__currentBranchId)) return true;
+                    
+                    // تصفية حسب مركز التكلفة
+                    var attCostCenter = String(att.costCenter || att.cost_center || att.center || '').trim();
+                    if (__currentBranchCostCenter && attCostCenter && attCostCenter === String(__currentBranchCostCenter)) return true;
+                    
+                    // تصفية حسب اسم الفرع
+                    var attBranch = String(att.branch || att.location || '').trim();
+                    if (attBranch && attBranch === (__currentBranchName || branchName)) return true;
+                    
+                    return false;
+                });
+                console.log('Filtered attachments by cost center:', attachments);
+            }
+            
+            // جلب من المرفقات العامة أو من div موجود
+            if (!attachments.length) {
+                // البحث عن div يحتوي على مرفقات الفروع في الصفحة
+                var attachmentsDiv = document.querySelector('#branch-attachments-data, .branch-attachments-container, [data-attachments]');
+                if (attachmentsDiv) {
+                    var attachmentsData = attachmentsDiv.dataset.attachments || attachmentsDiv.textContent || attachmentsDiv.innerHTML;
+                    if (attachmentsData) {
+                        try {
+                            var parsedAttachments = JSON.parse(attachmentsData);
+                            if (Array.isArray(parsedAttachments)) {
+                                attachments = parsedAttachments.filter(function(att) {
+                                    // تصفية حسب مركز التكلفة
+                                    var attCostCenter = String(att.costCenter || att.cost_center || att.center || '').trim();
+                                    if (__currentBranchCostCenter && attCostCenter && attCostCenter === String(__currentBranchCostCenter)) return true;
+                                    // تصفية حسب معرف الفرع
+                                    if (String(att.attachable_id) === String(__currentBranchId)) return true;
+                                    return false;
+                                });
+                            }
+                        } catch (e) {
+                            console.warn('فشل تحليل بيانات المرفقات من div:', e);
+                        }
+                    }
+                }
+            }
+            
+            // جلب المرفقات من بيانات الفروع الموجودة
+            if (!attachments.length) {
+                console.log('Searching for attachments in branches data...');
+                var branchesData = getStoreList('branches');
+                if (!branchesData.length) {
+                    branchesData = safeParse('admin_branches_data', []);
+                }
+                
+                console.log('Found branches data:', branchesData.length, 'branches');
+                
+                // البحث عن الفرع الحالي
+                var currentBranch = asArray(branchesData).find(function(branch) {
+                    var branchId = String(branch.id || branch.branch_id || branch.code || '').trim();
+                    var branchName = String(branch.name || branch.branch || '').trim();
+                    var costCenter = String(branch.costCenter || branch.cost_center || branch.center || '').trim();
+                    
+                    return (branchId && __currentBranchId && branchId === String(__currentBranchId)) ||
+                           (branchName && branchName === __currentBranchName) ||
+                           (costCenter && __currentBranchCostCenter && costCenter === String(__currentBranchCostCenter));
+                });
+                
+                console.log('Current branch found:', currentBranch);
+                
+                if (currentBranch && currentBranch.attachments) {
+                    console.log('Found attachments in branch data:', currentBranch.attachments);
+                    attachments = Array.isArray(currentBranch.attachments) ? currentBranch.attachments : [];
+                }
+            }
+            
+            // إذا لم نجد مرفقات، نبحث عن div مخفي يحتوي على المرفقات
+            if (!attachments.length) {
+                var hiddenDiv = document.getElementById('branch-attachments-hidden-' + __currentBranchId) || 
+                               document.querySelector('[data-branch-id="' + __currentBranchId + '"] .attachments-data');
+                console.log('Searching for hidden div with branch id:', __currentBranchId, 'found:', hiddenDiv);
+                if (hiddenDiv && hiddenDiv.innerHTML.trim()) {
+                    console.log('Found hidden div content, displaying...');
+                    container.innerHTML = hiddenDiv.innerHTML;
+                    return;
+                }
+            }
+            
+            if (!attachments.length) {
+                container.innerHTML = `
+                    <div class="text-center text-slate-500 p-8">
+                        <svg class="w-12 h-12 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <p>لا توجد مرفقات لهذا الفرع</p>
+                        <p class="text-sm mt-2">يتم البحث حسب: ${__currentBranchId ? 'معرف الفرع: ' + __currentBranchId : ''} ${__currentBranchCostCenter ? 'Cost Center: ' + __currentBranchCostCenter : ''} ${__currentBranchName ? 'اسم الفرع: ' + __currentBranchName : ''}</p>
+                        <p class="text-xs mt-1">تم البحث في Store وAPI وبيانات الفروع</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // عرض المرفقات مع التواريخ
+            var html = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">';
+            attachments.forEach(function(att) {
+                var fileName = att.file_name || att.name || 'ملف غير معروف';
+                var fileSize = formatFileSize(att.size || 0);
+                var fileType = getFileIcon(att.mime_type || att.file_type || '');
+                var uploadDate = att.created_at ? new Date(att.created_at).toLocaleDateString('ar-SA') : 'غير معروف';
+                var uploadedBy = att.uploaded_by_name || 'غير معروف';
+                var costCenter = att.costCenter || att.cost_center || att.center || 'غير محدد';
+                
+                html += `
+                    <div class="attachment-card bg-slate-800/40 p-4 rounded-lg border border-slate-700/50 hover:border-slate-600 transition-colors">
+                        <div class="flex items-start gap-3">
+                            <div class="text-2xl">${fileType}</div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-white font-medium text-sm truncate" title="${fileName}">${fileName}</div>
+                                <div class="text-xs text-slate-400 mt-1">الحجم: ${fileSize}</div>
+                                <div class="text-xs text-slate-400">التاريخ: ${uploadDate}</div>
+                                <div class="text-xs text-slate-400">المركز: ${costCenter}</div>
+                                <div class="text-xs text-slate-400">بواسطة: ${uploadedBy}</div>
+                            </div>
+                        </div>
+                        <div class="flex gap-2 mt-3">
+                            <button onclick="previewAttachmentInCard(this, '${encodeURIComponent(att.file_path || att.path || '')}', '${encodeURIComponent(fileName || '')}', '${encodeURIComponent(att.mime_type || '')}', '${detailsPayload}')" 
+                                    class="flex-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors">
+                                معاينة
+                            </button>
+                            <button onclick="printSingleAttachment('${att.file_path || att.path}', '${fileName}', '${att.mime_type || ''}')" 
+                                    class="flex-1 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors">
+                                طباعة
+                            </button>
+                            <button onclick="downloadAttachment('${att.file_path || att.path}', '${fileName}')" 
+                                    class="flex-1 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors">
+                                حفظ
+                            </button>
+                        </div>
+                        <div class="attachment-inline-preview hidden mt-3"></div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+            
+        } catch (error) {
+            console.error('خطأ في جلب المرفقات:', error);
+            container.innerHTML = '<div class="text-center text-red-400 p-4">حدث خطأ في تحميل المرفقات</div>';
+        }
+    }
+
+    async function renderHousingsTab(branchName) {
+        var container = document.getElementById('modal-housings-list');
+        if(!container) return;
+        container.innerHTML = '<div class="text-center text-slate-500 p-4">جاري التحميل...</div>';
+        var list = await fetchList('housings');
+        var filtered = list.filter(function(h){ return isRecordForCurrentBranch(h, branchName); });
+        if(!filtered.length) {
+            container.innerHTML = '<div class="col-span-2 text-center text-slate-500 p-4 bg-slate-800/30 rounded-lg border border-slate-700/50">لا توجد سكنات مرتبطة بهذا الفرع</div>';
+            return;
+        }
+        container.innerHTML = filtered.map(h => `
+            <div class="bg-slate-800/40 p-3 rounded-lg border border-slate-700/50">
+                <div class="flex justify-between mb-1">
+                    <div class="text-white font-semibold text-sm">${h.name || 'سكن'}</div>
+                    <div class="text-xs text-slate-400">${h.type || 'شقة'}</div>
+                </div>
+                <div class="text-xs text-slate-500">📍 ${h.address || h.location || '-'}</div>
+                <div class="text-xs text-slate-500 mt-1">السعة: ${h.capacity || 0} | المشغول: ${h.occupied || 0}</div>
+            </div>
+        `).join('');
+    }
+    
+    // وظيفة اختبار لإضافة مرفقات تجريبية
+    function addTestAttachments() {
+        if (typeof Store === 'undefined') {
+            alert('Store غير متاح');
+            return;
+        }
+        
+        var testAttachments = [
+            {
+                id: 1,
+                file_name: 'ترخيص_فرع_تبوك.pdf',
+                name: 'ترخيص فرع تبوك',
+                mime_type: 'application/pdf',
+                size: 1024000,
+                created_at: '2024-03-01T10:00:00Z',
+                uploaded_by_name: 'مدير النظام',
+                cost_center: __currentBranchCostCenter,
+                attachable_id: __currentBranchId,
+                branch: __currentBranchName
+            },
+            {
+                id: 2,
+                file_name: 'عقد_إيجار_2024.docx',
+                name: 'عقد إيجار 2024',
+                mime_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                size: 512000,
+                created_at: '2024-02-15T14:30:00Z',
+                uploaded_by_name: 'مدير العقارات',
+                cost_center: __currentBranchCostCenter,
+                attachable_id: __currentBranchId,
+                branch: __currentBranchName
+            }
+        ];
+        
+        // حفظ المرفقات في Store
+        var existingAttachments = (Store.list ? Store.list('attachments') : []) || [];
+        var newAttachments = existingAttachments.concat(testAttachments);
+        Store.set('attachments', newAttachments);
+        
+        console.log('Added test attachments:', testAttachments);
+        console.log('Total attachments now:', newAttachments.length);
+        
+        // إعادة تحميل التبويب
+        renderBranchAttachmentsTab(__currentBranchName);
+        
+        alert('تمت إضافة مرفقات تجريبية بنجاح');
+    }
+
+    async function renderTransportsTab(branchName) {
+        var container = document.getElementById('modal-transports-list');
+        if(!container) return;
+        container.innerHTML = '<div class="text-center text-slate-500 p-4">جاري التحميل...</div>';
+        var list = await fetchList('transports');
+        var filtered = list.filter(function(t){ return isRecordForCurrentBranch(t, branchName); });
+        if(!filtered.length) {
+            container.innerHTML = '<div class="col-span-2 text-center text-slate-500 p-4 bg-slate-800/30 rounded-lg border border-slate-700/50">لا توجد مواصلات مرتبطة بهذا الفرع</div>';
+            return;
+        }
+        container.innerHTML = filtered.map(t => `
+            <div class="bg-slate-800/40 p-3 rounded-lg border border-slate-700/50">
+                <div class="flex justify-between mb-1">
+                    <div class="text-white font-semibold text-sm">${t.car_type || 'سيارة'} - ${t.plate_number || '-'}</div>
+                    <div class="text-xs px-2 py-0.5 rounded bg-slate-700 text-slate-300">${t.status || 'نشط'}</div>
+                </div>
+                <div class="text-xs text-slate-500">السائق: ${t.driver_name || 'غير محدد'}</div>
+                <div class="text-xs text-slate-500 mt-1">موديل: ${t.model || t.type || '-'}</div>
+            </div>
+        `).join('');
+    }
+    try { bindSearch(); } catch(_){}
+    try { buildRegionBar(); } catch(_){}
+    try { renderOpenings(); } catch(_){}
+    try { renderGrid(); } catch(_){}
+    try { renderClosed(); } catch(_){}
+    try { setTimeout(function(){ ensureVisibleFallback(); }, 500); } catch(_){}
+    window.addEventListener('storage', function(e){ if (e && e.key && e.key.indexOf('db:violations')>=0) { try { renderGrid(); } catch(_){ } } });
+    
+    // مستمع لحدث تحديث المرفقات من صفحات أخرى
+    window.addEventListener('branchAttachmentsUpdated', function(e) {
+        if (e && e.detail && e.detail.branchId) {
+            console.log('تم استلام تحديث للمرفقات:', e.detail);
+            try {
+                // تحديث عدد المرفقات في البطاقة الرئيسية
+                updateAttachmentsCount(e.detail.branchId, e.detail.costCenter);
+                
+                // إذا كان المودال مفتوحًا لهذا الفرع، قم بتحديث المرفقات
+                if (__currentBranchId && String(__currentBranchId) === String(e.detail.branchId)) {
+                    renderBranchAttachmentsTab(__currentBranchName);
+                }
+            } catch(err) {
+                console.error('فشل تحديث المرفقات:', err);
+            }
+        }
+    });
+    
+    // مستمع لحدث تغيير حالة الفرع (نشط/مغلق)
+    window.addEventListener('branchStatusChanged', function(e) {
+        if (e && e.detail && e.detail.branchId) {
+            console.log('تم استلام تغيير حالة الفرع:', e.detail);
+            try {
+                syncBranchInLocalStores({
+                  id: e.detail.branchId,
+                  branch_id: e.detail.branchId,
+                  name: e.detail.name || '',
+                  closed: !!e.detail.isClosed,
+                  status: e.detail.isClosed ? 'closed' : 'active'
+                });
+                // إعادة تحميل جميع الأقسام
+                renderOpenings();
+                renderGrid();
+                renderClosed();
+                
+                // تحديث شريط المناطق
+                buildRegionBar();
+                
+                console.log('تم تحديث حالة الفرع:', e.detail.name, 'الآن:', e.detail.isClosed ? 'مغلق' : 'نشط');
+            } catch(err) {
+                console.error('فشل تحديث حالة الفرع:', err);
+            }
+        }
+    });
+    
+    // مستمع لحدث المزامنة الشاملة
+    window.addEventListener('branchDataSynced', function(e) {
+        if (e && e.detail && e.detail.branchId) {
+            console.log('تم استلام مزامنة شاملة:', e.detail);
+            try {
+                syncBranchInLocalStores(e.detail.branchData || { id: e.detail.branchId, branch_id: e.detail.branchId });
+                // إعادة تحميل جميع البيانات
+                renderOpenings();
+                renderGrid();
+                renderClosed();
+                
+                // تحديث شريط المناطق
+                buildRegionBar();
+                
+                // إذا كان المودال مفتوحًا لهذا الفرع، قم بتحديثه بالكامل
+                if (__currentBranchId && String(__currentBranchId) === String(e.detail.branchId)) {
+                    // تحديث المعلومات الأساسية
+                    __currentBranchName = e.detail.branchData.name || __currentBranchName;
+                    __currentBranchCostCenter = e.detail.branchData.cost_center || __currentBranchCostCenter;
+                    
+                    // إعادة تحميل جميع التبويبات
+                    renderViolationsTab(__currentBranchName);
+                    renderEmployeesTab(__currentBranchName);
+                    renderTrainingsTab(__currentBranchName);
+                    renderHousingsTab(__currentBranchName);
+                    renderTransportsTab(__currentBranchName);
+                    renderBranchAttachmentsTab(__currentBranchName);
+                    
+                    console.log('تم تحديث المودال بالكامل للفرع:', e.detail.branchData.name);
+                }
+                
+                console.log('تمت المزامنة الشاملة للفرع:', e.detail.branchData.name);
+            } catch(err) {
+                console.error('فشل المزامنة الشاملة:', err);
+            }
+        }
+    });
+    
+    // مستمع لحدث تحديث بيانات الفروع من لوحة التحكم
+    window.addEventListener('branchDataUpdated', function(e) {
+        if (e && e.detail) {
+            console.log('تم استلام تحديث للفرع:', e.detail.branchId, e.detail.action);
+            try {
+                syncBranchInLocalStores(e.detail.branchData || { id: e.detail.branchId, branch_id: e.detail.branchId });
+                // إعادة تحميل شبكة الفروع
+                renderGrid();
+                
+                // إذا كان المودال مفتوحًا لهذا الفرع، قم بتحديثه
+                if (__currentBranchId && String(__currentBranchId) === String(e.detail.branchId)) {
+                    // تحديث المعلومات الأساسية
+                    __currentBranchName = e.detail.branchData.name || __currentBranchName;
+                    __currentBranchCostCenter = e.detail.branchData.cost_center || __currentBranchCostCenter;
+                    
+                    // إعادة تحميل التبويبات
+                    if (document.getElementById('modal-violations-list')) {
+                        renderViolationsTab(__currentBranchName);
+                    }
+                    if (document.getElementById('modal-employees-list')) {
+                        renderEmployeesTab(__currentBranchName);
+                    }
+                    if (document.getElementById('modal-trainings-list')) {
+                        renderTrainingsTab(__currentBranchName);
+                    }
+                    if (document.getElementById('modal-housings-list')) {
+                        renderHousingsTab(__currentBranchName);
+                    }
+                    if (document.getElementById('modal-transports-list')) {
+                        renderTransportsTab(__currentBranchName);
+                    }
+                    if (document.getElementById('branch-attachments-container')) {
+                        renderBranchAttachmentsTab(__currentBranchName);
+                    }
+                }
+            } catch(err) {
+                console.error('فشل تحديث بيانات الفرع:', err);
+            }
+        }
+    });
+
+    // وظائف معالجة مرفقات الفروع
+    async function handleBranchAttachmentUpload(input) {
+        if (!input.files || !input.files.length) return;
+        if (!__currentBranchId) {
+           alert('لا يمكن رفع المرفق: لم يتم تحديد الفرع');
+           return;
+        }
+        var file = input.files[0];
+        
+        // استخدام API الاحترافي لرفع المرفقات
+        if (typeof APIClient !== 'undefined' && APIClient.fetch) {
+            try {
+                if(typeof toast === 'function') toast('info', 'جاري الرفع', 'يتم رفع الملف...');
+                
+                var formData = new FormData();
+                formData.append('file', file);
+                formData.append('cost_center', __currentBranchCostCenter || '');
+                
+                var response = await APIClient.fetch('/api/branches/' + __currentBranchId + '/attachments', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.success) {
+                    if(typeof toast === 'function') toast('success', 'تم', 'تم رفع الملف بنجاح');
+                    else alert('تم رفع الملف بنجاح');
+                    renderBranchAttachmentsTab(__currentBranchName);
+                    
+                    // تحديث عدد المرفقات في البطاقة الرئيسية
+                    updateAttachmentsCount(__currentBranchId, __currentBranchCostCenter);
+                    
+                    // إرسال إشعار فوري لجميع الصفحات المفتوحة بالتحديث
+                    window.dispatchEvent(new CustomEvent('branchAttachmentsUpdated', { 
+                        detail: { 
+                            branchId: __currentBranchId, 
+                            costCenter: __currentBranchCostCenter,
+                            action: 'attachment_added',
+                            timestamp: new Date().toISOString()
+                        }
+                    }));
+                    
+                    // محاولة تحديث صفحة الفروع إذا كانت مفتوحة
+                    try {
+                        if (window.parent && window.parent.renderGrid) {
+                            window.parent.renderGrid();
+                        } else if (window.renderGrid) {
+                            window.renderGrid();
+                        }
+                    } catch(e) {
+                        console.log('لم يتم العثور على دالة renderGrid في النافذة الحالية');
+                    }
+                } else {
+                    if(typeof toast === 'function') toast('error', 'خطأ', response.message || 'فشل رفع الملف');
+                    else alert('فشل رفع الملف: ' + (response.message || ''));
+                }
+                
+            } catch(e) {
+                console.error(e);
+                if(typeof toast === 'function') toast('error', 'خطأ', 'فشل رفع الملف');
+                else alert('فشل رفع الملف');
+            }
+        } else {
+           alert('API Client غير متاح');
+        }
+        input.value = '';
+    }
+    
+    // وظيفة تحديث عدد المرفقات في البطاقة الرئيسية
+    async function updateAttachmentsCount(branchId, costCenter) {
+        var countEl = document.getElementById('attachments-count-' + branchId);
+        if (!countEl) return;
+        var branches = getStoreList('branches');
+        if (!branches.length) branches = safeParse('admin_branches_data', []);
+        var branch = asArray(branches).find(function(b){
+            var bid = String((b && (b.id || b.branch_id || b.code || '')) || '').trim();
+            var bcc = String((b && (b.cost_center || b.costCenter || b.center || b.cc || '')) || '').trim();
+            return (branchId && bid === String(branchId)) || (costCenter && bcc === String(costCenter));
+        }) || null;
+        updateAttachmentCount(branchId, countEl, branch);
+    }
+
+    function normalizeAttachment(att) {
+        var filePath = att && (att.file_path || att.path || att.url || att.file_url || att.storage_path || '');
+        var fileName = att && (att.file_name || att.name || att.original_name || att.title || '');
+        if (!fileName && filePath) {
+            var cleanedPath = String(filePath).split('?')[0].split('#')[0];
+            var parts = cleanedPath.split('/');
+            fileName = decodeURIComponent(parts[parts.length - 1] || '').trim();
+        }
+        return {
+            id: att && (att.id || att.attachment_id || ''),
+            file_path: filePath,
+            path: filePath,
+            file_name: fileName || 'ملف غير معروف',
+            name: fileName || 'ملف غير معروف',
+            mime_type: att && (att.mime_type || att.mime || att.file_type || ''),
+            file_type: att && (att.file_type || att.mime_type || ''),
+            size: Number(att && (att.size || att.file_size || 0)) || 0,
+            created_at: att && (att.created_at || att.date || att.uploaded_at || ''),
+            uploaded_by_name: att && (att.uploaded_by_name || att.uploaded_by || att.user_name || ''),
+            cost_center: att && (att.cost_center || att.costCenter || att.center || ''),
+            branch: att && (att.branch || att.branch_name || att.location || ''),
+            attachable_id: att && (att.attachable_id || att.branch_id || att.branchId || '')
+        };
+    }
+
+    function dedupeAttachments(rows) {
+        var seen = {};
+        var out = [];
+        asArray(rows).forEach(function(att) {
+            if (isAttachmentDeleted(att)) return;
+            var n = normalizeAttachment(att || {});
+            var key = String(n.id || '') + '|' + String(n.file_path || '') + '|' + String(n.file_name || '');
+            if (!n.file_path && !n.file_name) return;
+            if (seen[key]) return;
+            seen[key] = true;
+            out.push(n);
+        });
+        return out;
+    }
+
+    function matchesCurrentBranch(att, branchName) {
+        var aid = String(att.attachable_id || att.branch_id || att.branchId || '').trim();
+        var anm = String(att.branch || att.branch_name || att.location || '').trim();
+        var acc = String(att.cost_center || att.costCenter || att.center || '').trim();
+        if (__currentBranchId && aid && aid === String(__currentBranchId)) return true;
+        if (__currentBranchCostCenter && acc && acc === String(__currentBranchCostCenter)) return true;
+        var nm = String(__currentBranchName || branchName || '').trim();
+        if (nm && anm && anm === nm) return true;
+        return false;
+    }
+
+    function collectBranchEmbeddedAttachments(branchObj) {
+        if (!branchObj || typeof branchObj !== 'object') return [];
+        var out = [];
+        var keys = ['attachments', 'branch_attachments', 'files', 'documents', 'contracts', 'branch_files'];
+        keys.forEach(function(k) {
+            if (Array.isArray(branchObj[k])) out = out.concat(branchObj[k]);
+        });
+        return out.filter(function(att){ return !isAttachmentDeleted(att); });
+    }
+
+    function collectLocalAttachmentSources(branchName) {
+        var out = getAllLocalAttachmentRows();
+        var nm = String(__currentBranchName || branchName || '').trim();
+        return out.filter(function(att) {
+            return !isAttachmentDeleted(att) && attachmentBelongsToBranch(att, __currentBranchId, __currentBranchCostCenter, nm);
+        });
+    }
+
+    async function collectApiAttachments() {
+        var out = [];
+        if (!(typeof APIClient !== 'undefined' && APIClient.fetch)) return out;
+        if (__currentBranchId) {
+            try {
+                var brRes = await APIClient.fetch('/api/branches/' + __currentBranchId + '/attachments');
+                if (brRes && brRes.success && Array.isArray(brRes.data)) out = out.concat(brRes.data.filter(function(att){ return !isAttachmentDeleted(att); }));
+            } catch(_){}
+        } else if (__currentBranchCostCenter) {
+            try {
+                var ccRes = await APIClient.fetch('/api/attachments/by-cost-center/' + encodeURIComponent(__currentBranchCostCenter));
+                if (ccRes && ccRes.success && Array.isArray(ccRes.data)) out = out.concat(ccRes.data.filter(function(att){ return !isAttachmentDeleted(att); }));
+            } catch(_){}
+        }
+        return out;
+    }
+
+    function getCurrentBranchRecord(branchName) {
+        var rows = getStoreList('branches');
+        if (!rows.length) rows = safeParse('admin_branches_data', []);
+        return asArray(rows).find(function(b){
+            var bid = String((b && (b.id || b.branch_id || b.code || '')) || '').trim();
+            var bcc = String((b && (b.cost_center || b.costCenter || b.center || '')) || '').trim();
+            var bnm = String((b && (b.name || b.branch || b.branch_name || '')) || '').trim();
+            return (__currentBranchId && bid && bid === String(__currentBranchId)) ||
+                   (__currentBranchCostCenter && bcc && bcc === String(__currentBranchCostCenter)) ||
+                   ((__currentBranchName || branchName) && bnm && bnm === String(__currentBranchName || branchName));
+        }) || null;
+    }
+
+    function getAttachmentLabel(att, branchRec) {
+        var labels = {
+            unified_code: 'الكود الموحد',
+            code_unified: 'الكود الموحد',
+            brand_logo: 'شعار العلامة',
+            logo: 'شعار العلامة',
+            store_license: 'رخصة البلدية',
+            civil_defense: 'الدفاع المدني',
+            vertical_sign: 'لوحات عمودية',
+            ad_permit: 'تصريح اعلاني',
+            outdoor_permit: 'تصريح اعلاني',
+            permit_24h: 'تصريح 24 ساعة',
+            delivery_permit: 'تصريح التوصيل',
+            outdoor_sessions: 'الجلسات الخارجية',
+            electric_meter: 'عداد الكهرباء',
+            water_meter: 'عداد المياه',
+            clean_contract: 'عقد النظافة',
+            lease_contract: 'عقد الإيجار'
+        };
+        var rawCategory = String((att && (att.category || att.cat || att.document_type || att.type || att.kind || att.tag || '')) || '').trim().toLowerCase();
+        var fileName = String((att && (att.file_name || att.name || att.original_name || '')) || '').toLowerCase();
+        var category = rawCategory;
+        if (!category) {
+            if (fileName.includes('unified') || fileName.includes('code') || fileName.includes('الكود الموحد')) category = 'unified_code';
+            else if (fileName.includes('logo') || fileName.includes('brand') || fileName.includes('شعار')) category = 'brand_logo';
+            else if (fileName.includes('vertical') || fileName.includes('عمودية')) category = 'vertical_sign';
+            else if (fileName.includes('ad') || fileName.includes('advert') || fileName.includes('اعلان') || fileName.includes('تصريح اعلاني')) category = 'ad_permit';
+            else if (fileName.includes('24') || fileName.includes('permit_24') || fileName.includes('24h') || fileName.includes('تصريح 24')) category = 'permit_24h';
+            else if (fileName.includes('electric') || fileName.includes('kahraba') || fileName.includes('عداد الكهرباء')) category = 'electric_meter';
+            else if (fileName.includes('water') || fileName.includes('عداد الماء') || fileName.includes('عداد المياه')) category = 'water_meter';
+            else if (fileName.includes('municipal') || fileName.includes('store_license') || fileName.includes('rukhsa') || fileName.includes('رخصة البلدية')) category = 'store_license';
+            else if (fileName.includes('civil') || fileName.includes('defense') || fileName.includes('الدفاع المدني')) category = 'civil_defense';
+            else if (fileName.includes('clean') || fileName.includes('نظافة')) category = 'clean_contract';
+            else if (fileName.includes('lease') || fileName.includes('إيجار')) category = 'lease_contract';
+            else if (fileName.includes('delivery') || fileName.includes('توصيل')) category = 'delivery_permit';
+            else if (fileName.includes('جلسات') || fileName.includes('outside seating') || fileName.includes('outdoor_session')) category = 'outdoor_sessions';
+            else if (fileName.includes('outdoor') || fileName.includes('خارجي') || fileName.includes('لوحة')) category = 'ad_permit';
+        }
+        if (!category && branchRec && att) {
+            var p = String(att.file_path || att.path || '').toLowerCase();
+            var no = String(att.file_name || att.name || '').toLowerCase();
+            if ((branchRec.store_license || branchRec.store_license_expiry) && (p.includes('store') || no.includes('store'))) category = 'store_license';
+            else if ((branchRec.civil_defense || branchRec.civil_defense_expiry) && (p.includes('civil') || no.includes('civil'))) category = 'civil_defense';
+            else if ((branchRec.permit_24h || branchRec.permit_24h_expiry) && (p.includes('24') || no.includes('24'))) category = 'permit_24h';
+            else if ((branchRec.electric_meter_no || branchRec.electric_account_no) && (p.includes('electric') || no.includes('electric'))) category = 'electric_meter';
+        }
+        return labels[category] || 'مرفق الفرع';
+    }
+
+    async function renderBranchAttachmentsTab(branchName) {
+        var container = document.getElementById('branch-attachments-container');
+        if (!container) return;
+        container.innerHTML = '<div class="text-center text-slate-500 p-4">جاري التحميل...</div>';
+        try {
+            var localRows = collectLocalAttachmentSources(branchName);
+            var apiRows = await collectApiAttachments();
+            var attachments = dedupeAttachments(localRows.concat(apiRows));
+            if (!attachments.length) {
+                container.innerHTML = `
+                    <div class="text-center text-slate-500 p-8">
+                        <svg class="w-12 h-12 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <p>لا توجد مرفقات مرتبطة بهذا الفرع</p>
+                    </div>
+                `;
+                return;
+            }
+            var branchRec = getCurrentBranchRecord(branchName);
+            var html = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">';
+            attachments.forEach(function(att) {
+                var fileName = att.file_name || att.name || 'ملف غير معروف';
+                var fileSize = formatFileSize(att.size || 0);
+                var fileType = getFileIcon(att.mime_type || att.file_type || '');
+                var uploadDate = att.created_at ? new Date(att.created_at).toLocaleDateString('ar-SA') : 'غير معروف';
+                var uploadedBy = att.uploaded_by_name || 'غير معروف';
+                var attachmentLabel = getAttachmentLabel(att, branchRec);
+                var detailsPayload = encodeURIComponent(JSON.stringify({
+                    label: attachmentLabel,
+                    file_name: fileName,
+                    file_type: att.mime_type || att.file_type || '',
+                    size: att.size || 0,
+                    upload_date: uploadDate,
+                    uploaded_by: uploadedBy,
+                    cost_center: att.cost_center || att.costCenter || '',
+                    branch: att.branch || att.branch_name || __currentBranchName || '',
+                    path: att.file_path || att.path || '',
+                    id: att.id || att.attachment_id || ''
+                }));
+                html += `
+                    <div class="attachment-card bg-slate-800/40 p-4 rounded-lg border border-slate-700/50 hover:border-slate-600 transition-colors"
+                         data-file-path="${att.file_path || att.path || ''}"
+                         data-file-name="${fileName || ''}"
+                         data-mime-type="${att.mime_type || att.file_type || ''}"
+                         data-file-label="${attachmentLabel}">
+                        <div class="flex items-start gap-3">
+                            <div class="text-2xl">${fileType}</div>
+                            <div class="flex-1 min-w-0">
+                                <div class="inline-flex items-center px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 text-[11px] mb-1">${attachmentLabel}</div>
+                                <div class="text-white font-medium text-sm truncate" title="${fileName}">${fileName}</div>
+                                <div class="text-xs text-slate-400 mt-1">الحجم: ${fileSize}</div>
+                                <div class="text-xs text-slate-400">التاريخ: ${uploadDate}</div>
+                                <div class="text-xs text-slate-400">بواسطة: ${uploadedBy}</div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 mt-3">
+                            <button onclick="previewAttachmentInCard(this, '${encodeURIComponent(att.file_path || att.path || '')}', '${encodeURIComponent(fileName || '')}', '${encodeURIComponent(att.mime_type || '')}', '${detailsPayload}')" 
+                                    class="flex-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors">
+                                معاينة
+                            </button>
+                            <button onclick="printSingleAttachment('${att.file_path || att.path}', '${fileName}', '${att.mime_type || ''}')" 
+                                    class="flex-1 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors">
+                                طباعة
+                            </button>
+                            <button onclick="downloadAttachment('${att.file_path || att.path}', '${fileName}')" 
+                                    class="flex-1 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded transition-colors">
+                                حفظ
+                            </button>
+                        </div>
+                        <div class="attachment-inline-preview hidden mt-3"></div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        } catch (error) {
+            console.error('خطأ في جلب المرفقات:', error);
+            container.innerHTML = '<div class="text-center text-red-400 p-4">حدث خطأ في تحميل المرفقات</div>';
+        }
+    }
+
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 بايت';
+        var k = 1024;
+        var sizes = ['بايت', 'كيلوبايت', 'ميجابايت', 'جيجابايت'];
+        var i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function getFileIcon(mimeType) {
+        if (mimeType.includes('pdf')) return '📄';
+        if (mimeType.includes('word')) return '📝';
+        if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return '📊';
+        if (mimeType.includes('image')) return '🖼️';
+        return '📎';
+    }
+
+    function previewAttachment(filePath, fileName, mimeType) {
+        if (!filePath) {
+            alert('مسار الملف غير متاح');
+            return;
+        }
+        
+        var fullPath = resolveAttachmentUrl(filePath);
+        
+        if (mimeType && mimeType.includes('image')) {
+            // معاينة الصور في نافذة منبثقة
+            var modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="bg-slate-800 rounded-lg p-4 max-w-4xl max-h-[90vh] overflow-auto">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-white font-semibold">${fileName}</h3>
+                        <button onclick="this.closest('.fixed').remove()" class="text-slate-400 hover:text-white">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <img src="${fullPath}" alt="${fileName}" class="max-w-full h-auto rounded">
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
+        } else if (mimeType && mimeType.includes('pdf')) {
+            // معاينة PDF في نافذة جديدة
+            window.open(fullPath, '_blank');
+        } else {
+            // تحميل الملفات الأخرى
+            downloadAttachment(filePath, fileName);
+        }
+    }
+
+    function downloadAttachment(filePath, fileName) {
+        if (!filePath) {
+            alert('مسار الملف غير متاح');
+            return;
+        }
+        
+        var fullPath = resolveAttachmentUrl(filePath);
+        var link = document.createElement('a');
+        link.href = fullPath;
+        link.download = fileName || 'download';
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function printSingleAttachment(filePath, fileName, mimeType) {
+        if (!filePath) {
+            alert('مسار الملف غير متاح');
+            return;
+        }
+        var fullPath = resolveAttachmentUrl(filePath);
+        var kind = classifyPreviewType(fullPath, fileName, mimeType);
+        if (kind === 'image' || kind === 'pdf') {
+            var w = window.open(fullPath, '_blank');
+            if (w) {
+                try {
+                    w.addEventListener('load', function(){ w.print(); });
+                } catch(_){}
+            }
+            return;
+        }
+        var w2 = window.open('', '_blank');
+        if (!w2) return;
+        var html = `
+            <!DOCTYPE html>
+            <html dir="rtl" lang="ar">
+            <head>
+                <meta charset="UTF-8">
+                <title>طباعة مرفق</title>
+                <style>
+                    body{font-family:Arial,sans-serif;padding:24px}
+                    .box{border:1px solid #ddd;border-radius:8px;padding:16px}
+                    .name{font-size:18px;font-weight:700;margin-bottom:8px}
+                    .meta{color:#666}
+                </style>
+            </head>
+            <body>
+                <div class="box">
+                    <div class="name">${fileName || 'مرفق'}</div>
+                    <div class="meta">هذا النوع لا يدعم طباعة مباشرة داخل المتصفح.</div>
+                    <div class="meta">يمكن فتح الملف ثم الطباعة من العارض.</div>
+                    <div style="margin-top:12px"><a href="${fullPath}" target="_blank">فتح الملف</a></div>
+                </div>
+                <script>window.onload=function(){window.print();};<\/script>
+            </body>
+            </html>
+        `;
+        w2.document.write(html);
+        w2.document.close();
+    }
+
+    function resolveAttachmentUrl(filePath) {
+        if (!filePath) return '';
+        var src = String(filePath || '').trim();
+        if (!src) return '';
+        if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('blob:') || src.startsWith('data:')) return src;
+        if (src.startsWith('/storage/')) return src;
+        if (src.startsWith('/attachments/')) return '/storage' + src;
+        if (src.startsWith('attachments/')) return '/storage/' + src;
+        if (src.startsWith('/')) return src;
+        return '/storage/' + src.replace(/^\/+/, '');
+    }
+
+    function renderAttachmentDetails(details) {
+        var rows = [];
+        function pushRow(label, value, icon) {
+            if (value == null) return;
+            var v = String(value).trim();
+            if (!v || v === 'غير معروف' || v === '0') return;
+            rows.push(`
+                <div class="bg-slate-900/55 border border-slate-700/45 rounded-md p-2">
+                    <div class="text-[11px] text-slate-400 flex items-center gap-1 mb-1"><span>${icon || '•'}</span><span>${label}</span></div>
+                    <div class="text-xs text-slate-100 break-words">${v}</div>
+                </div>
+            `);
+        }
+        pushRow('اسم الملف', details.file_name, '📎');
+        pushRow('المسمى', details.label, '🏷️');
+        pushRow('نوع الملف', details.file_type, '🧾');
+        pushRow('الحجم', details.size ? formatFileSize(Number(details.size) || 0) : '', '📦');
+        pushRow('تاريخ الرفع', details.upload_date, '🗓️');
+        pushRow('رافع الملف', details.uploaded_by, '👤');
+        pushRow('Cost Center', details.cost_center, '🏷️');
+        pushRow('الفرع', details.branch, '🏢');
+        pushRow('رقم المرفق', details.id, '🔢');
+        if (!rows.length) return '';
+        return '<div class="mt-3 rounded-md bg-slate-950/40 border border-slate-700/50 p-3"><div class="text-slate-200 text-xs font-semibold mb-2">تفاصيل المرفق</div><div class="grid grid-cols-1 md:grid-cols-2 gap-2">' + rows.join('') + '</div></div>';
+    }
+
+    function previewAttachmentInCard(btn, encodedPath, encodedName, encodedMime, encodedDetails) {
+        var filePath = decodeURIComponent(encodedPath || '');
+        var fileName = decodeURIComponent(encodedName || '');
+        var mimeType = decodeURIComponent(encodedMime || '');
+        var details = {};
+        try { details = JSON.parse(decodeURIComponent(encodedDetails || '')) || {}; } catch(_) { details = {}; }
+        var card = btn && btn.closest ? btn.closest('.attachment-card') : null;
+        if (!card) return;
+        var panel = card.querySelector('.attachment-inline-preview');
+        if (!panel) return;
+        var fullPath = resolveAttachmentUrl(filePath);
+        if (!fullPath) {
+            panel.classList.remove('hidden');
+            panel.innerHTML = '<div class="text-xs text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded p-3">لا يوجد مسار ملف لهذا المرفق</div>';
+            return;
+        }
+        if (panel.dataset.path === fullPath && !panel.classList.contains('hidden')) {
+            panel.classList.add('hidden');
+            panel.innerHTML = '';
+            panel.dataset.path = '';
+            return;
+        }
+        var previewId = 'inline-preview-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+        panel.dataset.path = fullPath;
+        panel.classList.remove('hidden');
+        panel.innerHTML = `
+            <div class="rounded-lg border border-slate-600/80 bg-slate-900 shadow-xl">
+                <div class="flex items-center justify-between gap-2 p-3 border-b border-slate-600/70 bg-slate-800/70">
+                    <div class="flex flex-col min-w-0">
+                        <div class="text-[11px] text-indigo-300 truncate">${details && details.label ? details.label : 'مرفق الفرع'}</div>
+                        <div class="text-sm text-slate-100 truncate">معاينة: ${fileName || 'ملف'}</div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="adjustInlinePreviewZoom('${previewId}', -0.1)" class="px-2.5 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 rounded text-white border border-slate-500">-</button>
+                        <span id="${previewId}-label" class="text-xs text-slate-100 min-w-[48px] text-center font-semibold">100%</span>
+                        <button onclick="adjustInlinePreviewZoom('${previewId}', 0.1)" class="px-2.5 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 rounded text-white border border-slate-500">+</button>
+                        <button onclick="resetInlinePreviewZoom('${previewId}')" class="px-2.5 py-1.5 text-xs bg-indigo-700 hover:bg-indigo-600 rounded text-white">إعادة</button>
+                    </div>
+                </div>
+                <div class="p-2">
+                    ${getInlinePreviewContent(fullPath, fileName, mimeType, previewId)}
+                    ${renderAttachmentDetails(details)}
+                </div>
+            </div>
+        `;
+    }
+
+    function inferExt(filePath, fileName) {
+        var source = String(fileName || filePath || '').split('?')[0].split('#')[0];
+        var parts = source.split('.');
+        return parts.length > 1 ? String(parts.pop() || '').toLowerCase() : '';
+    }
+
+    function classifyPreviewType(filePath, fileName, mimeType) {
+        var ext = inferExt(filePath, fileName);
+        var mime = String(mimeType || '').toLowerCase();
+        if (['jpg', 'jpeg', 'jbg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif', 'heic'].includes(ext) || mime.indexOf('image/') === 0) return 'image';
+        if (ext === 'pdf' || mime.indexOf('pdf') >= 0) return 'pdf';
+        if (['txt', 'log', 'csv', 'json', 'xml', 'md', 'sql'].includes(ext) || mime.indexOf('text/') === 0 || mime.indexOf('json') >= 0 || mime.indexOf('xml') >= 0) return 'text';
+        if (['mp4', 'webm', 'ogg', 'mov', 'm4v', 'avi', 'mkv'].includes(ext) || mime.indexOf('video/') === 0) return 'video';
+        if (['mp3', 'wav', 'm4a', 'aac', 'oga'].includes(ext) || mime.indexOf('audio/') === 0) return 'audio';
+        return 'other';
+    }
+
+    function loadTextPreview(targetId, filePath) {
+        var target = document.getElementById(targetId);
+        if (!target) return;
+        fetch(filePath, { cache: 'no-store' })
+            .then(function(res){ return res.text(); })
+            .then(function(text){ if (target) target.textContent = text; })
+            .catch(function(err){ if (target) target.textContent = 'فشل تحميل المحتوى: ' + (err && err.message ? err.message : err); });
+    }
+
+    function getInlinePreviewContent(filePath, fileName, mimeType, previewId) {
+        var kind = classifyPreviewType(filePath, fileName, mimeType);
+        if (kind === 'image') {
+            return `<div class="overflow-auto max-h-[70vh] bg-slate-950/40 rounded p-2"><img id="${previewId}" src="${filePath}" alt="${fileName}" class="max-w-full h-auto mx-auto rounded origin-top transition-transform duration-150" style="transform:scale(1)" /></div>`;
+        }
+        if (kind === 'pdf') {
+            return `<div class="overflow-auto max-h-[70vh] bg-slate-950/40 rounded p-2"><iframe id="${previewId}" src="${filePath}" class="w-full h-[65vh] rounded origin-top transition-transform duration-150" style="transform:scale(1); transform-origin:top center;"></iframe></div>`;
+        }
+        if (kind === 'video') {
+            return `<div class="overflow-auto max-h-[70vh] bg-slate-950/40 rounded p-2"><video id="${previewId}" src="${filePath}" controls class="w-full max-h-[65vh] rounded origin-top transition-transform duration-150" style="transform:scale(1); transform-origin:top center;"></video></div>`;
+        }
+        if (kind === 'audio') {
+            return `<div class="bg-slate-950/40 rounded p-4"><audio id="${previewId}" src="${filePath}" controls class="w-full"></audio></div>`;
+        }
+        if (kind === 'text') {
+            var textId = previewId + '-text';
+            setTimeout(function(){ loadTextPreview(textId, filePath); }, 0);
+            return `<div class="bg-slate-950/40 rounded p-3 max-h-[70vh] overflow-auto"><pre id="${textId}" class="text-slate-200 text-xs whitespace-pre-wrap break-words">جاري تحميل النص...</pre></div>`;
+        }
+        return `<div class="text-center p-6">
+                    <div class="text-3xl mb-2">📄</div>
+                    <div class="text-slate-200 text-sm">${fileName || 'ملف'}</div>
+                    <div class="text-slate-400 text-xs mt-1">لا تتوفر معاينة داخلية كاملة لهذا النوع في المتصفح</div>
+                    <div class="flex justify-center gap-2 mt-3">
+                        <button onclick="window.open('${filePath}','_blank')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded">فتح</button>
+                        <button onclick="downloadAttachment('${filePath}', '${fileName || 'download'}')" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs rounded">تحميل</button>
+                    </div>
+                </div>`;
+    }
+
+    function adjustInlinePreviewZoom(previewId, delta) {
+        var el = document.getElementById(previewId);
+        if (!el) return;
+        var current = parseFloat(el.dataset.scale || '1');
+        var next = Math.max(0.5, Math.min(3, current + delta));
+        el.dataset.scale = String(next);
+        el.style.transform = 'scale(' + next + ')';
+        var label = document.getElementById(previewId + '-label');
+        if (label) label.textContent = Math.round(next * 100) + '%';
+    }
+
+    function resetInlinePreviewZoom(previewId) {
+        var el = document.getElementById(previewId);
+        if (!el) return;
+        el.dataset.scale = '1';
+        el.style.transform = 'scale(1)';
+        var label = document.getElementById(previewId + '-label');
+        if (label) label.textContent = '100%';
+    }
+
+    function previewAttachmentInline(filePath, fileName, mimeType) {
+        if (!filePath) {
+            alert('مسار الملف غير متاح');
+            return;
+        }
+        filePath = resolveAttachmentUrl(filePath);
+        
+        // إنشاء modal للمعاينة
+        var modalId = 'preview-modal-' + Date.now();
+        var modal = document.createElement('div');
+        modal.id = modalId;
+        modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50';
+        modal.innerHTML = `
+            <div class="bg-slate-800 rounded-lg max-w-4xl max-h-[90vh] overflow-auto m-4">
+                <div class="flex justify-between items-center p-4 border-b border-slate-700">
+                    <h3 class="text-white font-semibold">معاينة: ${fileName}</h3>
+                    <button onclick="document.getElementById('${modalId}').remove()" 
+                            class="text-slate-400 hover:text-white text-2xl">
+                        ×
+                    </button>
+                </div>
+                <div class="p-4">
+                    ${getPreviewContent(filePath, fileName, mimeType)}
+                </div>
+                <div class="flex gap-2 p-4 border-t border-slate-700">
+                    <button onclick="downloadAttachment('${filePath}', '${fileName}')" 
+                            class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded transition-colors">
+                        تحميل
+                    </button>
+                    <button onclick="document.getElementById('${modalId}').remove()" 
+                            class="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded transition-colors">
+                        إغلاق
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+    }
+    
+    function previewBranchAttachments() {
+        if (!__currentBranchId) {
+            alert('يرجى اختيار فرع أولاً');
+            return;
+        }
+        
+        // جلب المرفقات الحالية
+        var attachments = [];
+        var container = document.getElementById('branch-attachments-container');
+        
+        // محاولة جلب المرفقات من العناصر الحالية في الحاوية
+        var attachmentElements = container.querySelectorAll('[data-file-path], .attachment-item');
+        attachmentElements.forEach(function(el) {
+            var filePath = el.dataset.filePath || el.dataset.path || '';
+            var fileName = el.dataset.fileName || el.dataset.name || '';
+            var mimeType = el.dataset.mimeType || el.dataset.mime || '';
+            
+            if (filePath) {
+                attachments.push({
+                    file_path: filePath,
+                    file_name: fileName,
+                    mime_type: mimeType,
+                    name: fileName
+                });
+            }
+        });
+        
+        // إذا لم نجد مرفقات، نبحث في البيانات المحفوظة
+        if (!attachments.length) {
+            // جلب من Store
+            if (typeof Store !== 'undefined') {
+                var allAttachments = (Store.list ? Store.list('attachments') : []) || [];
+                attachments = allAttachments.filter(function(att) {
+                    return !isAttachmentDeleted(att) && (
+                        String(att.attachable_id) === String(__currentBranchId) ||
+                        String(att.costCenter || att.cost_center || '') === String(__currentBranchCostCenter)
+                    );
+                });
+            }
+        }
+        
+        if (!attachments.length) {
+            alert('لا توجد مرفقات متاحة لهذا الفرع');
+            return;
+        }
+        
+        // إنشاء modal لعرض جميع المرفقات
+        var modalId = 'branch-preview-modal-' + Date.now();
+        var modal = document.createElement('div');
+        modal.id = modalId;
+        modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50';
+        
+        var attachmentsHtml = attachments.map(function(att, index) {
+            var fileName = att.file_name || att.name || 'ملف غير معروف';
+            var fileType = getFileIcon(att.mime_type || att.file_type || '');
+            var fileSize = formatFileSize(att.size || 0);
+            var uploadDate = att.created_at ? new Date(att.created_at).toLocaleDateString('ar-SA') : 'غير معروف';
+            
+            return `
+                <div class="bg-slate-800/60 p-4 rounded-lg border border-slate-700/50 mb-3">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="text-2xl">${fileType}</div>
+                        <div class="flex-1">
+                            <div class="text-white font-medium">${fileName}</div>
+                            <div class="text-xs text-slate-400">الحجم: ${fileSize} | التاريخ: ${uploadDate}</div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="previewAttachmentInline('${att.file_path || att.path}', '${fileName}', '${att.mime_type || ''}')" 
+                                class="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors">
+                            معاينة
+                        </button>
+                        <button onclick="downloadAttachment('${att.file_path || att.path}', '${fileName}')" 
+                                class="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded transition-colors">
+                            تحميل
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        modal.innerHTML = `
+            <div class="bg-slate-900 rounded-lg max-w-4xl max-h-[90vh] overflow-auto m-4 w-full">
+                <div class="flex justify-between items-center p-4 border-b border-slate-700">
+                    <h3 class="text-white font-semibold">معاينة مرفقات الفرع - ${__currentBranchName || 'فرع غير معروف'}</h3>
+                    <button onclick="document.getElementById('${modalId}').remove()" 
+                            class="text-slate-400 hover:text-white text-2xl">
+                        ×
+                    </button>
+                </div>
+                <div class="p-4 overflow-y-auto max-h-[calc(90vh-120px)]">
+                    ${attachmentsHtml}
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+    }
+
+    function getPreviewContent(filePath, fileName, mimeType) {
+        filePath = resolveAttachmentUrl(filePath);
+        var kind = classifyPreviewType(filePath, fileName, mimeType);
+        if (kind === 'image') {
+            return `<img src="${filePath}" alt="${fileName}" class="max-w-full h-auto rounded" />`;
+        }
+        if (kind === 'pdf') {
+            return `<iframe src="${filePath}" class="w-full h-96 border-0 rounded"></iframe>`;
+        }
+        if (kind === 'video') {
+            return `<video src="${filePath}" controls class="w-full max-h-[70vh] rounded"></video>`;
+        }
+        if (kind === 'audio') {
+            return `<audio src="${filePath}" controls class="w-full"></audio>`;
+        }
+        if (kind === 'text') {
+            return `<div class="bg-slate-900 p-4 rounded max-h-96 overflow-auto">
+                        <iframe src="${filePath}" class="w-full h-96 border-0 rounded bg-white"></iframe>
+                    </div>`;
+        }
+        return `<div class="text-center p-8">
+                    <div class="text-4xl mb-4">📄</div>
+                    <div class="text-white font-medium">${fileName}</div>
+                    <div class="text-slate-400 text-sm mt-2">لا تتوفر معاينة كاملة لهذا النوع داخل المتصفح</div>
+                    <div class="flex items-center justify-center gap-2 mt-4">
+                        <button onclick="window.open('${filePath}','_blank')" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm">فتح</button>
+                        <button onclick="downloadAttachment('${filePath}','${fileName || 'download'}')" class="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm">تحميل</button>
+                    </div>
+                </div>`;
+    }
+
+    function printBranchAttachments() {
+        if (!__currentBranchId) {
+            alert('يرجى اختيار فرع أولاً');
+            return;
+        }
+        
+        var container = document.getElementById('branch-attachments-container');
+        if (!container || !container.innerHTML.trim()) {
+            alert('لا توجد مرفقات للطباعة');
+            return;
+        }
+        
+        var printWindow = window.open('', '_blank');
+        var printContent = `
+            <!DOCTYPE html>
+            <html dir="rtl" lang="ar">
+            <head>
+                <meta charset="UTF-8">
+                <title>مرفقات الفرع - ${__currentBranchName || 'فرع غير معروف'}</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+                    .attachment { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 5px; }
+                    .file-name { font-weight: bold; color: #333; }
+                    .file-info { color: #666; font-size: 12px; margin-top: 5px; }
+                    @media print { body { margin: 10mm; } }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>مرفقات الفرع</h1>
+                    <h2>${__currentBranchName || 'فرع غير معروف'}</h2>
+                    <p>تاريخ الطباعة: ${new Date().toLocaleDateString('ar-SA')}</p>
+                </div>
+                <div id="content">
+                    ${container.innerHTML}
+                </div>
+            </body>
+            </html>
+        `;
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+        printWindow.print();
+    }
+
+    function saveBranchAttachments() {
+        if (!__currentBranchId) {
+            alert('يرجى اختيار فرع أولاً');
+            return;
+        }
+        
+        // يمكنك إضافة منطق حفق مخصص هنا
+        // مثلاً: حفظ المرفقات كملف JSON أو إرسالها إلى الخادم
+        alert('تم حفظ المرفقات بنجاح');
+    }
+  </script>

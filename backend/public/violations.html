@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>المخالفات</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style-base.css?v=202602071015">
+  <link rel="stylesheet" href="style-site.css?v=202602071015">
+  <script src="app.js?v=202602071015"></script>
+  <style>
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
+    /* Pagination & Footer Styles */
+    .pagination-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 1rem;
+      padding: 1rem;
+      background: rgba(30, 41, 59, 0.4);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .pagination-btn {
+      padding: 0.5rem 1rem;
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .pagination-btn:hover:not(:disabled) {
+      background: rgba(59, 130, 246, 0.3);
+    }
+    .pagination-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      filter: grayscale(1);
+    }
+    
+    /* Table Enhancements */
+    table th, table td { vertical-align: middle; }
+    
+    .summary-footer {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+      padding: 1.5rem;
+      background: linear-gradient(145deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.8));
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+    }
+    .summary-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .summary-label {
+      color: #94a3b8;
+      font-size: 0.875rem;
+      margin-bottom: 0.5rem;
+    }
+    .summary-value {
+      color: #f8fafc;
+      font-size: 1.25rem;
+      font-weight: bold;
+    }
+    .summary-value.paid { color: #10b981; }
+    .summary-value.unpaid { color: #f43f5e; }
+  </style>
+</head>
+<body class="text-slate-200">
+  <canvas id="bg-canvas"></canvas>
+  <nav class="glass-nav">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <div class="text-lg font-bold text-white">لوحة التشغيل</div>
+      <div class="flex items-center gap-4">
+        <a href="./index.html" class="text-slate-300 hover:text-white transition" data-i18n="nav.home">الرئيسية</a>
+        <a href="./employees.html" class="text-slate-300 hover:text-white transition" data-i18n="nav.employees">الموظفون</a>
+        <a href="./branches.html" class="text-slate-300 hover:text-white transition" data-i18n="nav.branches">الفروع</a>
+        <a href="./licenses.html" class="text-slate-300 hover:text-white transition" data-i18n="nav.licenses">الرخص والعقود</a>
+        <a href="./violations.html" class="text-indigo-400 font-medium border-b-2 border-indigo-400" data-i18n="nav.violations">المخالفات</a>
+        <a href="./housings.html" class="text-slate-300 hover:text-white transition" data-i18n="nav.housings">السكنات</a>
+        <a href="./transports.html" class="text-slate-300 hover:text-white transition" data-i18n="nav.transports">المواصلات</a>
+        <a href="./reports.html" class="text-slate-300 hover:text-white transition" data-i18n="nav.reports">التقارير</a>
+        <a href="./login.html" class="text-slate-300 hover:text-white transition" data-i18n="nav.login">تسجيل الدخول</a>
+        <button id="help-toggle" class="px-3 py-1 rounded bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-600"></button>
+        <button id="lang-toggle" class="px-3 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-500"></button>
+        <div class="relative inline-block">
+          <div id="user-badge" class="user-badge">
+            <div class="user-avatar border-2 border-indigo-500"></div>
+            <span id="user-badge-name" class="text-white"></span>
+          </div>
+          <div id="user-menu" class="user-menu bg-slate-800 border border-slate-700 text-slate-200">
+            <a href="#" class="hover:bg-slate-700" data-en="My Profile" data-ar="ملفّي">My Profile</a>
+            <button onclick="App.logout()" class="hover:bg-slate-700" data-en="Logout" data-ar="تسجيل الخروج">Logout</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 py-8 pb-24 font-sans">
+    <div class="flex justify-between items-center mb-6">
+       <h1 class="text-2xl font-bold text-white" data-i18n="violations.title">المخالفات</h1>
+       <div class="relative">
+         <select id="region-filter" onchange="renderDashboard()" class="appearance-none bg-blue-500/10 border border-blue-500/35 text-slate-200 px-8 py-2 pr-10 rounded-lg hover:bg-blue-500/20 transition focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer font-medium min-w-[180px]">
+           <option value="all" class="bg-slate-800 text-slate-200">كل المناطق</option>
+         </select>
+         <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-blue-400">
+           <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+         </div>
+       </div>
+    </div>
+    <hr class="border-slate-700/50 mb-8">
+
+    <!-- KPIs -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+       <div class="glass-card p-4 flex flex-col items-center justify-center text-center">
+          <div class="text-sm text-slate-400 mb-1">المخالفات المفتوحة</div>
+          <div class="text-3xl font-bold text-red-400 drop-shadow-md" id="kpi-open">0</div>
+       </div>
+       <div class="glass-card p-4 flex flex-col items-center justify-center text-center">
+          <div class="text-sm text-slate-400 mb-1">المخالفات المسددة</div>
+          <div class="text-3xl font-bold text-emerald-400 drop-shadow-md" id="kpi-closed">0</div>
+       </div>
+       <div class="glass-card p-4 flex flex-col items-center justify-center text-center">
+          <div class="text-sm text-slate-400 mb-1">إجمالي المبالغ (ريال)</div>
+          <div class="text-3xl font-bold text-indigo-400 drop-shadow-md" id="kpi-total">0</div>
+       </div>
+       <div class="glass-card p-4 flex flex-col items-center justify-center text-center">
+          <div class="text-sm text-slate-400 mb-1">نسبة السداد</div>
+          <div class="text-3xl font-bold text-blue-400 drop-shadow-md" id="kpi-ratio">%0</div>
+       </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+       <div class="glass-card p-4">
+          <h3 class="font-bold mb-4 text-slate-200 border-b border-slate-700 pb-2">تحليل المخالفات حسب الحالة</h3>
+          <div id="chart-status" class="w-full h-64"></div>
+       </div>
+       <div class="glass-card p-4">
+          <h3 class="font-bold mb-4 text-slate-200 border-b border-slate-700 pb-2">أكثر المناطق مخالفة</h3>
+          <div id="chart-region" class="w-full h-64"></div>
+       </div>
+    </div>
+
+    <!-- Table -->
+    <div class="glass-card p-4 overflow-hidden border-y-4 border-indigo-500/30">
+       <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-4">
+          <h3 class="font-bold text-slate-200">سجل المخالفات</h3>
+          <input type="text" id="table-search" placeholder="بحث..." class="form-input bg-slate-800/50 border-slate-600 text-slate-200 placeholder-slate-500 rounded px-3 py-1 text-sm w-64">
+       </div>
+       <div class="overflow-x-auto">
+         <table class="w-full text-right text-sm text-slate-300">
+           <thead class="text-xs text-gray-300 uppercase bg-gray-700/50 border-b border-slate-600">
+             <tr>
+               <th scope="col" class="px-6 py-4 whitespace-nowrap text-center">رقم المخالفة</th>
+               <th scope="col" class="px-6 py-4 whitespace-nowrap text-center">التاريخ</th>
+               <th scope="col" class="px-6 py-4 whitespace-nowrap text-center">الفرع</th>
+               <th scope="col" class="px-6 py-4 whitespace-nowrap text-center">Cost Center</th>
+               <th scope="col" class="px-6 py-4 whitespace-nowrap text-center">النوع</th>
+               <th scope="col" class="px-6 py-4 whitespace-nowrap text-center">المبلغ</th>
+               <th scope="col" class="px-6 py-4 whitespace-nowrap text-center">الحالة</th>
+               <th scope="col" class="px-6 py-4 whitespace-nowrap text-center">إجراءات</th>
+             </tr>
+           </thead>
+           <tbody id="violations-table-body" class="divide-y divide-slate-700">
+             <tr><td colspan="8" class="text-center py-8 text-slate-500">جاري التحميل...</td></tr>
+           </tbody>
+         </table>
+       </div>
+       
+       <!-- Pagination Controls -->
+       <div id="pagination-controls" class="pagination-controls" style="display:none;">
+          <button id="prev-btn" class="pagination-btn" onclick="changePage(-1)">السابق</button>
+          <span id="page-info" class="text-slate-300 font-medium">صفحة 1 من 1</span>
+          <button id="next-btn" class="pagination-btn" onclick="changePage(1)">التالي</button>
+       </div>
+    </div>
+
+    <!-- Summary Footer -->
+    <div id="summary-footer" class="summary-footer" style="display:none;">
+      <div class="summary-item">
+        <span class="summary-label">إجمالي المخالفات</span>
+        <span id="footer-total-count" class="summary-value">0</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">إجمالي المدفوع</span>
+        <span id="footer-total-paid" class="summary-value paid">0 ر.س</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">إجمالي غير المدفوع</span>
+        <span id="footer-total-unpaid" class="summary-value unpaid">0 ر.س</span>
+      </div>
+    </div>
+  </main>
+
+  <footer class="fixed bottom-0 inset-x-0 text-center text-slate-300 text-xs py-3 bg-[#0b1b2b]/60 backdrop-blur border-t border-slate-700/50 z-50">
+    <a href="#" class="text-sky-300 hover:text-sky-200" data-i18n="footer.developed_by" data-en="All rights reserved – CompliQ © 2026" data-ar="جميع الحقوق محفوظة لدى كومبليك © 2026">جميع الحقوق محفوظة لدى كومبليك © 2026</a>
+  </footer>
+
+  <!-- Modal -->
+  <div id="violation-modal" class="modal-overlay">
+    <div class="glass-card p-6 w-full max-w-lg mx-4 relative border border-slate-700 shadow-2xl rounded-xl">
+      <button onclick="closeAddViolationModal()" class="absolute top-4 left-4 text-slate-400 hover:text-white text-xl transition">&times;</button>
+      <h2 class="text-xl font-bold text-white mb-6">إضافة مخالفة جديدة</h2>
+      <form id="violation-form" class="space-y-4">
+        <div>
+          <label class="block text-sm text-slate-400 mb-1">الفرع / الموقع</label>
+          <input type="text" name="branch" class="w-full form-input rounded-lg px-3 py-2 text-white bg-slate-800/50 border-slate-600 focus:border-indigo-500 focus:ring-indigo-500" required>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm text-slate-400 mb-1">نوع المخالفة</label>
+            <input type="text" name="type" class="w-full form-input rounded-lg px-3 py-2 text-white bg-slate-800/50 border-slate-600 focus:border-indigo-500 focus:ring-indigo-500" required>
+          </div>
+          <div>
+             <label class="block text-sm text-slate-400 mb-1">المبلغ (ر.س)</label>
+             <input type="number" name="amount" class="w-full form-input rounded-lg px-3 py-2 text-white bg-slate-800/50 border-slate-600 focus:border-indigo-500 focus:ring-indigo-500" required>
+          </div>
+        </div>
+        <div>
+           <label class="block text-sm text-slate-400 mb-1">تاريخ المخالفة</label>
+           <input type="date" name="date" class="w-full form-input rounded-lg px-3 py-2 text-white bg-slate-800/50 border-slate-600 focus:border-indigo-500 focus:ring-indigo-500" required>
+        </div>
+        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-700">
+          <button type="button" class="px-4 py-2 rounded-lg text-slate-400 hover:bg-slate-800 transition" onclick="closeAddViolationModal()">إلغاء</button>
+          <button type="submit" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 transition">حفظ المخالفة</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div id="confirm-modal" class="modal-overlay">
+    <div class="glass-card p-6 w-full max-w-sm mx-4 relative border border-slate-700 shadow-2xl rounded-xl text-center">
+      <h3 class="text-xl font-bold text-white mb-4" id="confirm-title">تأكيد الإجراء</h3>
+      <p class="text-slate-300 mb-8" id="confirm-message">هل أنت متأكد؟</p>
+      <div class="flex justify-center gap-4">
+        <button id="confirm-no-btn" class="px-6 py-2 rounded-lg text-slate-300 hover:bg-slate-700 transition border border-slate-600">إلغاء</button>
+        <button id="confirm-yes-btn" class="px-6 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 transition font-bold">تأكيد</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div id="detail-modal" class="modal-overlay">
+    <div class="glass-card p-6 w-full max-w-lg mx-4 relative border border-slate-700 shadow-2xl rounded-xl">
+      <button onclick="window.closeDetailModal()" class="absolute top-4 left-4 text-slate-400 hover:text-white text-xl transition">&times;</button>
+      <h2 class="text-xl font-bold text-white mb-6">تفاصيل المخالفة</h2>
+      <div id="detail-content" class="grid grid-cols-2 gap-4 text-slate-200 text-sm"></div>
+    </div>
+  </div>
+
+  <style>
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur-sm;
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
+    ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.5); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.7); }
+  </style>
+
+  <script src="js/api-client.js"></script>
+  <script src="app.js?v=10"></script>
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <script>
+    // تنظيف البيانات القديمة من localStorage عند تحميل الصفحة
+    (function() {
+      var oldKeys = ['db:violations'];
+      oldKeys.forEach(function(key) {
+        try {
+          localStorage.removeItem(key);
+          console.log('تم حذف البيانات القديمة: ' + key);
+        } catch(e) {}
+      });
+    })();
+  </script>
+  <script>
+    const Store = App.store;
+    App.init('violations');
+    
+    // Modal Logic
+    window.openAddViolationModal = function() {
+      document.getElementById('violation-modal').classList.add('open');
+    };
+    window.closeAddViolationModal = function() {
+      document.getElementById('violation-modal').classList.remove('open');
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+      renderDashboard();
+      
+      // Search
+      document.getElementById('table-search').addEventListener('input', function(e){
+        renderTable(e.target.value);
+      });
+
+      // Form
+      const form = document.getElementById('violation-form');
+      if(form) {
+        form.addEventListener('submit', async function(e){
+          e.preventDefault();
+          const fd = new FormData(form);
+          const data = Object.fromEntries(fd.entries());
+          
+          // Data normalization
+          data.paid = false;
+          data.status = 'open';
+          data.amount = parseFloat(data.amount) || 0;
+          
+          try {
+            // Use APIClient instead of direct fetch
+            const result = await APIClient.violations.create(data);
+            
+            if(result && (result.id || result.data)) {
+              closeAddViolationModal();
+              form.reset();
+              
+              // Refresh Dashboard
+              renderDashboard();
+              alert('تم حفظ المخالفة بنجاح');
+            } else {
+              alert('حدث خطأ أثناء الحفظ');
+            }
+          } catch (error) {
+            console.error('Save error:', error);
+            alert('تعذر الاتصال بالسيرفر: ' + error.message);
+          }
+        });
+      }
+    });
+
+    let currentPage = 1;
+    const rowsPerPage = 10;
+    let currentFilteredRows = [];
+
+    async function renderDashboard() {
+      // 1. Fetch from API
+      let rows = [];
+      try {
+         rows = await APIClient.violations.list();
+         // Cache for offline use
+         try { localStorage.setItem('db:violations', JSON.stringify(rows)); } catch(e){}
+      } catch(e) {
+         console.warn("API Fetch failed, using local cache", e);
+         try {
+           const cached = localStorage.getItem('db:violations');
+           if(cached) rows = JSON.parse(cached);
+         } catch(ex){}
+      }
+      
+      // Fallback to Store if API/Cache empty (legacy)
+      if((!rows || rows.length === 0) && Store) {
+         rows = Store.list('violations') || [];
+      }
+      if(!Array.isArray(rows)) rows = [];
+
+       // Filter by Access (RBAC)
+       
+       // Filter by Access (RBAC)
+       const accessibleRows = rows.filter(r => {
+          if(!window.canAccessBranch) return true; // Fallback if not loaded
+          return window.canAccessBranch(r.branch);
+       });
+
+       // Normalize rows to match admin dashboard logic
+       rows = accessibleRows.map(r => {
+         const paidBool = (r && (r.paid === true || String(r.paid).toLowerCase() === 'true'));
+         return {
+           ...r,
+           paid: paidBool,
+           amount: Number((r && r.amount) || 0),
+           region: r.region || 'الرياض', // Ensure region exists
+           displayNo: r.vio_no || r.id || '-'
+         };
+       });
+       
+       // Populate/Update Region Filter
+       const filterSelect = document.getElementById('region-filter');
+       let filteredRows = rows;
+       
+       if(filterSelect) {
+           const regions = [...new Set(rows.map(r => r.region))].sort();
+           const currentVal = filterSelect.value;
+           
+           // Only rebuild options if count differs (simple check to avoid resetting)
+           // But checking existing options is safer
+           const existingOpts = Array.from(filterSelect.options).map(o => o.value).filter(v => v !== 'all');
+           const arraysMatch = existingOpts.length === regions.length && existingOpts.every((value, index) => value === regions[index]);
+           
+           if (!arraysMatch) {
+               filterSelect.innerHTML = '<option value="all" class="bg-slate-800 text-slate-200">كل المناطق</option>';
+               regions.forEach(reg => {
+                   const opt = document.createElement('option');
+                   opt.value = reg;
+                   opt.textContent = reg;
+                   opt.className = 'bg-slate-800 text-slate-200';
+                   filterSelect.appendChild(opt);
+               });
+               // Restore value if possible
+               if(regions.includes(currentVal)) {
+                   filterSelect.value = currentVal;
+               } else {
+                   filterSelect.value = 'all';
+               }
+           }
+           
+           // Apply Filter
+           if (filterSelect.value !== 'all') {
+               filteredRows = rows.filter(r => r.region === filterSelect.value);
+           }
+       }
+
+       updateKPIs(filteredRows);
+       renderTable(null, filteredRows);
+       renderCharts(filteredRows);
+    }
+
+    function updateKPIs(rows) {
+       const total = rows.length;
+       const open = rows.filter(r => !r.paid).length;
+       const closed = rows.filter(r => r.paid).length;
+       const sum = rows.reduce((acc, r) => acc + (Number(r.amount)||0), 0);
+       
+       document.getElementById('kpi-open').textContent = open;
+       document.getElementById('kpi-closed').textContent = closed;
+       document.getElementById('kpi-total').textContent = sum.toLocaleString();
+       document.getElementById('kpi-ratio').textContent = total ? Math.round((closed/total)*100) + '%' : '%0';
+    }
+
+    function renderTable(search, rowsData) {
+       const tbody = document.getElementById('violations-table-body');
+       const paginationControls = document.getElementById('pagination-controls');
+       const summaryFooter = document.getElementById('summary-footer');
+
+       // Data normalization
+       let rows = rowsData;
+       if (!rows) {
+         const rawRows = (Store && Store.list('violations')) || [];
+         rows = rawRows.map(r => {
+           const paidBool = (r && (r.paid === true || String(r.paid).toLowerCase() === 'true'));
+           // NEW: Ensure status exists, default to 'new' if missing
+           const status = r.status || (paidBool ? 'confirmed' : 'new'); 
+           return { 
+             ...r, 
+             paid: paidBool,
+             status: status, // Use explicit status
+             amount: Number((r && r.amount) || 0),
+             displayNo: r.vio_no || r.id || '-'
+           };
+         });
+       }
+       
+       // Filter
+       if (search) {
+         const q = search.toLowerCase();
+         rows = rows.filter(r => 
+           (r.branch||'').toLowerCase().includes(q) || 
+           (r.type||'').toLowerCase().includes(q) ||
+           (r.cost_center||'').toLowerCase().includes(q) ||
+           (r.vio_no||'').toLowerCase().includes(q) ||
+           (r.id||'').toLowerCase().includes(q)
+         );
+         currentPage = 1;
+       }
+
+       // Sort
+       rows.sort((a,b) => new Date(b.date||b.createdAt) - new Date(a.date||a.createdAt));
+       
+       currentFilteredRows = rows;
+       updateFooter(rows);
+
+       if (!rows.length) {
+          tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-slate-500">لا توجد سجلات</td></tr>';
+          paginationControls.style.display = 'none';
+          summaryFooter.style.display = 'none';
+          return;
+       }
+
+       // Pagination
+       const totalPages = Math.ceil(rows.length / rowsPerPage);
+       if (currentPage > totalPages) currentPage = totalPages;
+       if (currentPage < 1) currentPage = 1;
+
+       const start = (currentPage - 1) * rowsPerPage;
+       const end = start + rowsPerPage;
+       const slicedRows = rows.slice(start, end);
+
+       // Render Rows with Correct Logic
+       tbody.innerHTML = slicedRows.map(r => {
+          // Determine badge color/text based on status
+          let badgeClass = 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+          let badgeText = 'جديد';
+          
+          if(r.status === 'new') {
+             badgeClass = 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+             badgeText = 'جديد';
+          } else if(r.status === 'confirmed') {
+             badgeClass = 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
+             badgeText = 'مؤكدة';
+          } else if(r.status === 'resolved' || r.paid) { // paid often implies resolved
+             badgeClass = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+             badgeText = 'تم السداد';
+          } else if(r.status === 'archived') {
+             badgeClass = 'bg-gray-500/10 text-gray-400 border-gray-500/20';
+             badgeText = 'مؤرشف';
+          }
+
+          // Action Buttons Logic
+          let actionsHtml = '';
+          
+          actionsHtml = `
+            <div class="flex items-center gap-2 justify-center">
+                <button class="btn-view p-2 bg-slate-500/20 hover:bg-slate-500/40 text-slate-400 rounded transition" onclick="window.viewViolation('${r.id}')" title="عرض">👁</button>
+                <button class="btn-edit p-2 bg-blue-500/20 hover:bg-blue-500/40 text-blue-500 rounded transition" onclick="window.editViolation('${r.id}')" title="تعديل">✏</button>
+                <button class="btn-delete p-2 bg-red-500/20 hover:bg-red-500/40 text-red-500 rounded transition" onclick="window.confirmDeleteViolation('${r.id}')" title="حذف">🗑</button>
+            </div>
+          `;
+
+          return `
+          <tr class="hover:bg-white/5 transition border-b border-slate-700 last:border-0">
+             <td class="px-6 py-4 font-mono text-xs text-slate-400 whitespace-nowrap align-middle text-center">${r.displayNo}</td>
+             <td class="px-6 py-4 text-slate-300 whitespace-nowrap align-middle text-center">${r.date || '-'}</td>
+             <td class="px-6 py-4 font-medium text-white align-middle text-center min-w-[180px] whitespace-normal break-words leading-normal">${r.branch || '-'}</td>
+             <td class="px-6 py-4 font-mono text-xs text-slate-300 whitespace-nowrap align-middle text-center">${r.cost_center || '-'}</td>
+             <td class="px-6 py-4 align-middle text-center min-w-[140px] whitespace-normal"><span class="bg-indigo-500/10 text-white border border-indigo-500/20 rounded px-2 py-1 text-xs font-semibold inline-block leading-normal break-words">${r.type || '-'}</span></td>
+             <td class="px-6 py-4 font-bold text-slate-200 whitespace-nowrap align-middle text-center">${r.amount ? Number(r.amount).toLocaleString() : '0'}</td>
+             <td class="px-6 py-4 whitespace-nowrap align-middle text-center">
+                <span class="px-2 py-1 rounded-full text-xs font-bold block w-fit mx-auto border ${badgeClass}">
+                   ${badgeText}
+                </span>
+             </td>
+             <td class="px-6 py-4 whitespace-nowrap align-middle text-center">
+                ${actionsHtml}
+             </td>
+          </tr>
+          `;
+       }).join('');
+
+       // Update Pagination Controls
+       paginationControls.style.display = 'flex';
+       summaryFooter.style.display = 'grid';
+       document.getElementById('page-info').textContent = `صفحة ${currentPage} من ${totalPages}`;
+       document.getElementById('prev-btn').disabled = currentPage === 1;
+       document.getElementById('next-btn').disabled = currentPage === totalPages;
+    }
+
+    function changePage(delta) {
+      currentPage += delta;
+      renderTable(null, currentFilteredRows);
+    }
+
+    function updateFooter(rows) {
+       const totalCount = rows.length;
+       const totalPaid = rows.filter(r => r.paid).reduce((acc, r) => acc + (Number(r.amount)||0), 0);
+       const totalUnpaid = rows.filter(r => !r.paid).reduce((acc, r) => acc + (Number(r.amount)||0), 0);
+
+       document.getElementById('footer-total-count').textContent = totalCount;
+       document.getElementById('footer-total-paid').textContent = totalPaid.toLocaleString() + ' ر.س';
+       document.getElementById('footer-total-unpaid').textContent = totalUnpaid.toLocaleString() + ' ر.س';
+    }
+
+    // Confirmation Modal Logic
+    let pendingAction = null;
+    let pendingDeleteId = null;
+    
+    window.confirmDeleteViolation = function(id) {
+        pendingDeleteId = id;
+        confirmTitle.textContent = 'تأكيد الحذف';
+        confirmMessage.textContent = 'هل أنت متأكد من رغبتك في حذف هذه المخالفة نهائياً؟ لا يمكن التراجع عن هذا الإجراء.';
+        confirmYesBtn.onclick = async () => {
+            try {
+                await APIClient.violations.delete(pendingDeleteId);
+                showToast('تم الحذف بنجاح', 'success');
+                // Refresh table
+                window.location.reload(); 
+            } catch (error) {
+                console.error('Error deleting violation:', error);
+                showToast('حدث خطأ أثناء الحذف', 'error');
+            }
+            confirmModal.style.display = 'none';
+        };
+        confirmModal.style.display = 'flex';
+    };
+
+    const confirmModal = document.getElementById('confirm-modal');
+    const confirmTitle = document.getElementById('confirm-title');
+    const confirmMessage = document.getElementById('confirm-message');
+    const confirmYesBtn = document.getElementById('confirm-yes-btn');
+    const confirmNoBtn = document.getElementById('confirm-no-btn');
+
+    function openConfirmModal(title, message, action) {
+      confirmTitle.textContent = title;
+      confirmMessage.textContent = message;
+      pendingAction = action;
+      confirmModal.classList.add('open');
+    }
+
+    function closeConfirmModal() {
+      confirmModal.classList.remove('open');
+      pendingAction = null;
+    }
+
+    confirmNoBtn.addEventListener('click', closeConfirmModal);
+    confirmYesBtn.addEventListener('click', function() {
+      if (pendingAction) pendingAction();
+      closeConfirmModal();
+    });
+
+    // Global Actions
+
+    window.confirmViolation = function(e, id) {
+      if(e) { e.preventDefault(); e.stopImmediatePropagation(); }
+      openConfirmModal(
+        'تأكيد المخالفة',
+        'هل أنت متأكد من تأكيد هذه المخالفة؟',
+        function() {
+          try {
+            Store.update('violations', id, { status: 'confirmed' });
+            renderDashboard();
+            showToast('تم تأكيد المخالفة بنجاح', 'success');
+          } catch(err) {
+            console.error(err);
+            showToast('حدث خطأ: ' + err.message, 'error');
+          }
+        }
+      );
+    };
+
+    window.markPaid = function(e, id) {
+      if(e) { e.preventDefault(); e.stopImmediatePropagation(); }
+      
+      openConfirmModal(
+        'تأكيد السداد',
+        'هل أنت متأكد من تغيير حالة هذه المخالفة إلى "مدفوع"؟',
+        function() {
+          try {
+            const result = Store.update('violations', id, { paid: true, status: 'resolved' });
+            if(result) {
+              renderDashboard();
+              showToast('تم السداد بنجاح', 'success');
+            } else {
+              showToast('حدث خطأ أثناء التحديث', 'error');
+            }
+          } catch(err) {
+            console.error(err);
+            showToast('حدث خطأ: ' + err.message, 'error');
+          }
+        }
+      );
+    };
+
+    window.archiveViolation = function(e, id) {
+      if(e) { e.preventDefault(); e.stopImmediatePropagation(); }
+      
+      openConfirmModal(
+        'تأكيد الأرشفة',
+        'هل أنت متأكد من نقل هذه المخالفة إلى الأرشيف؟',
+        function() {
+          try {
+            // Store.archive('violations', id); // Removed as it might not exist
+            Store.update('violations', id, { status: 'archived' });
+            renderDashboard();
+            showToast('تمت الأرشفة بنجاح', 'warning');
+          } catch(err) {
+            console.error(err);
+            showToast('حدث خطأ: ' + err.message, 'error');
+          }
+        }
+      );
+    };
+
+    window.deleteViolation = function(e, id) {
+      if(e) { e.preventDefault(); e.stopImmediatePropagation(); }
+      
+      openConfirmModal(
+        'حذف نهائي',
+        'هل أنت متأكد من حذف هذه المخالفة نهائياً؟ لا يمكن التراجع عن هذا الإجراء.',
+        function() {
+          try {
+            Store.remove('violations', id);
+            renderDashboard();
+            showToast('تم الحذف بنجاح', 'error');
+          } catch(err) {
+            console.error(err);
+            showToast('حدث خطأ: ' + err.message, 'error');
+          }
+        }
+      );
+    };
+
+    window.viewViolation = function(id) {
+      var rows = (Array.isArray(currentFilteredRows) && currentFilteredRows.length) ? currentFilteredRows : ((Store && Store.list) ? (Store.list('violations') || []) : []);
+      if (!Array.isArray(rows)) rows = [];
+      var r = rows.find(function(x){ return String(x.id) === String(id); }) || null;
+      if (!r) return;
+      var el = document.getElementById('detail-content');
+      var f = function(v){ return (v===undefined || v===null || v==='') ? '-' : v; };
+      var statusTxt = r.status ? r.status : (r.paid ? 'تم السداد' : 'جديد');
+      var amt = Number(r.amount||0);
+      el.innerHTML = ''
+        + '<div><div class="text-slate-400">رقم المخالفة</div><div class="font-bold">'+ f(r.vio_no||r.displayNo||r.id) +'</div></div>'
+        + '<div><div class="text-slate-400">التاريخ</div><div>'+ f(r.date) +'</div></div>'
+        + '<div><div class="text-slate-400">الفرع</div><div>'+ f(r.branch) +'</div></div>'
+        + '<div><div class="text-slate-400">Cost Center</div><div class="font-mono">'+ f(r.cost_center) +'</div></div>'
+        + '<div style="grid-column:1/-1"><div class="text-slate-400">النوع</div><div>'+ f(r.type) +'</div></div>'
+        + '<div><div class="text-slate-400">المبلغ</div><div>'+ amt.toLocaleString() +' ر.س</div></div>'
+        + '<div><div class="text-slate-400">الحالة</div><div>'+ f(statusTxt) +'</div></div>'
+        + '<div><div class="text-slate-400">VIO#</div><div>'+ f(r.vio_no) +'</div></div>'
+        + '<div><div class="text-slate-400">EFAA#</div><div>'+ f(r.efaa_no) +'</div></div>'
+        + '<div><div class="text-slate-400">Payment#</div><div>'+ f(r.payment_no) +'</div></div>';
+      document.getElementById('detail-modal').classList.add('open');
+    };
+
+    window.closeDetailModal = function() {
+      document.getElementById('detail-modal').classList.remove('open');
+    };
+
+    function showToast(msg, type) {
+      const toast = document.createElement('div');
+      const colors = type === 'success' ? 'bg-emerald-600' : (type === 'warning' ? 'bg-amber-600' : 'bg-red-600');
+      toast.className = `fixed top-4 left-1/2 -translate-x-1/2 ${colors} text-white px-6 py-3 rounded-lg shadow-xl z-50 animate-bounce font-bold`;
+      toast.textContent = msg;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    let chartStatusInstance = null;
+    let chartRegionInstance = null;
+
+    function renderCharts(rows) {
+      // Clear previous charts to prevent duplication
+      const chartStatusEl = document.querySelector("#chart-status");
+      const chartRegionEl = document.querySelector("#chart-region");
+      
+      if(chartStatusInstance) {
+        chartStatusInstance.destroy();
+        chartStatusInstance = null;
+      }
+      if(chartRegionInstance) {
+        chartRegionInstance.destroy();
+        chartRegionInstance = null;
+      }
+      
+      chartStatusEl.innerHTML = '';
+      chartRegionEl.innerHTML = '';
+
+      // Chart 1: Status
+      const open = rows.filter(r => !r.paid).length;
+      const closed = rows.filter(r => r.paid).length;
+      
+      chartStatusInstance = new ApexCharts(chartStatusEl, {
+      series: [open, closed],
+      chart: { type: 'donut', height: 250, fontFamily: 'Cairo', background: 'transparent' },
+      theme: { mode: 'dark' },
+      labels: ['مفتوحة', 'مدفوعة'],
+      colors: ['#EF4444', '#10B981'], // Red-500, Emerald-500
+      dataLabels: { enabled: false },
+      plotOptions: { pie: { donut: { size: '65%' } } },
+      stroke: { show: false },
+      legend: { position: 'bottom', labels: { colors: '#94a3b8' } }
+    });
+    chartStatusInstance.render();
+
+      // Chart 2: Region (mock logic for now if no region data)
+      const regions = {};
+      rows.forEach(r => {
+        const reg = r.region || 'الرياض'; // fallback
+        regions[reg] = (regions[reg] || 0) + 1;
+      });
+      
+      chartRegionInstance = new ApexCharts(chartRegionEl, {
+        series: [{ name: 'المخالفات', data: Object.values(regions) }],
+        chart: { type: 'bar', height: 250, fontFamily: 'Cairo', toolbar: {show:false}, background: 'transparent' },
+        theme: { mode: 'dark' },
+        xaxis: { 
+          categories: Object.keys(regions),
+          labels: { style: { colors: '#94a3b8' } }
+        },
+        yaxis: {
+          labels: { style: { colors: '#94a3b8' } }
+        },
+        colors: ['#6366F1'],
+        grid: { borderColor: '#334155' },
+        plotOptions: { bar: { borderRadius: 4, columnWidth: '40%' } }
+      });
+      chartRegionInstance.render();
+    }
+    
+    // نظام المزامنة مع لوحة التحكم
+    window.addEventListener('violationsUpdated', function(e) {
+      console.log('تم تحديث المخالفات من لوحة التحكم', e.detail);
+      if (typeof window.renderViolationsTableAPI === 'function') {
+        window.renderViolationsTableAPI();
+      }
+    });
+    
+    window.addEventListener('dataChanged', function(e) {
+      if (e.detail.type === 'violations') {
+        console.log('تم تغيير بيانات المخالفات', e.detail);
+        if (typeof window.renderViolationsTableAPI === 'function') {
+          window.renderViolationsTableAPI();
+        }
+      }
+    });
+  </script>
+</body>
+</html>

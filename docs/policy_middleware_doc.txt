@@ -1,0 +1,157 @@
+نظام الصلاحيات (Policy / Middleware) – Laravel
+Access Control System (Policy / Middleware) – Laravel
+=============================================
+1) الأدوار المعتمدة
+1) Approved Roles
+------------------
+- Admin : مدير النظام – صلاحيات كاملة
+- Admin: System administrator – full permissions
+- User  : مستخدم – صلاحيات محدودة (بياناته فقط)
+- User: Limited permissions (own data only)
+=================================================
+2) Middleware – التحكم بالدخول حسب الدور
+2) Middleware – Role-based access control
+=================================================
+اسم الـ Middleware: RoleMiddleware
+Middleware Name: RoleMiddleware
+الوظيفة:
+Purpose:
+- منع الوصول للمسارات حسب الدور
+- Restrict access to routes based on role
+- يُستخدم غالبًا مع Admin
+- Typically used for Admin
+المنطق:
+Logic:
+- إذا لم يكن المستخدم مسجلاً أو لا يملك الدور المطلوب → 403
+- If user is not authenticated or lacks required role → 403
+مثال استخدام:
+Example:
+- حماية جميع مسارات لوحة التحكم الخاصة بالإدارة
+- Protect all admin dashboard routes
+=================================================
+3) Policies – التحكم التفصيلي بالصلاحيات
+3) Policies – Fine-grained permissions
+=================================================
+Policy: EmployeePolicy
+Permissions:
+- viewAny : Admin فقط
+- viewAny: Admin only
+- view : Admin أو صاحب الملف
+- view: Admin or record owner
+- create : Admin فقط
+- create: Admin only
+- update : Admin أو صاحب الملف
+- update: Admin or record owner
+- delete : Admin فقط
+- delete: Admin only
+الهدف:
+Goal:
+- السماح للمستخدم بتعديل بياناته الشخصية فقط
+- Allow user to edit own profile only
+- منع الوصول لبيانات موظفين آخرين
+- Prevent access to other employees’ data
+-------------------------------------------------
+Policy: ViolationPolicy
+Permissions:
+- viewAny : Admin فقط
+- viewAny: Admin only
+- view : Admin فقط
+- view: Admin only
+- create : Admin فقط
+- create: Admin only
+- update : Admin فقط
+- update: Admin only
+- delete : Admin فقط
+- delete: Admin only
+الهدف:
+Goal:
+- منع المستخدم من الاطلاع على المخالفات نهائيًا
+- Prevent users from viewing violations entirely
+-------------------------------------------------
+Policy: BranchPolicy
+Permissions:
+- viewAny : Admin + User
+- viewAny: Admin + User
+- view : Admin + User
+- view: Admin + User
+- create : Admin فقط
+- create: Admin only
+- update : Admin فقط
+- update: Admin only
+- delete : Admin فقط
+- delete: Admin only
+-------------------------------------------------
+Policy: License / Contract Policy
+Permissions:
+- viewAny : Admin فقط
+- viewAny: Admin only
+- create : Admin فقط
+- create: Admin only
+- update : Admin فقط
+- update: Admin only
+- delete : Admin فقط
+- delete: Admin only
+- archive : Admin فقط
+- archive: Admin only
+=================================================
+4) اعتماد الصلاحيات (Authorization Rules)
+4) Authorization Rules
+=================================================
+- يتم تحديد الصلاحيات تلقائيًا حسب الدور.
+- Permissions are auto-determined by role.
+- لا يمكن للمستخدم تغيير أو ترقية صلاحياته.
+- Users cannot change or elevate their own permissions.
+- جميع التعديلات تتم عبر Admin فقط.
+- All modifications are performed by Admin only.
+- يتم تطبيق الصلاحيات على:
+- Permissions apply to:
+  - Routes
+  - Controllers
+  - Views (Blade)
+أي محاولة وصول غير مصرح بها:
+Unauthorized access:
+- يتم منعها (403)
+- Blocked (403)
+- ويمكن تسجيلها في Audit Log مستقبلاً.
+- May be logged in Audit Log later.
+=================================================
+5) الهيكل المعتمد للتنفيذ (Best Practice)
+5) Implementation Structure (Best Practice)
+=================================================
+- Middleware: حماية عامة للمسارات حسب الدور
+- Middleware: general route protection by role
+- Policies: تحديد ماذا يستطيع المستخدم فعله على كل مورد
+- Policies: define allowed actions per resource
+- Controllers: استخدام authorize()
+- Controllers: use authorize()
+- Views: استخدام @can لإخفاء الأزرار
+- Views: use @can to hide/disable UI elements
+=================================================
+6) النتيجة النهائية
+6) Final Outcome
+=================================================
+Admin:
+- تحكم كامل بالنظام
+- Full system control
+- إدارة المستخدمين
+- Manage users
+- إدارة المخالفات
+- Manage violations
+- إدارة الرخص والعقود
+- Manage licenses and contracts
+- التقارير والتصدير
+- Reporting and export
+User:
+- عرض وتعديل ملفه الشخصي فقط
+- View and edit own profile only
+- رفع مستنداته
+- Upload personal documents
+- الاطلاع على الفروع
+- Access branches list
+- استقبال التنبيهات
+- Receive notifications
+- لا يرى المخالفات ولا بيانات النظام
+- Cannot view violations nor system-wide data
+=================================================
+تم اعتماد هذا النظام كنطاق رسمي للتنفيذ.
+This system is adopted as the official implementation scope.

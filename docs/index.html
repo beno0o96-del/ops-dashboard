@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-en="CompliQ Dashboard" data-ar="لوحة الالتزام - كومبليك">CompliQ Dashboard</title>
+  <meta name="theme-color" content="#0b0e2b">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="app.js?v=202602071015"></script>
+  <link rel="stylesheet" href="style-base.css">
+  <link rel="stylesheet" href="style-home.css">
+  <link rel="stylesheet" href="style-tasks.css">
+  <link rel="icon" type="image/svg+xml" href="/logos/CompliQ.svg">
+  <link rel="apple-touch-icon" href="/logos/CompliQ.svg">
+</head>
+<body class="en">
+  <canvas id="bg-canvas"></canvas>
+  <header class="top-nav">
+    <div class="top-left">
+      <img src="/logos/CompliQ.svg" alt="CompliQ">
+      <div class="division">
+        <div class="division-name" data-en="CompliQ" data-ar="CompliQ">CompliQ</div>
+        <div class="division-note" data-en="Your only limit is your mind." data-ar="حدودك الوحيدة هي عقلك">Your only limit is your mind.</div>
+      </div>
+    </div>
+    <nav class="top-links">
+      <button id="help-toggle" class="nav-link" data-i18n="controls.help">مساعدة</button>
+      <button class="lang-btn-mini" onclick="setLang('ar')">AR</button>
+      <button class="lang-btn-mini" onclick="setLang('en')">EN</button>
+      <button class="hamburger-btn" onclick="toggleMenu()" aria-label="menu" style="margin-inline-start:8px; display:inline-flex; align-items:center; justify-content:center; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); color: #fff; padding: 6px 10px; border-radius: 10px; cursor: pointer;">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+      <div class="user-slot">
+        <button id="user-badge" class="user-badge" type="button" aria-haspopup="true" aria-expanded="false" onclick="toggleUserMenu()">
+          <div class="user-avatar"></div>
+          <span id="user-badge-name"></span>
+        </button>
+        <div id="user-menu" class="user-menu">
+          <a href="#" onclick="window.showProfile(); return false;" data-en="My Profile" data-ar="ملفّي">My Profile</a>
+          <button onclick="App.logout()" data-en="Logout" data-ar="تسجيل الخروج">Logout</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+  <div class="side-menu-overlay" id="sideMenuOverlay" onclick="toggleMenu()"></div>
+  <aside class="side-menu" id="sideMenu">
+    <div class="side-menu-header">
+      <img src="/logos/CompliQ.svg" class="side-menu-logo" alt="CompliQ">
+      <button class="close-menu-btn" onclick="toggleMenu()">&times;</button>
+    </div>
+    <nav class="side-menu-nav">
+      <a href="index.html" class="side-link active">
+        <i>🏠</i> <span data-en="Home" data-ar="الرئيسية">Home</span>
+      </a>
+      <a href="tasks.html" class="side-link">
+        <i>✅</i> <span data-en="Tasks" data-ar="المهام">Tasks</span>
+      </a>
+      <a href="employees.html" class="side-link">
+        <i>👥</i> <span data-en="Employees" data-ar="الموظفين">Employees</span>
+      </a>
+      <a href="violations.html" class="side-link">
+        <i>⚠️</i> <span data-en="Violations" data-ar="المخالفات">Violations</span>
+      </a>
+      <a href="training.html" class="side-link">
+        <i>🎓</i> <span data-en="Training" data-ar="التدريب">Training</span>
+      </a>
+      <a href="branches.html" class="side-link">
+        <i>🏬</i> <span data-en="Branches" data-ar="الفروع">Branches</span>
+      </a>
+      <a href="licenses.html" class="side-link">
+        <i>📜</i> <span data-en="Licenses & Contracts" data-ar="الرخص والعقود">Licenses & Contracts</span>
+      </a>
+      <a href="housings.html" class="side-link">
+        <i>🏠</i> <span data-en="Housings" data-ar="السكنات">Housings</span>
+      </a>
+      <a href="transports.html" class="side-link">
+        <i>🚌</i> <span data-en="Transports" data-ar="المواصلات">Transports</span>
+      </a>
+      <a href="reports.html" class="side-link">
+        <i>📊</i> <span data-en="Reports" data-ar="التقارير">Reports</span>
+      </a>
+      <a href="login.html" class="side-link">
+        <i>👤</i> <span data-en="Employee Login" data-ar="دخول الموظفين">Employee Login</span>
+      </a>
+      <a href="admin.html" class="side-link">
+        <i>🔐</i> <span data-en="Admin Login" data-ar="دخول الإدارة">Admin Login</span>
+      </a>
+    </nav>
+    <div style="margin-top: auto; padding-top: 20px;">
+      <div class="lang-switch" style="display: flex; gap: 10px; justify-content: center;">
+        <button class="lang-btn" onclick="setLang('ar')" style="flex:1;">العربية</button>
+        <button class="lang-btn" onclick="setLang('en')" style="flex:1;">English</button>
+      </div>
+      <div class="sidebar-footer" style="margin-top: 20px; text-align: center; font-size: 0.7rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
+        <div class="gradient-text" style="margin-bottom: 5px; font-weight: bold;" data-en="جميع الحقوق محفوظة لدى كومبليك © 2026" data-ar="جميع الحقوق محفوظة لدى كومبليك © 2026">جميع الحقوق محفوظة لدى كومبليك © 2026</div>
+        <div class="gradient-text" style="direction: ltr; font-weight: 500;" data-en="CompliQ" data-ar="CompliQ">CompliQ</div>
+      </div>
+    </div>
+  </aside>
+  <section class="hero-section">
+    <h1 class="hero-title" data-en="Compliance & Operational Risk Dashboard" data-ar="لوحة الالتزام والمخاطر التشغيلية">Compliance & Operational Risk Dashboard</h1>
+    <div class="hero-tagline">
+      <span class="dot">•</span>
+      <span data-en="Don’t wait for opportunity, create it" data-ar="لا تنتظر الفرصة، بل اصنعها">Don’t wait for opportunity, create it</span>
+    </div>
+    <div class="hero-divider"></div>
+  </section>
+  <!-- KPIs section moved to the front (before cards) -->
+  <section class="exec-kpis">
+    <div class="kpis-title" data-en="Executive KPIs – 2026" data-ar="مؤشرات تنفيذية – 2026">Executive KPIs – 2026</div>
+    <div class="kpis-grid">
+      <div class="kpi-card">
+        <div class="kpi-label" data-en="OPEN VIOLATIONS" data-ar="مخالفات مفتوحة">OPEN VIOLATIONS</div>
+        <div class="kpi-value" id="kpi-open">15</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label" data-en="CLOSED VIOLATIONS" data-ar="مخالفات مغلقة">CLOSED VIOLATIONS</div>
+        <div class="kpi-value" id="kpi-closed">128</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label" data-en="TOTAL FINES (SAR)" data-ar="إجمالي الغرامات (ريال)">TOTAL FINES (SAR)</div>
+        <div class="kpi-value" id="kpi-fines">335,150</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label" data-en="HEALTH CARDS COMPLIANCE" data-ar="التزام بطاقات الصحة">HEALTH CARDS COMPLIANCE</div>
+        <div class="kpi-value" id="kpi-health">74%</div>
+      </div>
+    </div>
+  </section>
+  <!-- Quick Access after KPIs -->
+  <section class="quick-access">
+    <div class="qa-title" data-en="Quick Access" data-ar="وصول سريع">Quick Access</div>
+    <div class="qa-grid">
+      <a href="violations.html" class="qa-card">
+        <div class="qa-icon">⚠️</div>
+        <div class="qa-head" data-en="Violations" data-ar="المخالفات">Violations</div>
+        <div class="qa-sub" data-en="Types • Branches • Amounts" data-ar="الأنواع • الفروع • المبالغ">Types • Branches • Amounts</div>
+      </a>
+      <a href="training.html" class="qa-card">
+        <div class="qa-icon">🏥</div>
+        <div class="qa-head" data-en="Training & Health" data-ar="التدريب والصحة">Training & Health</div>
+        <div class="qa-sub" data-en="KPIs • OHS" data-ar="المؤشرات • السلامة">KPIs • OHS</div>
+      </a>
+      <a href="branches.html" class="qa-card">
+        <div class="qa-icon">🏬</div>
+        <div class="qa-head" data-en="Branches" data-ar="الفروع">Branches</div>
+        <div class="qa-sub" data-en="Operating • Coverage" data-ar="تشغيل • تغطية">Operating • Coverage</div>
+      </a>
+      <a href="licenses.html" class="qa-card">
+        <div class="qa-icon">📜</div>
+        <div class="qa-head" data-en="Licenses & Contracts" data-ar="التراخيص والعقود">Licenses & Contracts</div>
+        <div class="qa-sub" data-en="Expiry • Compliance • Documents" data-ar="الانتهاء • الالتزام • الوثائق">Expiry • Compliance • Documents</div>
+      </a>
+    </div>
+  </section>
+  <!-- تم حذف قسم حالة التراخيص والعقود بناءً على طلب المستخدم -->
+  <!-- تم حذف قسم حالة التراخيص والعقود بناءً على طلب المستخدم -->
+  <!-- Welcome Section for Non-Logged-In Users -->
+  <div id="welcome-section" class="hidden fixed inset-0 z-40 overflow-y-auto bg-slate-900/95 backdrop-blur-sm pt-20 pb-10 px-4" style="padding-bottom:84px;">
+    <div class="max-w-6xl mx-auto flex flex-col items-center justify-center min-h-[calc(100vh-100px)]">
+      
+      <div class="text-center mb-10 w-full animate-fade-in-down">
+        <h1 class="text-3xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-emerald-400 mb-6 drop-shadow-lg" data-ar="لوحة الالتزام والمخاطر التشغيلية" data-en="Compliance & Operational Risk Dashboard">لوحة الالتزام والمخاطر التشغيلية</h1>
+        <div class="flex items-center justify-center gap-3 text-slate-400 text-lg md:text-xl font-medium">
+          <span class="h-px w-12 bg-slate-700"></span>
+          <span data-ar="CompliQ" data-en="Olayan Food Services Company">كومبليك</span>
+          <span class="h-px w-12 bg-slate-700"></span>
+        </div>
+      </div>
+
+      <div class="w-full bg-gradient-to-r from-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-8 md:p-12 shadow-2xl relative overflow-hidden group mb-6">
+        <div class="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10 opacity-0 group-hover:opacity-100 transition duration-500"></div>
+        <div class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+          <div class="flex-1 text-center md:text-start">
+            <div class="flex items-center justify-center md:justify-start gap-4 mb-4">
+              <div class="icon-badge indigo">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l1.2 4.2a2 2 0 0 0 1.4 1.4L19 9l-4.4 1.4a2 2 0 0 0-1.4 1.4L12 16l-1.2-4.2a2 2 0 0 0-1.4-1.4L5 9l4.4-1.4a2 2 0 0 0 1.4-1.4L12 2Z"/><path d="M5 13l.7 2.3a2 2 0 0 0 1.3 1.3L9.3 17l-2.3.7a2 2 0 0 0-1.3 1.3L5 21l-.7-2.3a2 2 0 0 0-1.3-1.3L1 17l2.3-.7a2 2 0 0 0 1.3-1.3L5 13Z"/></svg>
+              </div>
+              <h2 class="text-3xl font-bold text-white" data-ar="تشغيل أكثر وضوحاً. قرارات أسرع. مخاطر أقل" data-en="Start Running Your Branches Efficiently">تشغيل أكثر وضوحاً. قرارات أسرع. مخاطر أقل</h2>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl">
+              <div class="bg-slate-900/50 border border-slate-700 rounded-xl p-4 hover:bg-slate-900/70 transition">
+                <div class="flex items-start gap-3">
+                  <div class="w-8 h-8 rounded-lg bg-emerald-500/15 ring-1 ring-emerald-400/20 flex items-center justify-center text-emerald-300 text-base">📊</div>
+                  <div>
+                    <div class="text-white font-semibold mb-1" data-ar="لوحة تشغيل موحدة" data-en="Unified Operations Dashboard">لوحة تشغيل موحدة</div>
+                    <p class="text-slate-300 text-sm" data-ar="عرض لحظي لحالة الفروع والامتثال." data-en="Real‑time view of branches and compliance.">عرض لحظي لحالة الفروع والامتثال.</p>
+                  </div>
+                </div>
+              </div>
+              <div class="bg-slate-900/50 border border-slate-700 rounded-xl p-4 hover:bg-slate-900/70 transition">
+                <div class="flex items-start gap-3">
+                  <div class="w-8 h-8 rounded-lg bg-amber-500/15 ring-1 ring-amber-400/20 flex items-center justify-center text-amber-300 text-base">🔔</div>
+                  <div>
+                    <div class="text-white font-semibold mb-1" data-ar="تنبيهات استباقية" data-en="Proactive Alerts">تنبيهات استباقية</div>
+                    <p class="text-slate-300 text-sm" data-ar="متابعة الانتهاء قبل وقوع المخالفة." data-en="Track expiries before violations happen.">متابعة الانتهاء قبل وقوع المخالفة.</p>
+                  </div>
+                </div>
+              </div>
+              <div class="bg-slate-900/50 border border-slate-700 rounded-xl p-4 hover:bg-slate-900/70 transition">
+                <div class="flex items-start gap-3">
+                  <div class="w-8 h-8 rounded-lg bg-indigo-500/15 ring-1 ring-indigo-400/20 flex items-center justify-center text-indigo-300 text-base">🧭</div>
+                  <div>
+                    <div class="text-white font-semibold mb-1" data-ar="مؤشر خطر لكل فرع" data-en="Per‑Branch Risk Index">مؤشر خطر لكل فرع</div>
+                    <p class="text-slate-300 text-sm" data-ar="دعم اتخاذ القرار بسرعة ودقة." data-en="Support faster, informed decisions.">دعم اتخاذ القرار بسرعة ودقة.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mt-4 w-full max-w-3xl rounded-xl bg-indigo-500/10 ring-1 ring-indigo-400/20 px-4 py-3 text-indigo-200 font-semibold">
+              <span data-ar="انطلق الآن لإدارة التشغيل والامتثال بكفاءة أعلى." data-en="Get started to manage operations and compliance more efficiently.">انطلق الآن لإدارة التشغيل والامتثال بكفاءة أعلى.</span>
+            </div>
+          </div>
+          <div class="flex-shrink-0 w-full md:w-auto">
+            <a href="login.html" class="inline-flex items-center justify-center gap-3 w-full md:w-auto px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white text-lg font-bold rounded-xl transition duration-300 shadow-lg shadow-blue-900/30 transform hover:scale-105">
+              <span data-ar="تسجيل الدخول " data-en="Sign in now">تسجيل الدخول </span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full mb-6">
+
+        <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-8 hover:bg-slate-800 transition duration-300 transform hover:-translate-y-1 shadow-xl flex flex-col items-start relative overflow-hidden group">
+          <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -mr-16 -mt-16 transition group-hover:bg-emerald-500/20"></div>
+          <div class="mb-6 icon-badge emerald">
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-4 12v3a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-3a7 7 0 0 0-4-12Z"/><path d="M9 21h6"/><path d="M10 17h4"/></svg>
+          </div>
+          <h3 class="text-2xl font-bold text-white mb-4" data-ar="⚙️ كيف يعمل النظام؟" data-en="⚙️ How the system works">⚙️ كيف يعمل النظام؟</h3>
+          <p class="text-slate-300 mb-4" data-ar="يوفر النظام مرجعاً تشغيلياً موحداً لمتابعة متطلبات الجهات التنظيمية وإدارة عناصر التشغيل المرتبطة بالفروع بشكل مستمر." data-en="Provides a single operational reference to track regulatory requirements and manage branch-related operations continuously.">يوفر النظام مرجعاً تشغيلياً موحداً لمتابعة متطلبات الجهات التنظيمية وإدارة عناصر التشغيل المرتبطة بالفروع بشكل مستمر.</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+            <div class="bg-slate-900/50 border border-slate-700 rounded-xl p-4 hover:bg-slate-900/70 transition">
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-lg bg-emerald-500/15 ring-1 ring-emerald-400/20 flex items-center justify-center text-emerald-300 text-sm font-bold">1️⃣</div>
+                <div>
+                  <div class="text-white font-semibold mb-1" data-ar="إدارة الفروع ومراكز التكلفة" data-en="Branches & Cost Centers">إدارة الفروع ومراكز التكلفة</div>
+                  <p class="text-slate-300 text-sm leading-relaxed" data-ar="إضافة الفروع وربطها بالعلامة التجارية والمنطقة و Cost Center ضمن لوحة مركزية." data-en="Add branches and link brand, region, and cost center in a central dashboard.">إضافة الفروع وربطها بالعلامة التجارية والمنطقة و Cost Center ضمن لوحة مركزية.</p>
+                </div>
+              </div>
+            </div>
+            <div class="bg-slate-900/50 border border-slate-700 rounded-xl p-4 hover:bg-slate-900/70 transition">
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-lg bg-indigo-500/15 ring-1 ring-indigo-400/20 flex items-center justify-center text-indigo-300 text-sm font-bold">2️⃣</div>
+                <div>
+                  <div class="text-white font-semibold mb-1" data-ar="إدارة العقود والتراخيص" data-en="Contracts & Licenses">إدارة العقود والتراخيص</div>
+                  <p class="text-slate-300 text-sm leading-relaxed" data-ar="رفع وربط المستندات (بلدية، دفاع مدني، إيجارات، تصاريح، كروت صحية، تدريب) مع متابعة تواريخ الانتهاء." data-en="Upload and link documents (Municipality, Civil Defense, leases, permits, health cards, training) with expiry tracking.">رفع وربط المستندات (بلدية، دفاع مدني، إيجارات، تصاريح، كروت صحية، تدريب) مع متابعة تواريخ الانتهاء.</p>
+                </div>
+              </div>
+            </div>
+            <div class="bg-slate-900/50 border border-slate-700 rounded-xl p-4 hover:bg-slate-900/70 transition">
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-lg bg-amber-500/15 ring-1 ring-amber-400/20 flex items-center justify-center text-amber-300 text-sm font-bold">3️⃣</div>
+                <div>
+                  <div class="text-white font-semibold mb-1" data-ar="إدارة السكنات" data-en="Housings">إدارة السكنات</div>
+                  <p class="text-slate-300 text-sm leading-relaxed" data-ar="متابعة بيانات السكن والعقود والتواريخ التشغيلية المرتبطة بالموظفين والفروع." data-en="Track housing data, contracts, and operational dates linked to employees and branches.">متابعة بيانات السكن والعقود والتواريخ التشغيلية المرتبطة بالموظفين والفروع.</p>
+                </div>
+              </div>
+            </div>
+            <div class="bg-slate-900/50 border border-slate-700 rounded-xl p-4 hover:bg-slate-900/70 transition">
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-lg bg-teal-500/15 ring-1 ring-teal-400/20 flex items-center justify-center text-teal-300 text-sm font-bold">4️⃣</div>
+                <div>
+                  <div class="text-white font-semibold mb-1" data-ar="إدارة المواصلات" data-en="Transport">إدارة المواصلات</div>
+                  <p class="text-slate-300 text-sm leading-relaxed" data-ar="تسجيل بيانات الحافلات والمركبات وربطها بالفروع والموظفين مع متابعة الحالة التشغيلية." data-en="Register buses/vehicles, link to branches and employees, and track operational status.">تسجيل بيانات الحافلات والمركبات وربطها بالفروع والموظفين مع متابعة الحالة التشغيلية.</p>
+                </div>
+              </div>
+            </div>
+            <div class="bg-slate-900/50 border border-slate-700 rounded-xl p-4 hover:bg-slate-900/70 transition md:col-span-2">
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-lg bg-rose-500/15 ring-1 ring-rose-400/20 flex items-center justify-center text-rose-300 text-sm font-bold">5️⃣</div>
+                <div class="flex-1">
+                  <div class="text-white font-semibold mb-1" data-ar="مراقبة التشغيل ومستوى المخاطر" data-en="Monitor operations & risk">مراقبة التشغيل ومستوى المخاطر</div>
+                  <p class="text-slate-300 text-sm leading-relaxed" data-ar="عرض الفروع المعرضة للمخالفة، حالة الامتثال، التنبيهات القادمة، وأسباب ارتفاع المخاطر." data-en="View at-risk branches, compliance status, upcoming alerts, and risk drivers.">عرض الفروع المعرضة للمخالفة، حالة الامتثال، التنبيهات القادمة، وأسباب ارتفاع المخاطر.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-8 hover:bg-slate-800 transition duration-300 transform hover:-translate-y-1 shadow-xl flex flex-col items-start relative overflow-hidden group">
+          <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-16 -mt-16 transition group-hover:bg-indigo-500/20"></div>
+          <div class="mb-6 icon-badge indigo">
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 13h8"/><path d="M7 9h12"/><path d="M7 17h3"/></svg>
+          </div>
+          <h3 class="text-2xl font-bold text-white mb-4" data-ar="⭐ وحدات النظام الرئيسية" data-en="⭐ Core Modules">⭐ وحدات النظام الرئيسية</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+            <div class="bg-slate-900/50 border border-slate-700 rounded-xl p-4 hover:bg-slate-900/70 transition">
+              <div class="flex items-start gap-3">
+                <div class="w-9 h-9 rounded-lg bg-emerald-500/15 ring-1 ring-emerald-400/20 flex items-center justify-center text-emerald-300 text-lg">🔔</div>
+                <div>
+                  <div class="text-white font-semibold mb-1" data-ar="مركز التنبيهات" data-en="Notifications Center">مركز التنبيهات</div>
+                  <p class="text-slate-300 text-sm leading-relaxed" data-ar="متابعة جميع تواريخ الانتهاء والتنبيهات التشغيلية في شاشة واحدة." data-en="Track all expiry dates and operational alerts in a single view.">متابعة جميع تواريخ الانتهاء والتنبيهات التشغيلية في شاشة واحدة.</p>
+                </div>
+              </div>
+            </div>
+            <div class="bg-slate-900/50 border border-slate-700 rounded-xl p-4 hover:bg-slate-900/70 transition">
+              <div class="flex items-start gap-3">
+                <div class="w-9 h-9 rounded-lg bg-rose-500/15 ring-1 ring-rose-400/20 flex items-center justify-center text-rose-300 text-lg">📋</div>
+                <div>
+                  <div class="text-white font-semibold mb-1" data-ar="إدارة المخالفات" data-en="Violations Management">إدارة المخالفات</div>
+                  <p class="text-slate-300 text-sm leading-relaxed" data-ar="تسجيل وتحليل المخالفات وربطها بالفروع لتقليل التكرار." data-en="Log and analyze violations and link them to branches to reduce recurrence.">تسجيل وتحليل المخالفات وربطها بالفروع لتقليل التكرار.</p>
+                </div>
+              </div>
+            </div>
+            <div class="bg-slate-900/50 border border-slate-700 rounded-xl p-4 hover:bg-slate-900/70 transition">
+              <div class="flex items-start gap-3">
+                <div class="w-9 h-9 rounded-lg bg-indigo-500/15 ring-1 ring-indigo-400/20 flex items-center justify-center text-indigo-300 text-lg">📑</div>
+                <div>
+                  <div class="text-white font-semibold mb-1" data-ar="العقود والتراخيص" data-en="Contracts & Licenses">العقود والتراخيص</div>
+                  <p class="text-slate-300 text-sm leading-relaxed" data-ar="إدارة العقود والرخص والتصاريح مع الأرشفة وتنبيهات الانتهاء." data-en="Manage contracts, permits, and licenses with archiving and expiry alerts.">إدارة العقود والرخص والتصاريح مع الأرشفة وتنبيهات الانتهاء.</p>
+                </div>
+              </div>
+            </div>
+            <div class="bg-slate-900/50 border border-slate-700 rounded-xl p-4 hover:bg-slate-900/70 transition">
+              <div class="flex items-start gap-3">
+                <div class="w-9 h-9 rounded-lg bg-amber-500/15 ring-1 ring-amber-400/20 flex items-center justify-center text-amber-300 text-lg">🏠</div>
+                <div>
+                  <div class="text-white font-semibold mb-1" data-ar="السكنات" data-en="Housings">السكنات</div>
+                  <p class="text-slate-300 text-sm leading-relaxed" data-ar="متابعة السكن والطاقة الاستيعابية والارتباط بالفروع." data-en="Track accommodations, capacity, and branch associations.">متابعة السكن والطاقة الاستيعابية والارتباط بالفروع.</p>
+                </div>
+              </div>
+            </div>
+            <div class="bg-slate-900/50 border border-slate-700 rounded-xl p-4 hover:bg-slate-900/70 transition">
+              <div class="flex items-start gap-3">
+                <div class="w-9 h-9 rounded-lg bg-teal-500/15 ring-1 ring-teal-400/20 flex items-center justify-center text-teal-300 text-lg">🚌</div>
+                <div>
+                  <div class="text-white font-semibold mb-1" data-ar="المواصلات" data-en="Transport">المواصلات</div>
+                  <p class="text-slate-300 text-sm leading-relaxed" data-ar="إدارة بيانات النقل والتكاليف وربطها بالفروع." data-en="Manage transport data, operating costs, and branch linkage.">إدارة بيانات النقل والتكاليف وربطها بالفروع.</p>
+                </div>
+              </div>
+            </div>
+            <div class="bg-slate-900/50 border border-slate-700 rounded-xl p-4 hover:bg-slate-900/70 transition">
+              <div class="flex items-start gap-3">
+                <div class="w-9 h-9 rounded-lg bg-emerald-500/15 ring-1 ring-emerald-400/20 flex items-center justify-center text-emerald-300 text-lg">📊</div>
+                <div>
+                  <div class="text-white font-semibold mb-1" data-ar="مؤشر خطر الفروع" data-en="Branch Risk Index">مؤشر خطر الفروع</div>
+                  <p class="text-slate-300 text-sm leading-relaxed" data-ar="تحليل تشغيلي ذكي يدعم اتخاذ القرار." data-en="Smart operational analytics that support decision-making.">تحليل تشغيلي ذكي يدعم اتخاذ القرار.</p>
+                </div>
+              </div>
+            </div>
+            <div class="bg-slate-900/50 border border-slate-700 rounded-xl p-4 hover:bg-slate-900/70 transition sm:col-span-2">
+              <div class="flex items-start gap-3">
+                <div class="w-9 h-9 rounded-lg bg-purple-500/15 ring-1 ring-purple-400/20 flex items-center justify-center text-purple-300 text-lg">🔐</div>
+                <div class="flex-1">
+                  <div class="text-white font-semibold mb-1" data-ar="الأمان والصلاحيات" data-en="Security & Permissions">الأمان والصلاحيات</div>
+                  <p class="text-slate-300 text-sm leading-relaxed" data-ar="نظام صلاحيات حسب الدور، عزل بيانات الفروع، وتخزين مرفقات آمن." data-en="Role-based access control, branch data isolation, and secure attachment storage.">نظام صلاحيات حسب الدور، عزل بيانات الفروع، وتخزين مرفقات آمن.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="mt-5 w-full rounded-xl bg-indigo-500/10 ring-1 ring-indigo-400/20 px-4 py-3 text-indigo-200 font-semibold">
+            <span data-ar="✅ الهدف من النظام: توفير رؤية تشغيلية موحدة تساعد على قرارات استباقية وتقليل المخاطر." data-en="✅ Goal: A unified operational view that enables proactive decisions and reduces risk.">✅ الهدف من النظام: توفير رؤية تشغيلية موحدة تساعد على قرارات استباقية وتقليل المخاطر.</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+    <!-- Footer is global and floats above overlay; no duplicate here -->
+  </div>
+  <script src="app.js?v=999"></script>
+  <script src="od_config.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.37.0/lib/msal-browser.min.js" defer></script>
+  <script src="onedrive_activity.js" defer></script>
+  <script src="github_activity.js" defer></script>
+  <script src="js/api-client.js"></script>
+  <script>
+    function setLang(l) {
+      App.setLang(l);
+      document.body.className = l === 'ar' ? 'ar' : 'en';
+    }
+    App.init('index');
+    
+    async function updateIndexKPIsFromAPI() {
+      try {
+        var elOpen = document.getElementById('kpi-open');
+        var elClosed = document.getElementById('kpi-closed');
+        var elFines = document.getElementById('kpi-fines');
+        var elHealth = document.getElementById('kpi-health');
+
+        // Violations from Admin store if available, else API
+        var vioRows = (window.App && App.store && App.store.list) ? (App.store.list('violations') || []) : [];
+        if (!Array.isArray(vioRows) || vioRows.length === 0) {
+          if (window.APIClient && APIClient.violations) {
+            try {
+              vioRows = await APIClient.violations.list();
+            } catch(_) {}
+          }
+        }
+        if (Array.isArray(vioRows)) {
+          var open = vioRows.filter(function(r){ return !r.paid; }).length;
+          var closed = vioRows.filter(function(r){ return !!r.paid; }).length;
+          var fines = vioRows.reduce(function(acc, r){ return acc + (Number(r.amount) || 0); }, 0);
+          if (elOpen) elOpen.textContent = String(open);
+          if (elClosed) elClosed.textContent = String(closed);
+          if (elFines) elFines.textContent = (fines || 0).toLocaleString('ar-SA');
+        }
+
+        // Health cards compliance priority: training_metrics -> employees
+        var healthPct = null;
+        var tMetrics = (window.App && App.store && App.store.list) ? (App.store.list('training_metrics') || []) : [];
+        if (Array.isArray(tMetrics) && tMetrics.length) {
+          var m = tMetrics.find(function(x){
+            var key = (x.key || x.name || '').toString().toLowerCase();
+            return key.includes('health') && key.includes('compliance');
+          });
+          if (m) {
+            var v = m.value != null ? m.value : (m.pct != null ? m.pct : m.percentage);
+            if (typeof v === 'number') {
+              healthPct = v > 1 ? Math.round(v) : Math.round(v * 100);
+            } else if (typeof v === 'string') {
+              var num = parseFloat(v.replace('%','').trim());
+              if (!isNaN(num)) healthPct = num;
+            }
+          }
+        }
+        if (healthPct == null) {
+          try {
+            var employees = (window.App && App.store && App.store.list) ? (App.store.list('employees') || []) : [];
+            if (Array.isArray(employees) && employees.length) {
+              var today = new Date().setHours(0,0,0,0);
+              var withHealth = employees.filter(function(e){ return !!(e.healthExpiry || e.health_expiry || e.healthCardExp); }).length;
+              var valid = employees.filter(function(e){
+                var v = e.healthExpiry || e.health_expiry || e.healthCardExp;
+                if (!v) return false;
+                var d = new Date(v);
+                return d instanceof Date && !isNaN(d) && d.setHours(0,0,0,0) >= today;
+              }).length;
+              if (withHealth > 0) healthPct = Math.round((valid / withHealth) * 100);
+            }
+          } catch(_){}
+        }
+        if (elHealth && healthPct != null) elHealth.textContent = String(healthPct) + '%';
+      } catch (e) {
+        console.warn('Failed to update KPIs from API', e);
+      }
+    }
+    updateIndexKPIsFromAPI();
+    document.addEventListener('visibilitychange', function(){ if (!document.hidden) updateIndexKPIsFromAPI(); });
+    window.addEventListener('storage', function(e){ 
+      if (!e || !e.key) return;
+      if (e.key.includes('db:violations') || e.key.includes('db:employees') || e.key.includes('db:training_metrics')) updateIndexKPIsFromAPI(); 
+    });
+    
+    // API Fetch Demo for Branches (اختبار خفيف)
+    document.addEventListener('DOMContentLoaded', () => {
+      if(window.APIClient) {
+        APIClient.getAll('branches')
+          .then(data => {
+            console.log('✅ Index Page: Successfully fetched ' + data.length + ' branches from API');
+            // Future: Render these branches in a widget if needed
+          })
+          .catch(err => console.error('❌ Index Page: Failed to fetch branches', err));
+      }
+    });
+
+    // تزامن يدوي إذا توفرت دالة موروثة
+    if (window.App && typeof window.App.updateIndexKPIs === 'function') window.App.updateIndexKPIs();
+    function openMenu(){ var ov=document.getElementById('sideMenuOverlay'); var m=document.getElementById('sideMenu'); if(ov) ov.classList.add('open'); if(m) m.classList.add('open'); }
+    function closeMenu(){ var ov=document.getElementById('sideMenuOverlay'); var m=document.getElementById('sideMenu'); if(ov) ov.classList.remove('open'); if(m) m.classList.remove('open'); }
+    function toggleMenu(){ var m=document.getElementById('sideMenu'); if(m && m.classList.contains('open')) closeMenu(); else openMenu(); }
+    function toggleUserMenu(){
+      var menu = document.getElementById('user-menu');
+      var badge = document.getElementById('user-badge');
+      if (!menu) return;
+      menu.classList.toggle('open');
+      if (badge) badge.setAttribute('aria-expanded', menu.classList.contains('open') ? 'true' : 'false');
+      if (!menu.classList.contains('open') || !badge) return;
+      var rect = badge.getBoundingClientRect();
+      menu.style.position = 'fixed';
+      menu.style.top = (rect.bottom + 8) + 'px';
+      if ((document.documentElement && document.documentElement.dir) === 'rtl') {
+        menu.style.left = rect.left + 'px';
+        menu.style.right = 'auto';
+      } else {
+        menu.style.right = (window.innerWidth - rect.right) + 'px';
+        menu.style.left = 'auto';
+      }
+    }
+  </script>
+  <footer class="fixed bottom-0 inset-x-0 text-center text-slate-300 text-xs py-3 bg-[#0b1b2b]/60 backdrop-blur">
+    <a href="#" class="text-sky-300 hover:text-sky-200" data-i18n="footer.developed_by" data-en="All rights reserved – CompliQ © 2026" data-ar="جميع الحقوق محفوظة لدى كومبليك © 2026">جميع الحقوق محفوظة لدى كومبليك © 2026</a>
+  </footer>
+</body>
+</html>

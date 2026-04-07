@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>المخالفات</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style-base.css">
+  <link rel="stylesheet" href="style-site.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+  <script>
+    (function(){
+      function load(src, cb){ var s=document.createElement('script'); s.src=src; s.onload=function(){ cb(true); }; s.onerror=function(){ cb(false); }; document.head.appendChild(s); }
+      function ensureXLSX(){
+        if (window.XLSX) return;
+        var sources=[
+          'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
+          'https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js'
+        ];
+        var i=0; (function next(){ if (window.XLSX || i>=sources.length) return; load(sources[i++], next); })();
+      }
+      if (!window.XLSX) ensureXLSX();
+      window.addEventListener('load', ensureXLSX);
+    })();
+  </script>
+  <style>
+    #violation-modal {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 10% 20%, rgba(79, 172, 254, 0.25) 0%, transparent 25%),
+                  radial-gradient(circle at 90% 80%, rgba(0, 242, 254, 0.18) 0%, transparent 25%),
+                  rgba(15, 23, 42, 0.92);
+      z-index: 80;
+    }
+    #violation-modal.open {
+      display: flex;
+    }
+    #violation-modal .modal-content {
+      max-width: 900px;
+      width: 100%;
+      border-radius: 22px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.9);
+      background: radial-gradient(circle at top left, rgba(79, 172, 254, 0.18), transparent 55%),
+                  radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.12), transparent 55%),
+                  linear-gradient(145deg, #020617, #020617, #020617);
+    }
+    #violation-modal h2 {
+      letter-spacing: 0.03em;
+    }
+    #violation-modal .form-control {
+      background: rgba(15, 23, 42, 0.9);
+      border-radius: 12px;
+    }
+    #violation-modal .form-control:focus {
+      box-shadow: 0 0 0 1px rgba(79, 172, 254, 0.5), 0 0 15px rgba(79, 172, 254, 0.5);
+    }
+    #viol-page-size {
+      background: rgba(15, 23, 42, 0.9);
+      color: #cbd5e1;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 10px;
+      padding: 6px 10px;
+    }
+    #viol-page-size option {
+      background: #0b1020;
+      color: #cbd5e1;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bg-canvas"></canvas>
+  <nav class="glass-nav">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <div class="text-lg font-bold">لوحة التشغيل</div>
+      <div class="flex items-center gap-4">
+        <a href="./index.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.home">الرئيسية</a>
+        <a href="./employees.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.employees">الموظفون</a>
+        <a href="./branches.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.branches">الفروع</a>
+        <a href="./licenses.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.licenses">الرخص والعقود</a>
+        <a href="./violations.html" class="text-indigo-600 font-medium" data-i18n="nav.violations">المخالفات</a>
+        <a href="./housings.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.housings">السكنات</a>
+        <a href="./transports.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.transports">المواصلات</a>
+        <a href="./reports.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.reports">التقارير</a>
+        <a href="./login.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.login">تسجيل الدخول</a>
+        <button id="help-toggle" class="px-3 py-1 rounded bg-gray-100 text-gray-800"></button>
+        <button id="lang-toggle" class="px-3 py-1 rounded bg-indigo-600 text-white"></button>
+        <div class="relative inline-block">
+          <div id="user-badge" class="user-badge">
+            <div class="user-avatar"></div>
+            <span id="user-badge-name"></span>
+          </div>
+          <div id="user-menu" class="user-menu">
+            <a href="#" data-en="My Profile" data-ar="ملفّي">My Profile</a>
+            <button onclick="App.logout()" data-en="Logout" data-ar="تسجيل الخروج">Logout</button>
+          </div>
+        </div>
+        <button class="logout-btn" onclick="App.logout()" data-en="Logout" data-ar="تسجيل الخروج">Logout</button>
+      </div>
+    </div>
+  </nav>
+  <main class="max-w-7xl mx-auto px-4 py-8">
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-semibold" data-i18n="violations.title">لوحة مؤشرات المخالفات</h1>
+      <div class="flex items-center gap-2">
+        <button id="v-add-btn" class="btn-primary text-sm px-4 py-2 rounded text-white">إضافة مخالفة</button>
+        <button id="v-refresh-btn" class="btn-primary text-sm px-4 py-2 rounded text-white">تحديث البيانات</button>
+        <button id="v-export-json" class="btn-primary text-sm px-3 py-2 rounded text-white">تصدير JSON</button>
+        <button id="v-export-csv" class="btn-primary text-sm px-3 py-2 rounded text-white">تصدير CSV</button>
+      </div>
+    </div>
+
+    <div class="grid gap-4 md:grid-cols-4 mb-6">
+      <div class="glass-card p-4">
+        <div class="text-xs text-slate-300 mb-1">إجمالي المخالفات</div>
+        <div class="text-2xl font-bold" id="v-total-count">0</div>
+      </div>
+      <div class="glass-card p-4">
+        <div class="text-xs text-slate-300 mb-1">إجمالي الغرامات (ريال)</div>
+        <div class="text-2xl font-bold" id="v-total-amount">0</div>
+      </div>
+      <div class="glass-card p-4">
+        <div class="text-xs text-slate-300 mb-1">الفرع الأكثر تكراراً</div>
+        <div class="text-lg font-semibold" id="v-top-freq-branch">-</div>
+      </div>
+      <div class="glass-card p-4">
+        <div class="text-xs text-slate-300 mb-1">الفرع الأعلى خطورة</div>
+        <div class="text-lg font-semibold" id="v-top-risk-branch">-</div>
+      </div>
+    </div>
+
+    <div class="grid gap-4 mb-6 lg:grid-cols-3">
+      <div class="glass-card p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div class="text-sm font-semibold">الفروع – تكرار المخالفات (Top 15)</div>
+        </div>
+        <div id="chart-freq"></div>
+      </div>
+      <div class="glass-card p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div class="text-sm font-semibold">الفروع – الأعلى خطورة بالمبالغ</div>
+        </div>
+        <div id="chart-risk"></div>
+      </div>
+      <div class="glass-card p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div class="text-sm font-semibold">أنواع المخالفات الأكثر شيوعاً</div>
+        </div>
+        <div id="list-types"></div>
+      </div>
+    </div>
+
+    <div class="glass-card p-4 mb-6">
+      <div class="flex items-center gap-3 flex-wrap">
+        <div class="text-sm font-semibold">تحديث البيانات من Excel</div>
+        <input type="file" id="viol-excel-file" accept=".xlsx,.xls,.csv" style="display:none">
+        <button id="viol-excel-pick" class="btn-primary text-sm px-3 py-2 rounded text-white">📂 رفع ملف Excel</button>
+        <button id="viol-excel-save" class="btn-primary text-sm px-3 py-2 rounded text-white">💾 حفظ إلى API</button>
+        <button id="viol-excel-clear" class="btn-primary text-sm px-3 py-2 rounded text-white">🗑️ مسح</button>
+        <button id="viol-excel-template" class="btn-primary text-sm px-3 py-2 rounded text-white">⬇️ تحميل نموذج</button>
+        <span id="viol-file-name" class="text-slate-300 text-sm"></span>
+        <span id="viol-import-count" class="text-sky-300 text-sm"></span>
+      </div>
+    </div>
+
+    <div class="glass-card p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-3">
+            <div class="text-sm font-semibold">سجل المخالفات التفصيلي</div>
+            <select id="viol-page-size" class="form-control w-24 text-sm">
+              <option value="50">50</option>
+              <option value="100">100</option>
+              <option value="200">200</option>
+            </select>
+            <div id="viol-page-info" class="text-xs text-slate-400"></div>
+            <button id="viol-btn-prev" class="btn-primary text-xs px-2 py-1 rounded">◀</button>
+            <button id="viol-btn-next" class="btn-primary text-xs px-2 py-1 rounded">▶</button>
+            <button id="viol-delete-selected" class="logout-btn text-xs px-2 py-1 rounded">حذف المحدد</button>
+          </div>
+          <input id="viol-search" class="form-control px-3 py-2 text-sm" placeholder="بحث في السجل...">
+        </div>
+      <div class="overflow-x-auto max-h-[480px]">
+        <table class="min-w-full text-sm">
+          <thead>
+            <tr class="bg-slate-900/50">
+              <th class="px-4 py-2 text-right text-xs font-medium text-slate-300"><input type="checkbox" id="viol-select-all"></th>
+              <th class="px-4 py-2 text-right text-xs font-medium text-slate-300">الفرع</th>
+              <th class="px-4 py-2 text-right text-xs font-medium text-slate-300">نوع المخالفة</th>
+              <th class="px-4 py-2 text-right text-xs font-medium text-slate-300">المبلغ (ريال)</th>
+              <th class="px-4 py-2 text-right text-xs font-medium text-slate-300">التاريخ</th>
+              <th class="px-4 py-2 text-right text-xs font-medium text-slate-300">الحالة</th>
+              <th class="px-4 py-2 text-right text-xs font-medium text-slate-300">إجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="violations-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <div id="violation-modal" class="modal-overlay">
+    <div class="modal-content max-w-lg">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold" id="vio-modal-title">إدارة المخالفة</h2>
+        <button type="button" class="text-slate-300 hover:text-white" id="vio-modal-close">✕</button>
+      </div>
+      <form id="vio-form" class="grid gap-2 text-sm" style="grid-template-columns:1fr 1fr;">
+        <div>
+          <label class="text-xs text-slate-300 mb-1 inline-block">الفرع (Branch)</label>
+          <input class="form-control px-3 py-2" name="branch" placeholder="اسم الفرع">
+        </div>
+        <div>
+          <label class="text-xs text-slate-300 mb-1 inline-block">Cost Center</label>
+          <input class="form-control px-3 py-2" name="costCenter" placeholder="Cost Center">
+        </div>
+        <div>
+          <label class="text-xs text-slate-300 mb-1 inline-block">رقم المخالفة (Violation No)</label>
+          <input class="form-control px-3 py-2" name="number" placeholder="حروف وأرقام">
+        </div>
+        <div>
+          <label class="text-xs text-slate-300 mb-1 inline-block">رقم مخالفة إيفاء (Efaa No)</label>
+          <input class="form-control px-3 py-2" name="efaaNumber" placeholder="أرقام وحروف">
+        </div>
+        <div>
+          <label class="text-xs text-slate-300 mb-1 inline-block">رقم السداد (Payment No)</label>
+          <input class="form-control px-3 py-2" name="paymentNumber" placeholder="أرقام فقط">
+        </div>
+        <div>
+          <label class="text-xs text-slate-300 mb-1 inline-block">تاريخ وقوع المخالفة</label>
+          <input class="form-control px-3 py-2" name="date" placeholder="YYYY-MM-DD">
+        </div>
+        <div style="grid-column:1/-1;">
+          <label class="text-xs text-slate-300 mb-1 inline-block">نوع المخالفة ووصفها</label>
+          <textarea class="form-control px-3 py-2" name="description" rows="2" placeholder="وصف خطي للمخالفة..."></textarea>
+        </div>
+        <div>
+          <label class="text-xs text-slate-300 mb-1 inline-block">المبلغ (ر.س)</label>
+          <input class="form-control px-3 py-2" name="amount" placeholder="0.00">
+        </div>
+        <div>
+          <label class="text-xs text-slate-300 mb-1 inline-block">حالة السداد</label>
+          <select class="form-control px-3 py-2" name="paymentStatus">
+            <option value="لم يتم السداد">لم يتم السداد</option>
+            <option value="تم السداد">تم السداد</option>
+            <option value="مسددة">مسددة</option>
+            <option value="الغاء المخالفة">الغاء المخالفة</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-slate-300 mb-1 inline-block">حالة المخالفة (الاعتراض)</label>
+          <select class="form-control px-3 py-2" name="status">
+            <option value="تحت الدراسة">تحت الدراسة</option>
+            <option value="تم الاعتراض">تم الاعتراض</option>
+            <option value="مرفوض الاعتراض">مرفوض الاعتراض</option>
+            <option value="قبول الاعتراض">قبول الاعتراض</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-slate-300 mb-1 inline-block">المنطقة</label>
+          <select class="form-control px-3 py-2" name="region">
+            <option value="Western">Western (الغربية)</option>
+            <option value="Central">Central (الوسطى)</option>
+            <option value="Northern">Northern (الشمالية)</option>
+            <option value="Southern">Southern (الجنوبية)</option>
+          </select>
+        </div>
+        <div style="grid-column:1/-1;">
+          <label class="text-xs text-slate-300 mb-1 inline-block">المرفقات (صور + PDF)</label>
+          <div id="vio-dropzone" class="file-upload-box" style="padding:12px;">
+            <input type="file" id="vio-attachments" multiple accept="image/*,.pdf" style="display:none">
+            <div class="flex items-center gap-2 mb-2">
+              <button type="button" class="btn-primary text-white px-3 py-1 rounded" id="vio-choose-files">اختيار ملفات</button>
+              <button type="button" class="btn-primary text-white px-3 py-1 rounded" id="vio-save-attachments">حفظ المرفقات</button>
+              <button type="button" class="logout-btn px-3 py-1 rounded" id="vio-clear-attachments">مسح المرفقات</button>
+            </div>
+            <div id="vio-attachments-preview" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+          </div>
+        </div>
+        <input type="hidden" name="id">
+        <div class="flex items-center gap-2 mt-2" style="grid-column:1/-1;">
+          <button class="btn-primary text-white px-4 py-2 rounded" type="submit">حفظ</button>
+          <button id="vio-delete" class="logout-btn px-4 py-2 rounded" type="button">حذف</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    App.init('violations');
+  </script>
+  <script>
+    (function () {
+      var rawData = [];
+      var importedRows = [];
+      var editId = null;
+      var attachedFiles = [];
+
+      function normalize(rows) {
+        if (!Array.isArray(rows)) return [];
+        return rows.map(function (v) {
+          return {
+            id: v.id,
+            branch: v.branch || 'غير محدد',
+            type: v.type || v.description || '',
+            amount: Number(v.amount || 0),
+            paid: !!v.paid,
+            date: v.date || '',
+            number: v.number || '',
+            efaaNumber: v.efaaNumber || '',
+            paymentNumber: v.paymentNumber || '',
+            costCenter: v.costCenter || '',
+            description: v.description || '',
+            paymentStatus: v.paymentStatus || (v.paid ? 'تم السداد' : 'لم يتم السداد'),
+            status: v.status || '',
+            region: v.region || ''
+          };
+        });
+      }
+
+      function parsePaid(val) {
+        var s = String(val || '').toLowerCase();
+        if (!s) return false;
+        if (s.includes('true') || s.includes('yes') || s.includes('مدفوع')) return true;
+        return s === '1';
+      }
+
+      function formatDate(val) {
+        if (!val) return '';
+        try {
+          if (typeof val === 'number') {
+            var d = new Date(Math.round((val - 25569) * 86400 * 1000));
+            return d.toISOString().slice(0, 10);
+          }
+          var d2 = new Date(val);
+          if (!isNaN(d2.getTime())) return d2.toISOString().slice(0, 10);
+          return String(val);
+        } catch (e) { return String(val); }
+      }
+
+      function processData(list) {
+        var totalCount = list.length;
+        var totalAmount = 0;
+        var freq = {};
+        var risk = {};
+        var types = {};
+
+        list.forEach(function (v) {
+          var b = v.branch || 'غير محدد';
+          freq[b] = (freq[b] || 0) + 1;
+          risk[b] = (risk[b] || 0) + (v.amount || 0);
+          totalAmount += v.amount || 0;
+          var t = v.type || 'غير محدد';
+          types[t] = (types[t] || 0) + 1;
+        });
+
+        function top15(map) {
+          return Object.entries(map)
+            .sort(function (a, b) { return b[1] - a[1]; })
+            .slice(0, 15)
+            .reduce(function (acc, pair) {
+              acc[pair[0]] = pair[1];
+              return acc;
+            }, {});
+        }
+
+        var topFreq = top15(freq);
+        var topRisk = top15(risk);
+        var topTypes = Object.entries(types)
+          .sort(function (a, b) { return b[1] - a[1]; })
+          .slice(0, 20);
+
+        var topFreqBranch = Object.keys(topFreq)[0] || '-';
+        var topRiskBranch = Object.keys(topRisk)[0] || '-';
+
+        return {
+          summary: {
+            totalCount: totalCount,
+            totalAmount: totalAmount,
+            topFreqBranch: topFreqBranch,
+            topRiskBranch: topRiskBranch
+          },
+          frequency: topFreq,
+          risk: topRisk,
+          types: topTypes
+        };
+      }
+
+      function updateImportStatus(name, count) {
+        var f = document.getElementById('viol-file-name');
+        var c = document.getElementById('viol-import-count');
+        if (f) f.textContent = name || '';
+        if (c) c.textContent = count ? ('عدد السجلات: ' + count) : '';
+      }
+
+      function pickExcel() {
+        var input = document.getElementById('viol-excel-file');
+        if (input) input.click();
+      }
+
+      function handleExcelChange(ev) {
+        var file = ev.target.files && ev.target.files[0];
+        if (!file) return;
+        if (!window.XLSX) { alert('تعذر تحميل مكتبة Excel. يرجى استخدام CSV أو إعادة المحاولة لاحقاً.'); return; }
+        var reader = new FileReader();
+        reader.onload = function (e) {
+          var data = new Uint8Array(e.target.result);
+          var wb = XLSX.read(data, { type: 'array' });
+          var ws = wb.Sheets[wb.SheetNames[0]];
+          var rows = XLSX.utils.sheet_to_json(ws);
+          importedRows = rows.map(function (r) {
+            return {
+              branch: r.branch || r.Branch || r['الفرع'] || 'غير محدد',
+              type: r.type || r.Type || r['نوع المخالفة'] || r['الوصف'] || '',
+              amount: Number(r.amount || r.Amount || r['المبلغ'] || 0),
+              paid: parsePaid(r.paid || r.Paid || r['الحالة'] || r['حالة السداد']),
+              date: formatDate(r.date || r.Date || r['التاريخ']),
+              number: r['Violation No'] || r.violation_no || r['رقم المخالفة'] || '',
+              efaaNumber: r['Efaa No'] || r.efaa_no || r['رقم إيفاء'] || '',
+              paymentNumber: r['Payment No'] || r.payment_no || r['رقم السداد'] || '',
+              costCenter: r['Cost Center'] || r.cost_center || r['مركز التكلفة'] || '',
+              description: r['Description'] || r.description || r['الوصف'] || '',
+              paymentStatus: r['Payment Status'] || r.payment_status || r['حالة السداد'] || '',
+              status: r['Status'] || r.status || r['حالة المخالفة'] || '',
+              region: r['Region'] || r.region || r['المنطقة'] || ''
+            };
+          });
+          updateImportStatus(file.name, importedRows.length);
+        };
+        reader.readAsArrayBuffer(file);
+      }
+
+      function saveImportedToApi() {
+        if (!importedRows.length) {
+          alert('لا توجد بيانات للاستيراد.');
+          return;
+        }
+        if (!window.App || !App.api || !App.api.violations || !App.api.violations.create) {
+          importedRows.forEach(function (r) { App.store.create('violations', r); });
+          importedRows = [];
+          updateImportStatus('', 0);
+          loadFromApi();
+          return;
+        }
+        var i = 0;
+        var next = function () {
+          if (i >= importedRows.length) {
+            importedRows = [];
+            updateImportStatus('', 0);
+            loadFromApi();
+            return;
+          }
+          App.api.violations.create(importedRows[i]).then(function () {
+            i++; next();
+          }).catch(function () {
+            i++; next();
+          });
+        };
+        next();
+      }
+
+      function clearImported() {
+        importedRows = [];
+        updateImportStatus('', 0);
+      }
+
+      function downloadTemplate() {
+        var headers = ['branch','type','amount','paid','date'];
+        var sample = [
+          ['الرياض','تأخير إغلاق','500','غير مدفوع','2026-01-10'],
+          ['جدة','نظافة','250','مدفوع','2026-01-09']
+        ];
+        var lines = [headers.join(',')].concat(sample.map(function (r) { return r.map(function (v) {
+          var s = String(v).replace(/"/g,'""'); return '"' + s + '"';
+        }).join(','); }));
+        var csv = lines.join('\n');
+        var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        var a = document.createElement('a');
+        var url = URL.createObjectURL(blob);
+        a.href = url; a.download = 'violations-template.csv';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      function renderBars(containerId, data, gradient) {
+        var cont = document.getElementById(containerId);
+        if (!cont) return;
+        cont.innerHTML = '';
+        var values = Object.values(data);
+        if (!values.length || Math.max.apply(null, values) === 0) {
+          cont.innerHTML = '<div class="text-slate-400 text-sm">لا توجد بيانات لعرضها حتى الآن.</div>';
+          return;
+        }
+        var maxVal = Math.max.apply(null, values);
+        Object.keys(data).forEach(function (label) {
+          var value = data[label];
+          var percent = maxVal > 0 ? (value / maxVal) * 100 : 0;
+          var row = document.createElement('div');
+          row.style.marginBottom = '6px';
+          var bar = document.createElement('div');
+          bar.style.position = 'relative';
+          bar.style.width = '100%';
+          bar.style.height = '22px';
+          bar.style.background = gradient;
+          bar.style.borderRadius = '999px';
+          var fill = document.createElement('div');
+          fill.style.position = 'absolute';
+          fill.style.right = '0';
+          fill.style.top = '0';
+          fill.style.bottom = '0';
+          fill.style.width = (percent || 0) + '%';
+          fill.style.background = 'rgba(15,23,42,0.35)';
+          fill.style.borderRadius = '999px';
+          var text = document.createElement('div');
+          text.style.position = 'absolute';
+          text.style.inset = '0';
+          text.style.display = 'flex';
+          text.style.alignItems = 'center';
+          text.style.justifyContent = 'space-between';
+          text.style.padding = '0 10px';
+          text.style.fontSize = '0.75rem';
+          text.style.color = '#e5e7eb';
+          text.innerHTML = '<span class="truncate max-w-[65%]">' + label + '</span><span>' + value.toLocaleString() + '</span>';
+          bar.appendChild(fill);
+          bar.appendChild(text);
+          row.appendChild(bar);
+          cont.appendChild(row);
+        });
+      }
+
+      function updateKPIs(summary) {
+        var totalEl = document.getElementById('v-total-count');
+        var amountEl = document.getElementById('v-total-amount');
+        var freqEl = document.getElementById('v-top-freq-branch');
+        var riskEl = document.getElementById('v-top-risk-branch');
+        if (totalEl) totalEl.textContent = summary.totalCount.toLocaleString();
+        if (amountEl) amountEl.textContent = summary.totalAmount.toLocaleString() + ' ريال';
+        if (freqEl) freqEl.textContent = summary.topFreqBranch;
+        if (riskEl) riskEl.textContent = summary.topRiskBranch;
+      }
+
+      function renderTypes(types) {
+        var cont = document.getElementById('list-types');
+        if (!cont) return;
+        if (!types.length) {
+          cont.innerHTML = '<div class="text-slate-400 text-sm">لا توجد بيانات أنواع مخالفات حتى الآن.</div>';
+          return;
+        }
+        cont.innerHTML = types.map(function (pair) {
+          var name = pair[0];
+          var count = pair[1];
+          return '<div class="flex items-center justify-between mb-1 text-sm">' +
+            '<span class="truncate max-w-[70%]">' + name + '</span>' +
+            '<span class="px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-300 text-xs">' + count.toLocaleString() + '</span>' +
+            '</div>';
+        }).join('');
+      }
+
+      var vioPageSize = 50;
+      var vioCurrentPage = 1;
+
+      function renderTable(list) {
+        var tbody = document.getElementById('violations-table-body');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        var total = list.length;
+        if (!total) {
+          var tr = document.createElement('tr');
+          var td = document.createElement('td');
+          td.colSpan = 7;
+          td.className = 'px-4 py-6 text-center text-slate-400';
+          td.textContent = 'لا توجد مخالفات مسجلة حتى الآن.';
+          tr.appendChild(td);
+          tbody.appendChild(tr);
+          updatePageInfo(0, 0);
+          return;
+        }
+        var totalPages = Math.max(1, Math.ceil(total / vioPageSize));
+        if (vioCurrentPage > totalPages) vioCurrentPage = totalPages;
+        if (vioCurrentPage < 1) vioCurrentPage = 1;
+        var start = (vioCurrentPage - 1) * vioPageSize;
+        var end = start + vioPageSize;
+        var pageRows = list.slice().reverse().slice(start, end);
+        pageRows.forEach(function (v) {
+          var tr = document.createElement('tr');
+          tr.className = 'border-b border-slate-800/60 hover:bg-slate-900/40 cursor-pointer';
+          tr.setAttribute('data-id', v.id);
+          tr.innerHTML =
+            '<td class="px-4 py-2"><input type="checkbox" class="vio-chk" data-id="'+v.id+'"></td>' +
+            '<td class="px-4 py-2">' + (v.branch || '') + '</td>' +
+            '<td class="px-4 py-2 text-slate-300">' + (v.type || '-') + '</td>' +
+            '<td class="px-4 py-2 text-slate-300">' + (v.amount || 0).toLocaleString() + '</td>' +
+            '<td class="px-4 py-2 text-slate-300">' + (v.date || '-') + '</td>' +
+            '<td class="px-4 py-2">' +
+              '<span class="px-2 py-1 rounded-full text-xs ' +
+              (v.paid ? 'bg-emerald-500/15 text-emerald-300' : 'bg-rose-500/15 text-rose-300') +
+              '">' + (v.paid ? 'مدفوع' : 'غير مدفوع') + '</span>' +
+            '</td>' +
+            '<td class="px-4 py-2 text-right">' +
+              '<button class="btn-primary text-xs px-2 py-1 rounded" data-edit="'+v.id+'">تعديل</button> ' +
+              '<button class="logout-btn text-xs px-2 py-1 rounded" data-del="'+v.id+'">حذف</button>' +
+            '</td>';
+          var editBtn = tr.querySelector('[data-edit]');
+          var delBtn = tr.querySelector('[data-del]');
+          if (editBtn) editBtn.addEventListener('click', function (e) { e.stopPropagation(); openEditModal(v.id); });
+          if (delBtn) delBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            confirmDialog({
+              title: 'تأكيد الحذف',
+              message: 'سيتم حذف هذه المخالفة من السجل. هل أنت متأكد؟'
+            }).then(function(yes){
+              if (!yes) return;
+              if (App.api && App.api.violations && App.api.violations.remove) {
+                App.api.violations.remove(v.id).catch(function () {});
+              }
+              App.store.remove('violations', v.id);
+              loadFromApi();
+            });
+          });
+          tbody.appendChild(tr);
+        });
+        updatePageInfo(vioCurrentPage, totalPages);
+        wireSelectAll();
+      }
+
+      function updatePageInfo(current, totalPages) {
+        var info = document.getElementById('viol-page-info');
+        var prev = document.getElementById('viol-btn-prev');
+        var next = document.getElementById('viol-btn-next');
+        if (info) info.textContent = 'صفحة ' + (current || 0) + ' من ' + (totalPages || 0);
+        if (prev) prev.disabled = (vioCurrentPage <= 1);
+        if (next) next.disabled = (vioCurrentPage >= totalPages);
+      }
+
+      function wireSelectAll() {
+        var all = document.getElementById('viol-select-all');
+        if (!all) return;
+        all.onclick = function(){
+          var boxes = document.querySelectorAll('.vio-chk');
+          Array.prototype.forEach.call(boxes, function(b){ b.checked = all.checked; });
+        };
+      }
+
+      function applySearch() {
+        var input = document.getElementById('viol-search');
+        var q = (input && input.value ? input.value : '').toLowerCase();
+        var rows = document.querySelectorAll('#violations-table-body tr');
+        rows.forEach(function (tr) {
+          if (!q) {
+            tr.style.display = '';
+            return;
+          }
+          var txt = tr.textContent.toLowerCase();
+          tr.style.display = txt.indexOf(q) !== -1 ? '' : 'none';
+        });
+      }
+
+      function openEditModal(id) {
+        var v = id ? rawData.find(function (x) { return x.id === id; }) : null;
+        editId = id || null;
+        var overlay = document.getElementById('violation-modal');
+        var form = document.getElementById('vio-form');
+        if (!overlay || !form) return;
+        form.branch.value = (v && v.branch) || '';
+        form.costCenter.value = (v && v.costCenter) || '';
+        form.number.value = (v && v.number) || '';
+        form.efaaNumber.value = (v && v.efaaNumber) || '';
+        form.paymentNumber.value = (v && v.paymentNumber) || '';
+        form.date.value = (v && v.date) || '';
+        form.description.value = (v && v.description) || '';
+        form.amount.value = (v && v.amount) || '';
+        form.paymentStatus.value = (v && v.paymentStatus) || 'لم يتم السداد';
+        form.status.value = (v && v.status) || 'تحت الدراسة';
+        form.region.value = (v && v.region) || 'Western';
+        attachedFiles = [];
+        document.getElementById('vio-attachments-preview').innerHTML = '';
+        overlay.classList.add('open');
+      }
+
+      function closeModal() {
+        var overlay = document.getElementById('violation-modal');
+        if (overlay) overlay.classList.remove('open');
+        editId = null;
+      }
+
+      function exportData(format) {
+        var data = rawData.slice();
+        if (!data.length) {
+          alert('لا توجد بيانات مخالفات للتصدير حالياً.');
+          return;
+        }
+        var stamp = new Date().toISOString().slice(0, 10);
+        var name = 'violations-' + stamp;
+        if (format === 'json') {
+          var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+          downloadBlob(blob, name + '.json');
+        } else {
+          var headers = ['id', 'branch', 'type', 'amount', 'paid', 'date'];
+          var lines = [headers.join(',')];
+          data.forEach(function (v) {
+            var row = headers.map(function (h) {
+              var val = v[h];
+              if (val == null) return '';
+              var s = String(val).replace(/"/g, '""');
+              return '"' + s + '"';
+            }).join(',');
+            lines.push(row);
+          });
+          var csv = lines.join('\n');
+          var blobCsv = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+          downloadBlob(blobCsv, name + '.csv');
+        }
+      }
+
+      function downloadBlob(blob, filename) {
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      function loadFromApi() {
+        if (!window.App || !App.api || !App.api.violations) return;
+        App.api.violations.list().then(function (rows) {
+          rawData = normalize(rows || []);
+          var analytics = processData(rawData);
+          updateKPIs(analytics.summary);
+          renderBars('chart-freq', analytics.frequency, 'linear-gradient(90deg,#4facfe 0%,#00f2fe 100%)');
+          renderBars('chart-risk', analytics.risk, 'linear-gradient(90deg,#f97316 0%,#ef4444 100%)');
+          renderTypes(analytics.types);
+          renderTable(rawData);
+          applySearch();
+        }).catch(function (e) {
+          console.warn('Failed to load violations data', e);
+          var rows = App.store.list('violations');
+          rawData = normalize(rows || []);
+          var analytics = processData(rawData);
+          updateKPIs(analytics.summary);
+          renderBars('chart-freq', analytics.frequency, 'linear-gradient(90deg,#4facfe 0%,#00f2fe 100%)');
+          renderBars('chart-risk', analytics.risk, 'linear-gradient(90deg,#f97316 0%,#ef4444 100%)');
+          renderTypes(analytics.types);
+          renderTable(rawData);
+          applySearch();
+        });
+      }
+
+      document.addEventListener('DOMContentLoaded', function () {
+        var search = document.getElementById('viol-search');
+        if (search) search.addEventListener('input', applySearch);
+        var close = document.getElementById('vio-modal-close');
+        if (close) close.addEventListener('click', closeModal);
+        var overlay = document.getElementById('violation-modal');
+        if (overlay) {
+          overlay.addEventListener('click', function (e) {
+            if (e.target === overlay) closeModal();
+          });
+        }
+        var addBtn = document.getElementById('v-add-btn');
+        if (addBtn) addBtn.addEventListener('click', function () { openEditModal(null); });
+        var form = document.getElementById('vio-form');
+        if (form) {
+          form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            var data = {
+              branch: form.branch.value.trim() || 'غير محدد',
+              type: form.description.value.trim(),
+              amount: Number(form.amount.value || 0),
+              date: formatDate(form.date.value.trim()),
+              paid: (form.paymentStatus.value || '').includes('تم'),
+              number: form.number.value.trim(),
+              efaaNumber: form.efaaNumber.value.trim(),
+              paymentNumber: form.paymentNumber.value.trim(),
+              costCenter: form.costCenter.value.trim(),
+              description: form.description.value.trim(),
+              paymentStatus: form.paymentStatus.value,
+              status: form.status.value,
+              region: form.region.value,
+              attachments: attachedFiles.slice()
+            };
+            if (editId) {
+              if (App.api && App.api.violations && App.api.violations.update) {
+                App.api.violations.update(editId, data).catch(function () {});
+              }
+              var local = App.store.get('violations', editId);
+              if (local) App.store.update('violations', editId, data);
+            } else {
+              if (App.api && App.api.violations && App.api.violations.create) {
+                App.api.violations.create(data).then(function (resp) {
+                  App.store.create('violations', Object.assign({}, data, { apiId: resp && resp.id }));
+                }).catch(function () { App.store.create('violations', data); });
+              } else {
+                App.store.create('violations', data);
+              }
+            }
+            closeModal();
+            loadFromApi();
+          });
+        }
+        var chooseBtn = document.getElementById('vio-choose-files');
+        var filesInput = document.getElementById('vio-attachments');
+        var saveFilesBtn = document.getElementById('vio-save-attachments');
+        var clearFilesBtn = document.getElementById('vio-clear-attachments');
+        var preview = document.getElementById('vio-attachments-preview');
+        if (chooseBtn && filesInput) chooseBtn.onclick = function(){ filesInput.click(); };
+        if (filesInput) filesInput.onchange = function(ev){
+          var files = Array.from(ev.target.files || []);
+          files.forEach(function(f){ attachedFiles.push({ name: f.name, size: f.size }); });
+          preview.innerHTML = attachedFiles.map(function(a){ return '<span class="px-2 py-1 rounded-full bg-slate-700/60 text-xs">'+a.name+'</span>'; }).join(' ');
+        };
+        if (saveFilesBtn) saveFilesBtn.onclick = function(){
+          if (!editId) return;
+          App.store.update('violations', editId, { attachments: attachedFiles.slice() });
+        };
+        if (clearFilesBtn) clearFilesBtn.onclick = function(){
+          attachedFiles = [];
+          if (filesInput) filesInput.value = '';
+          if (preview) preview.innerHTML = '';
+        };
+        var delBtn = document.getElementById('vio-delete');
+        if (delBtn) delBtn.addEventListener('click', function () {
+          if (!editId) { closeModal(); return; }
+          confirmDialog({
+            title: 'تأكيد الحذف',
+            message: 'سيتم حذف هذه المخالفة من السجل. هل أنت متأكد؟'
+          }).then(function(yes){
+            if (!yes) return;
+            if (App.api && App.api.violations && App.api.violations.remove) {
+              App.api.violations.remove(editId).catch(function () {});
+            }
+            App.store.remove('violations', editId);
+            closeModal();
+            loadFromApi();
+          });
+        });
+        var btnRefresh = document.getElementById('v-refresh-btn');
+        if (btnRefresh) btnRefresh.addEventListener('click', loadFromApi);
+        var btnJson = document.getElementById('v-export-json');
+        if (btnJson) btnJson.addEventListener('click', function () { exportData('json'); });
+        var btnCsv = document.getElementById('v-export-csv');
+        if (btnCsv) btnCsv.addEventListener('click', function () { exportData('csv'); });
+        var fp = document.getElementById('viol-excel-file');
+        var pick = document.getElementById('viol-excel-pick');
+        var save = document.getElementById('viol-excel-save');
+        var clear = document.getElementById('viol-excel-clear');
+        var tmpl = document.getElementById('viol-excel-template');
+        if (fp) fp.addEventListener('change', handleExcelChange);
+        if (pick) pick.addEventListener('click', pickExcel);
+        if (save) save.addEventListener('click', saveImportedToApi);
+        if (clear) clear.addEventListener('click', clearImported);
+        if (tmpl) tmpl.addEventListener('click', downloadTemplate);
+        var pgSize = document.getElementById('viol-page-size');
+        if (pgSize) pgSize.addEventListener('change', function(){
+          var v = parseInt(pgSize.value || '50', 10);
+          vioPageSize = isNaN(v) ? 50 : v;
+          vioCurrentPage = 1;
+          renderTable(rawData || []);
+        });
+        var btnPrev = document.getElementById('viol-btn-prev');
+        if (btnPrev) btnPrev.addEventListener('click', function(){ if (vioCurrentPage>1){ vioCurrentPage--; renderTable(rawData || []); }});
+        var btnNext = document.getElementById('viol-btn-next');
+        if (btnNext) btnNext.addEventListener('click', function(){ var totalPages = Math.max(1, Math.ceil((rawData||[]).length / vioPageSize)); if (vioCurrentPage<totalPages){ vioCurrentPage++; renderTable(rawData || []); }});
+        var btnDelSel = document.getElementById('viol-delete-selected');
+        if (btnDelSel) btnDelSel.addEventListener('click', function(){
+          var ids = Array.prototype.map.call(document.querySelectorAll('.vio-chk:checked'), function(c){ return c.getAttribute('data-id'); });
+          if (!ids.length) { if (typeof toast==='function') toast('info','تنبيه','لم يتم تحديد سجلات'); return; }
+          confirmDialog({ title: 'تأكيد الحذف', message: 'سيتم حذف السجلات المحددة. هل أنت متأكد؟' }).then(function(ok){ if (!ok) return; ids.forEach(function(id){ App.store.remove('violations', id); }); loadFromApi(); if (typeof toast==='function') toast('success','تم','تم حذف السجلات المحددة'); });
+        });
+        loadFromApi();
+        window.addEventListener('storage', function(e){ if (e && e.key === 'db:violations') { loadFromApi(); } });
+      });
+    })();
+  </script>
+</body>
+</html>

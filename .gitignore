@@ -1,0 +1,62 @@
+## OS & IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.vs/
+*.iml
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+## Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-lock.yaml
+.pnpm-store/
+.yarn/
+.yarnrc.yml
+.npm/
+
+## Laravel / PHP
+vendor/
+.env
+.env.*
+!.env.example
+!**/.env.example
+bootstrap/cache/*.php
+storage/*.key
+storage/app/*
+storage/framework/*
+storage/logs/*
+public/storage
+
+## Build Artifacts
+dist/
+build/
+coverage/
+
+## OS scripts & local helpers
+*.local.*
+*.bak
+*.backup*
+*.tmp
+*.log
+*.rar
+
+## Project archives / historical copies
+old projct/
+**/public_backup_*/
+
+## Local assistant artifacts
+.trae/
+
+## Cache
+.cache/
+.parcel-cache/
+.eslintcache
+/.phpunit.result.cache

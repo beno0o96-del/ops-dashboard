@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>الرخص والعقود</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style-base.css">
+  <link rel="stylesheet" href="style-site.css">
+</head>
+<body>
+  <canvas id="bg-canvas"></canvas>
+  <nav class="glass-nav" style="position:sticky;top:0;z-index:50;background:rgba(2,6,23,.55);backdrop-filter:blur(18px);border-bottom:1px solid rgba(255,255,255,.06);">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <span class="px-3 py-1 rounded-full border border-blue-400/30 bg-blue-500/10 text-slate-100 text-sm font-semibold">OLAYAN</span>
+        <div class="text-slate-300 text-sm">لوحة التشغيل</div>
+      </div>
+      <div class="flex items-center gap-1">
+        <a href="./index.html" class="px-3 py-1.5 rounded-full border border-transparent text-slate-300 hover:text-slate-100 hover:bg-white/5 transition">الرئيسية</a>
+        <a href="./employees.html" class="px-3 py-1.5 rounded-full border border-transparent text-slate-300 hover:text-slate-100 hover:bg-white/5 transition">الموظفون</a>
+        <a href="./branches.html" class="px-3 py-1.5 rounded-full border border-transparent text-slate-300 hover:text-slate-100 hover:bg-white/5 transition">الفروع</a>
+        <a href="./licenses.html" class="px-3 py-1.5 rounded-full border border-indigo-400/30 bg-indigo-500/15 text-slate-100 transition">الرخص والعقود</a>
+        <a href="./violations.html" class="px-3 py-1.5 rounded-full border border-transparent text-slate-300 hover:text-slate-100 hover:bg-white/5 transition">المخالفات</a>
+        <a href="./housings.html" class="px-3 py-1.5 rounded-full border border-transparent text-slate-300 hover:text-slate-100 hover:bg-white/5 transition">السكنات</a>
+        <a href="./transports.html" class="px-3 py-1.5 rounded-full border border-transparent text-slate-300 hover:text-slate-100 hover:bg-white/5 transition">المواصلات</a>
+        <a href="./reports.html" class="px-3 py-1.5 rounded-full border border-transparent text-slate-300 hover:text-slate-100 hover:bg-white/5 transition">التقارير</a>
+        <a href="./login.html" class="px-3 py-1.5 rounded-full border border-transparent text-slate-300 hover:text-slate-100 hover:bg-white/5 transition">تسجيل الدخول</a>
+        <button id="help-toggle" class="px-3 py-1.5 rounded-full border border-transparent text-slate-200 hover:text-slate-100 hover:bg-white/5 transition">مساعدة</button>
+        <button class="hamburger-btn" onclick="toggleMenu()" aria-label="menu" style="margin-inline-start:6px; display:inline-flex; align-items:center; justify-content:center; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); color: #fff; padding: 6px 10px; border-radius: 10px; cursor: pointer;">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+  <div class="side-menu-overlay" id="sideMenuOverlay" onclick="toggleMenu()"></div>
+  <aside class="side-menu" id="sideMenu">
+    <div class="side-menu-header">
+      <img src="/logos/CompliQ.svg" class="side-menu-logo" alt="CompliQ">
+      <button class="close-menu-btn" onclick="toggleMenu()">&times;</button>
+    </div>
+    <nav class="side-menu-nav">
+      <a href="index.html" class="side-link">
+        <i>🏠</i> <span data-en="Home" data-ar="الرئيسية">الرئيسية</span>
+      </a>
+      <a href="tasks.html" class="side-link">
+        <i>✅</i> <span data-en="Tasks" data-ar="المهام">المهام</span>
+      </a>
+      <a href="employees.html" class="side-link">
+        <i>👥</i> <span data-en="Employees" data-ar="الموظفون">الموظفون</span>
+      </a>
+      <a href="branches.html" class="side-link">
+        <i>🏬</i> <span data-en="Branches" data-ar="الفروع">الفروع</span>
+      </a>
+      <a href="licenses.html" class="side-link active">
+        <i>📜</i> <span data-en="Licenses & Contracts" data-ar="الرخص والعقود">الرخص والعقود</span>
+      </a>
+      <a href="violations.html" class="side-link">
+        <i>⚠️</i> <span data-en="Violations" data-ar="المخالفات">المخالفات</span>
+      </a>
+      <a href="housings.html" class="side-link">
+        <i>🏠</i> <span data-en="Housings" data-ar="السكنات">السكنات</span>
+      </a>
+      <a href="transports.html" class="side-link">
+        <i>🚌</i> <span data-en="Transports" data-ar="المواصلات">المواصلات</span>
+      </a>
+      <a href="reports.html" class="side-link">
+        <i>📊</i> <span data-en="Reports" data-ar="التقارير">التقارير</span>
+      </a>
+      <a href="login.html" class="side-link">
+        <i>👤</i> <span data-en="Login" data-ar="تسجيل الدخول">تسجيل الدخول</span>
+      </a>
+    </nav>
+    <div style="margin-top: auto; padding-top: 20px;">
+      <div class="lang-switch" style="display: flex; gap: 10px; justify-content: center;">
+        <button class="lang-btn" onclick="setLang('ar')" style="flex:1;">العربية</button>
+        <button class="lang-btn" onclick="setLang('en')" style="flex:1;">English</button>
+      </div>
+    </div>
+  </aside>
+  <main class="max-w-7xl mx-auto px-4 py-8">
+    <div class="flex items-center justify-between mb-6">
+      <h1 id="page-title" class="text-2xl font-semibold">الرخص والعقود</h1>
+      <div class="hidden md:flex items-center gap-2">
+        <button id="add-license" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white shadow hover:bg-indigo-700 transition">
+          <span>إضافة رخصة</span>
+        </button>
+        <button id="add-contract" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white shadow hover:bg-indigo-700 transition">
+          <span>إضافة عقد</span>
+        </button>
+        <button id="lang-toggle" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/20 text-slate-300 hover:bg-white/10 transition">EN</button>
+      </div>
+    </div>
+    <div class="glass-card p-4 mb-6 rounded-xl border border-white/10">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+        <input id="q" class="form-control rounded-lg px-3 py-2 border border-slate-200 focus:ring-2 focus:ring-indigo-500" placeholder="بحث عام (اسم فرع/عنوان/رقم)">
+        <select id="type" class="form-control rounded-lg px-3 py-2 border border-slate-200 focus:ring-2 focus:ring-indigo-500">
+          <option value="">النوع</option>
+          <option value="municipality">بلدية</option>
+          <option value="civil_defense">دفاع مدني</option>
+          <option value="economic_cities">هيئة مدن</option>
+          <option value="lease">إيجار</option>
+          <option value="cleaning">نظافة</option>
+          <option value="maintenance">صيانة</option>
+          <option value="operation">تشغيل</option>
+        </select>
+        <select id="status" class="form-control rounded-lg px-3 py-2 border border-slate-200 focus:ring-2 focus:ring-indigo-500">
+          <option value="">الحالة</option>
+          <option value="active">سارية</option>
+          <option value="expiring">تووشك</option>
+          <option value="expired">منتهية</option>
+          <option value="archived">مؤرشفة</option>
+        </select>
+        <select id="brand" class="form-control rounded-lg px-3 py-2 border border-slate-200 focus:ring-2 focus:ring-indigo-500"><option value="">Brand</option></select>
+        <select id="city" class="form-control rounded-lg px-3 py-2 border border-slate-200 focus:ring-2 focus:ring-indigo-500"><option value="">City</option></select>
+        <select id="region" class="form-control rounded-lg px-3 py-2 border border-slate-200 focus:ring-2 focus:ring-indigo-500"><option value="">Region</option></select>
+      </div>
+      <div class="flex items-center gap-3 mt-3">
+        <label class="inline-flex items-center gap-2 text-slate-400"><input id="only_archived" type="checkbox" class="accent-blue-500"> <span id="archived-only-label">المؤرشف فقط</span></label>
+        <button id="apply" class="px-4 py-2 rounded-lg bg-indigo-600 text-white shadow hover:bg-indigo-700 transition">تطبيق</button>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="glass-card p-4 rounded-xl border border-white/10">
+        <div class="flex items-center justify-between mb-3">
+          <div id="licenses-title" class="font-semibold flex items-center gap-2">الرخص</div>
+          <button id="add-license" class="lg:hidden inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-600 text-white shadow hover:bg-indigo-700 transition">إضافة</button>
+        </div>
+        <div class="overflow-auto rounded-lg border border-white/10">
+          <table class="w-full text-sm">
+            <thead class="bg-white/5 text-slate-300 sticky top-0">
+              <tr>
+                <th id="lic-th-branch" class="p-2 text-right">الفرع</th>
+                <th id="lic-th-type" class="p-2 text-right">النوع</th>
+                <th id="lic-th-title" class="p-2 text-right">العنوان</th>
+                <th id="lic-th-number" class="p-2 text-right">الرقم</th>
+                <th id="lic-th-expiry" class="p-2 text-right">تاريخ الانتهاء</th>
+                <th id="lic-th-status" class="p-2 text-center">الحالة</th>
+                <th id="lic-th-actions" class="p-2 text-center">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="licenses-body" class="divide-y divide-white/10 bg-transparent text-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="glass-card p-4 rounded-xl border border-white/10">
+        <div class="flex items-center justify-between mb-3">
+          <div id="contracts-title" class="font-semibold flex items-center gap-2">العقود</div>
+          <button id="add-contract" class="lg:hidden inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-600 text-white shadow hover:bg-indigo-700 transition">إضافة</button>
+        </div>
+        <div class="overflow-auto rounded-lg border border-white/10">
+          <table class="w-full text-sm">
+            <thead class="bg-white/5 text-slate-300 sticky top-0">
+              <tr>
+                <th id="con-th-branch" class="p-2 text-right">الفرع</th>
+                <th id="con-th-type" class="p-2 text-right">النوع</th>
+                <th id="con-th-title" class="p-2 text-right">العنوان</th>
+                <th id="con-th-vendor" class="p-2 text-right">المورد</th>
+                <th id="con-th-number" class="p-2 text-right">الرقم</th>
+                <th id="con-th-end" class="p-2 text-right">الانتهاء</th>
+                <th id="con-th-status" class="p-2 text-center">الحالة</th>
+                <th id="con-th-actions" class="p-2 text-center">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="contracts-body" class="divide-y divide-white/10 bg-transparent text-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script src="js/api-client.js" defer></script>
+  <script src="app.js" defer></script>
+  <div id="modal-overlay" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+    <div class="bg-slate-900 text-slate-100 rounded-xl shadow-xl ring-1 ring-slate-700 w-full max-w-xl mx-4 text-right overflow-hidden">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-slate-700 bg-slate-900">
+        <div id="modal-title" class="text-lg font-semibold"></div>
+        <button id="modal-close" class="text-slate-400 hover:text-slate-200 px-2 py-1">&times;</button>
+      </div>
+      <form id="modal-form" class="p-4 bg-slate-800 grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="md:col-span-2">
+          <div class="text-sm font-semibold text-slate-200 mb-2">البيانات الأساسية</div>
+        </div>
+        <input type="hidden" id="form-kind" value="">
+        <div class="md:col-span-2">
+          <label class="block text-sm mb-1 text-slate-300">الفرع <span class="text-rose-400">*</span></label>
+          <select id="form-branch" class="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 placeholder-slate-400 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"></select>
+        </div>
+        <div>
+          <label class="block text-sm mb-1 text-slate-300">النوع <span class="text-rose-400">*</span></label>
+          <select id="form-type" class="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 placeholder-slate-400 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"></select>
+        </div>
+        <div>
+          <label class="block text-sm mb-1 text-slate-300">العنوان <span class="text-rose-400">*</span></label>
+          <input id="form-title" class="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 placeholder-slate-400 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="اسم الرخصة/العقد">
+        </div>
+        <div id="field-license-no" class="">
+          <label class="block text-sm mb-1 text-slate-300">رقم الرخصة</label>
+          <input id="form-license-no" class="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 placeholder-slate-400 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="اختياري">
+        </div>
+        <div id="field-vendor-name" class="hidden">
+          <label class="block text-sm mb-1 text-slate-300">المورد</label>
+          <input id="form-vendor-name" class="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 placeholder-slate-400 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="اختياري">
+        </div>
+        <div id="field-contract-no" class="hidden">
+          <label class="block text-sm mb-1 text-slate-300">رقم العقد</label>
+          <input id="form-contract-no" class="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 placeholder-slate-400 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="اختياري">
+        </div>
+        <div id="field-value" class="hidden">
+          <label class="block text-sm mb-1 text-slate-300">قيمة العقد</label>
+          <input id="form-value" type="number" step="0.01" class="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 placeholder-slate-400 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="اختياري (مثال: 1500.00)">
+        </div>
+        <div id="field-issue-date" class="">
+          <label class="block text-sm mb-1 text-slate-300">تاريخ الإصدار</label>
+          <input id="form-issue-date" type="date" class="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 placeholder-slate-400 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+        <div id="field-start-date" class="hidden">
+          <label class="block text-sm mb-1 text-slate-300">تاريخ البداية <span class="text-rose-400">*</span></label>
+          <input id="form-start-date" type="date" class="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 placeholder-slate-400 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+        <div>
+          <label class="block text-sm mb-1 text-slate-300">تاريخ الانتهاء <span class="text-rose-400">*</span></label>
+          <input id="form-expiry-date" type="date" class="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 placeholder-slate-400 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+          <div id="expiry-hint" class="mt-1 text-xs text-slate-400"></div>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm mb-1 text-slate-300">ملاحظات</label>
+          <textarea id="form-notes" class="w-full rounded-lg border border-slate-700 bg-slate-900 text-slate-100 placeholder-slate-400 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" rows="3" placeholder="اختياري"></textarea>
+        </div>
+        <div class="md:col-span-2 flex justify-end gap-2 pt-2 border-t border-slate-700">
+          <button type="button" id="modal-cancel" class="px-4 py-2 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-700">إلغاء</button>
+          <button type="submit" id="modal-submit" class="px-4 py-2 rounded-lg bg-indigo-600 text-white shadow hover:bg-indigo-700">حفظ</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <script defer>
+    document.addEventListener('DOMContentLoaded', function(){
+      App.init('licenses');
+        window.openMenu = function(){
+          var ov=document.getElementById('sideMenuOverlay');
+          var m=document.getElementById('sideMenu');
+          if(ov) ov.classList.add('open');
+          if(m) m.classList.add('open');
+        };
+        window.closeMenu = function(){
+          var ov=document.getElementById('sideMenuOverlay');
+          var m=document.getElementById('sideMenu');
+          if(ov) ov.classList.remove('open');
+          if(m) m.classList.remove('open');
+        };
+        window.toggleMenu = function(){
+          var m=document.getElementById('sideMenu');
+          if(m && m.classList.contains('open')) window.closeMenu();
+          else window.openMenu();
+        };
+        var i18n={
+          ar:{title:'الرخص والعقود',archived_only:'المؤرشف فقط',sections:{licenses:'الرخص',contracts:'العقود'},filters:{search:'بحث عام (اسم فرع/عنوان/رقم)',type:'النوع',status:'الحالة',brand:'العلامة',city:'المدينة',region:'المنطقة'},table:{branch:'الفرع',type:'النوع',title:'العنوان',number:'الرقم',vendor:'المورد',expiry:'تاريخ الانتهاء',end:'الانتهاء',status:'الحالة',actions:'إجراءات'},buttons:{apply:'تطبيق',add_license:'إضافة رخصة',add_contract:'إضافة عقد',archive:'أرشفة',cancel:'إلغاء',save:'حفظ'},empty:{licenses:'لا توجد رخص مطابقة للبحث',contracts:'لا توجد عقود مطابقة للبحث'},modal:{branch:'الفرع',type:'النوع',title:'العنوان',license_no:'رقم الرخصة',vendor:'المورد',contract_no:'رقم العقد',value:'قيمة العقد',issue_date:'تاريخ الإصدار',start_date:'تاريخ البداية',expiry_date:'تاريخ الانتهاء',notes:'ملاحظات'}},
+          en:{title:'Licenses & Contracts',archived_only:'Archived only',sections:{licenses:'Licenses',contracts:'Contracts'},filters:{search:'Global search (branch/title/number)',type:'Type',status:'Status',brand:'Brand',city:'City',region:'Region'},table:{branch:'Branch',type:'Type',title:'Title',number:'Number',vendor:'Vendor',expiry:'Expiry',end:'End',status:'Status',actions:'Actions'},buttons:{apply:'Apply',add_license:'Add License',add_contract:'Add Contract',archive:'Archive',cancel:'Cancel',save:'Save'},empty:{licenses:'No matching licenses',contracts:'No matching contracts'},modal:{branch:'Branch',type:'Type',title:'Title',license_no:'License No',vendor:'Vendor',contract_no:'Contract No',value:'Contract Value',issue_date:'Issue Date',start_date:'Start Date',expiry_date:'Expiry Date',notes:'Notes'}}
+        };
+        function getLang(){ return (localStorage.getItem('lang') || document.documentElement.getAttribute('lang') || 'ar').toLowerCase(); }
+        function tr(path){
+          var lang=getLang();
+          var o=i18n[lang]||i18n.ar;
+          return path.split('.').reduce(function(acc,k){return acc&&acc[k]!=null?acc[k]:null;},o)||path;
+        }
+        function setLang(lang){
+          localStorage.setItem('lang', lang);
+          document.documentElement.setAttribute('lang', lang);
+          document.documentElement.setAttribute('dir', lang==='ar'?'rtl':'ltr');
+          var isAr=lang==='ar';
+          var langBtn=document.getElementById('lang-toggle'); if (langBtn) langBtn.textContent = isAr ? 'EN' : 'AR';
+          var titleEl=document.getElementById('page-title'); if(titleEl) titleEl.textContent=tr('title');
+          var licTitle=document.getElementById('licenses-title'); if(licTitle) licTitle.textContent=tr('sections.licenses');
+          var conTitle=document.getElementById('contracts-title'); if(conTitle) conTitle.textContent=tr('sections.contracts');
+          var applyBtn=document.getElementById('apply'); if(applyBtn) applyBtn.textContent=tr('buttons.apply');
+          var archLbl=document.getElementById('archived-only-label'); if(archLbl) archLbl.textContent=tr('archived_only');
+          var addLic=document.querySelectorAll('#add-license span'); if(addLic && addLic[0]) addLic[0].textContent=tr('buttons.add_license');
+          var addCon=document.querySelectorAll('#add-contract span'); if(addCon && addCon[0]) addCon[0].textContent=tr('buttons.add_contract');
+          var q=document.getElementById('q'); if(q) q.placeholder=tr('filters.search');
+          var selType=document.getElementById('type'); if(selType && selType.options[0]) selType.options[0].text=tr('filters.type');
+          var selStatus=document.getElementById('status'); if(selStatus && selStatus.options[0]) selStatus.options[0].text=tr('filters.status');
+          var selBrand=document.getElementById('brand'); if(selBrand && selBrand.options[0]) selBrand.options[0].text=tr('filters.brand');
+          var selCity=document.getElementById('city'); if(selCity && selCity.options[0]) selCity.options[0].text=tr('filters.city');
+          var selRegion=document.getElementById('region'); if(selRegion && selRegion.options[0]) selRegion.options[0].text=tr('filters.region');
+          var ths = [
+            ['lic-th-branch','table.branch'],['lic-th-type','table.type'],['lic-th-title','table.title'],['lic-th-number','table.number'],['lic-th-expiry','table.expiry'],['lic-th-status','table.status'],['lic-th-actions','table.actions'],
+            ['con-th-branch','table.branch'],['con-th-type','table.type'],['con-th-title','table.title'],['con-th-vendor','table.vendor'],['con-th-number','table.number'],['con-th-end','table.end'],['con-th-status','table.status'],['con-th-actions','table.actions']
+          ];
+          ths.forEach(function(p){ var el=document.getElementById(p[0]); if(el) el.textContent=tr(p[1]); });
+          var modalKind=document.getElementById('form-kind')?document.getElementById('form-kind').value:null;
+          if(modalKind){
+            var mt=document.getElementById('modal-title');
+            if(mt) mt.textContent = modalKind==='license' ? tr('buttons.add_license') : tr('buttons.add_contract');
+          }
+          var l;
+          if((l=document.getElementById('form-branch'))){ var lab=document.querySelector('label[for=\"form-branch\"], #label-branch'); }
+          var labelMap=[
+            ['label-branch','modal.branch'],
+            ['label-type','modal.type'],
+            ['label-title','modal.title'],
+            ['label-license-no','modal.license_no'],
+            ['label-vendor','modal.vendor'],
+            ['label-contract-no','modal.contract_no'],
+            ['label-value','modal.value'],
+            ['label-issue-date','modal.issue_date'],
+            ['label-start-date','modal.start_date'],
+            ['label-expiry-date','modal.expiry_date'],
+            ['label-notes','modal.notes'],
+            ['modal-cancel','buttons.cancel'],
+            ['modal-submit','buttons.save']
+          ];
+          labelMap.forEach(function(p){
+            var el=document.getElementById(p[0]);
+            if(el){
+              if(p[0].startsWith('modal-')) el.textContent=tr(p[1]);
+              else el.textContent=tr(p[1]);
+            }
+          });
+          load();
+        }
+        var initialLang=getLang(); setLang(initialLang);
+        var langToggle=document.getElementById('lang-toggle');
+        if (langToggle){
+          langToggle.onclick=function(){
+            var newLang = getLang()==='ar'?'en':'ar';
+            setLang(newLang);
+          };
+        }
+      function fillSelect(sel, items){
+        sel.innerHTML = '<option value=\"\"></option>' + items.map(function(v){ return '<option value=\"'+v+'\">'+v+'</option>'; }).join('');
+      }
+      fetch(BASE_URL+'/branches').then(function(r){return r.json()}).then(function(rows){
+        var brands=[...new Set(rows.map(function(x){return x.brand}).filter(Boolean))];
+        var cities=[...new Set(rows.map(function(x){return x.city}).filter(Boolean))];
+        var regions=[...new Set(rows.map(function(x){return x.region}).filter(Boolean))];
+        fillSelect(document.getElementById('brand'), brands);
+        fillSelect(document.getElementById('city'), cities);
+        fillSelect(document.getElementById('region'), regions);
+      });
+      function qs(){
+        var o={};
+        var q=document.getElementById('q').value.trim(); if(q) o.q=q;
+        var type=document.getElementById('type').value; if(type) o.type=type;
+        var status=document.getElementById('status').value; if(status) o.status=status;
+        var brand=document.getElementById('brand').value; if(brand) o.brand=brand;
+        var city=document.getElementById('city').value; if(city) o.city=city;
+        var region=document.getElementById('region').value; if(region) o.region=region;
+        var only=document.getElementById('only_archived').checked; if(only) o.only_archived=1;
+        return o;
+      }
+      function displayType(t){
+        var lang=(document.documentElement.getAttribute('lang')||'ar').toLowerCase();
+        var mapAr={municipality:'بلدية',civil_defense:'دفاع مدني',economic_cities:'هيئة مدن',lease:'إيجار',cleaning:'نظافة',maintenance:'صيانة',operation:'تشغيل'};
+        var mapEn={municipality:'Municipality',civil_defense:'Civil Defense',economic_cities:'MODON',lease:'Lease',cleaning:'Cleaning',maintenance:'Maintenance',operation:'Operation'};
+        return (lang==='ar'?mapAr[t]:mapEn[t])||t||'';
+      }
+      function fmtStatus(row){
+        var s=row.computed_status||row.status||'active';
+        if(s==='expired') return '<span class=\"inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-rose-50 text-rose-700 border border-rose-200\">منتهية</span>';
+        if(s==='expiring') return '<span class=\"inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-amber-50 text-amber-700 border border-amber-200\">تووشك</span>';
+        if(s==='archived') return '<span class=\"inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-slate-100 text-slate-700 border border-slate-200\">مؤرشفة</span>';
+        return '<span class=\"inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200\">سارية</span>';
+      }
+      function renderLicenses(rows){
+        var tb=document.getElementById('licenses-body');
+        if(!rows || rows.length===0){
+          tb.innerHTML = '<tr><td colspan=\"7\" class=\"p-6 text-center text-slate-400\">'+tr('empty.licenses')+'</td></tr>';
+          return;
+        }
+        tb.innerHTML=rows.map(function(r){
+          var b=(r.branch&&r.branch.name)||'';
+          var cc=(r.branch&&r.branch.cost_center)?(' <span class=\"text-slate-400\">('+r.branch.cost_center+')</span>'):'';
+          var exp=r.expiry_date||'';
+          var archiveLabel=tr('buttons.archive');
+          return '<tr class=\"hover:bg-white/5 transition\">'
+            +'<td class=\"p-3\">'+b+cc+'</td>'
+            +'<td class=\"p-3\">'+displayType(r.type)+'</td>'
+            +'<td class=\"p-3\">'+(r.title||'')+'</td>'
+            +'<td class=\"p-3\">'+(r.license_no||'')+'</td>'
+            +'<td class=\"p-3\">'+exp+'</td>'
+            +'<td class=\"p-3 text-center\">'+fmtStatus(r)+'</td>'
+            +'<td class=\"p-3 text-center\"><button data-id=\"'+r.id+'\" class=\"px-2 py-1 rounded border border-white/20 text-slate-300 hover:bg-white/5 transition action-archive\">'+archiveLabel+'</button></td>'
+            +'</tr>';
+        }).join('');
+        tb.querySelectorAll('.action-archive').forEach(function(btn){
+          btn.onclick=function(){
+            var id=this.getAttribute('data-id');
+            fetch(BASE_URL+'/licenses/'+id+'/archive',{method:'POST'}).then(function(){ load(); });
+          };
+        });
+      }
+      function renderContracts(rows){
+        var tb=document.getElementById('contracts-body');
+        if(!rows || rows.length===0){
+          tb.innerHTML = '<tr><td colspan=\"8\" class=\"p-6 text-center text-slate-400\">'+tr('empty.contracts')+'</td></tr>';
+          return;
+        }
+        tb.innerHTML=rows.map(function(r){
+          var b=(r.branch&&r.branch.name)||'';
+          var cc=(r.branch&&r.branch.cost_center)?(' <span class=\"text-slate-400\">('+r.branch.cost_center+')</span>'):'';
+          var exp=r.expiry_date||'';
+          var archiveLabel=tr('buttons.archive');
+          return '<tr class=\"hover:bg-white/5 transition\">'
+            +'<td class=\"p-3\">'+b+cc+'</td>'
+            +'<td class=\"p-3\">'+displayType(r.type)+'</td>'
+            +'<td class=\"p-3\">'+(r.title||'')+'</td>'
+            +'<td class=\"p-3\">'+(r.vendor_name||'')+'</td>'
+            +'<td class=\"p-3\">'+(r.contract_no||'')+'</td>'
+            +'<td class=\"p-3\">'+exp+'</td>'
+            +'<td class=\"p-3 text-center\">'+fmtStatus(r)+'</td>'
+            +'<td class=\"p-3 text-center\"><button data-id=\"'+r.id+'\" class=\"px-2 py-1 rounded border border-white/20 text-slate-300 hover:bg-white/5 transition action-archive\">'+archiveLabel+'</button></td>'
+            +'</tr>';
+        }).join('');
+        tb.querySelectorAll('.action-archive').forEach(function(btn){
+          btn.onclick=function(){
+            var id=this.getAttribute('data-id');
+            fetch(BASE_URL+'/contracts/'+id+'/archive',{method:'POST'}).then(function(){ load(); });
+          };
+        });
+      }
+      function toQuery(obj){
+        var s=Object.keys(obj).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(obj[k])}).join('&');
+        return s?('?'+s):'';
+      }
+      function load(){
+        var q=qs();
+        fetch(BASE_URL+'/licenses'+toQuery(q)).then(function(r){return r.json()}).then(renderLicenses);
+        fetch(BASE_URL+'/contracts'+toQuery(q)).then(function(r){return r.json()}).then(renderContracts);
+      }
+      document.getElementById('apply').onclick=load;
+      document.getElementById('add-license').onclick = function() {
+        openModal('license');
+      };
+      document.getElementById('add-contract').onclick = function() {
+        openModal('contract');
+      };
+      ['type', 'status', 'brand', 'city', 'region'].forEach(function(id) {
+        document.getElementById(id).onchange = load;
+      });
+      document.getElementById('only_archived').onchange = load;
+      function openModal(kind){
+        var o=document.getElementById('modal-overlay');
+        var title=document.getElementById('modal-title');
+        var kindInput=document.getElementById('form-kind');
+        var typeSel=document.getElementById('form-type');
+        var branchSel=document.getElementById('form-branch');
+        var licenseNo=document.getElementById('field-license-no');
+        var vendorName=document.getElementById('field-vendor-name');
+        var contractNo=document.getElementById('field-contract-no');
+        var valueField=document.getElementById('field-value');
+        var issueDate=document.getElementById('field-issue-date');
+        var startDate=document.getElementById('field-start-date');
+        kindInput.value=kind;
+        title.textContent = kind==='license'?'إضافة رخصة':'إضافة عقد';
+        typeSel.innerHTML='';
+        if(kind==='license'){
+          ['municipality','civil_defense','economic_cities'].forEach(function(v){
+            var op=document.createElement('option'); op.value=v; op.textContent=v; typeSel.appendChild(op);
+          });
+          licenseNo.classList.remove('hidden');
+          vendorName.classList.add('hidden');
+          contractNo.classList.add('hidden');
+          valueField.classList.add('hidden');
+          issueDate.classList.remove('hidden');
+          startDate.classList.add('hidden');
+        } else {
+          ['lease','cleaning','maintenance','operation'].forEach(function(v){
+            var op=document.createElement('option'); op.value=v; op.textContent=v; typeSel.appendChild(op);
+          });
+          licenseNo.classList.add('hidden');
+          vendorName.classList.remove('hidden');
+          contractNo.classList.remove('hidden');
+          valueField.classList.remove('hidden');
+          issueDate.classList.add('hidden');
+          startDate.classList.remove('hidden');
+        }
+        document.getElementById('form-title').value='';
+        document.getElementById('form-license-no').value='';
+        document.getElementById('form-vendor-name').value='';
+        document.getElementById('form-contract-no').value='';
+        document.getElementById('form-value').value='';
+        document.getElementById('form-issue-date').value='';
+        document.getElementById('form-start-date').value='';
+        document.getElementById('form-expiry-date').value='';
+        document.getElementById('form-notes').value='';
+        branchSel.innerHTML='';
+        fetch(BASE_URL+'/branches').then(function(r){return r.json()}).then(function(rows){
+          var lang=(document.documentElement.getAttribute('lang')||'ar').toLowerCase();
+          branchSel.innerHTML = '<option value=\"\"></option>' + rows.map(function(b){
+            var nameAr=b.name||'';
+            var nameEn=b.name_en||'';
+            var name = (lang==='ar' ? (nameAr||nameEn) : (nameEn||nameAr)) || '';
+            var cc=b.cost_center? (lang==='ar' ? ('مركز تكلفة: '+b.cost_center) : ('CC: '+b.cost_center)) : '';
+            var parts=[];
+            if(name) parts.push(name);
+            if(cc) parts.push(cc);
+            var label=parts.join(' • ');
+            return '<option value=\"'+b.id+'\">'+label+'</option>';
+          }).join('');
+          o.classList.remove('hidden');
+          o.classList.add('flex');
+        });
+      }
+      function closeModal(){
+        var o=document.getElementById('modal-overlay');
+        o.classList.add('hidden');
+        o.classList.remove('flex');
+      }
+      document.getElementById('modal-close').onclick=closeModal;
+      document.getElementById('modal-cancel').onclick=closeModal;
+      document.getElementById('modal-form').onsubmit=function(e){
+        e.preventDefault();
+        var kind=document.getElementById('form-kind').value;
+        var branch_id=document.getElementById('form-branch').value;
+        var type=document.getElementById('form-type').value;
+        var title=document.getElementById('form-title').value;
+        var expiry_date=document.getElementById('form-expiry-date').value||null;
+        var notes=document.getElementById('form-notes').value||null;
+        if(!branch_id||!type||!title){ alert('الفرع، النوع، العنوان مطلوبة'); return; }
+        if(kind==='license'){
+          if(!expiry_date){ alert('تاريخ الانتهاء للرخصة مطلوب'); return; }
+          var payload={branch_id:parseInt(branch_id,10),type:type,title:title,license_no:document.getElementById('form-license-no').value||null,issue_date:document.getElementById('form-issue-date').value||null,expiry_date:expiry_date,notes:notes};
+          fetch(BASE_URL+'/licenses',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(payload)})
+            .then(function(r){ if(!r.ok) return r.json().then(function(j){throw new Error(j.message||'خطأ')}); return r.json(); })
+            .then(function(){ closeModal(); load(); });
+        } else {
+          var start_date=document.getElementById('form-start-date').value||null;
+          if(!start_date||!expiry_date){ alert('تاريخ البداية وتاريخ الانتهاء للعقد مطلوبة'); return; }
+          var valueRaw=document.getElementById('form-value').value;
+          var valueNum=valueRaw?parseFloat(valueRaw):null;
+          var payloadC={branch_id:parseInt(branch_id,10),type:type,title:title,vendor_name:document.getElementById('form-vendor-name').value||null,contract_no:document.getElementById('form-contract-no').value||null,start_date:start_date,expiry_date:expiry_date,value:valueNum,notes:notes};
+          fetch(BASE_URL+'/contracts',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(payloadC)})
+            .then(function(r){ if(!r.ok) return r.json().then(function(j){throw new Error(j.message||'خطأ')}); return r.json(); })
+            .then(function(){ closeModal(); load(); });
+        }
+      };
+      (function attachExpiryHint(){
+        var input=document.getElementById('form-expiry-date');
+        var hint=document.getElementById('expiry-hint');
+        function fmt(days){
+          if (isNaN(days)) return '';
+          var lang=(document.documentElement.getAttribute('lang')||'ar').toLowerCase();
+          var ar=lang.startsWith('ar');
+          if (days < 0) {
+            return '<span class=\"inline-flex px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30\">'
+              + (ar ? ('منتهي منذ '+Math.abs(days)+' يوم') : ('Expired '+Math.abs(days)+'d ago'))
+              + '</span>';
+          }
+          if (days === 0) {
+            return '<span class=\"inline-flex px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30\">'
+              + (ar ? 'ينتهي اليوم' : 'Expires today')
+              + '</span>';
+          }
+          if (days <= 30) {
+            return '<span class=\"inline-flex px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30\">'
+              + (ar ? ('متبقي '+days+' يوم') : (days+'d left'))
+              + '</span>';
+          }
+          return '<span class=\"inline-flex px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30\">'
+            + (ar ? ('متبقي '+days+' يوم') : (days+'d left'))
+            + '</span>';
+        }
+        function update(){
+          var v=input.value;
+          if(!v){ hint.innerHTML=''; return; }
+          var today=new Date(); today.setHours(0,0,0,0);
+          var d=new Date(v); d.setHours(0,0,0,0);
+          var diff=Math.ceil((d - today)/86400000);
+          hint.innerHTML = fmt(diff);
+        }
+        if (input && hint){
+          input.addEventListener('change', update);
+          input.addEventListener('input', update);
+        }
+      })();
+      load();
+    });
+  </script>
+</body>
+</html>

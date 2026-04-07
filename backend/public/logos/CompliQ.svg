@@ -1,0 +1,12 @@
+<svg width="100%" height="100%" viewBox="50 30 400 400" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(140, 40) scale(1.2)">
+    <path d="M90 20C45.8 20 10 55.8 10 100C10 144.2 45.8 180 90 180C108.5 180 125.4 173.7 138.8 163.2L155 190H185L160 145C166.4 131.5 170 116.2 170 100C170 55.8 134.2 20 90 20ZM90 45C120.4 45 145 69.6 145 100C145 104.5 144.5 108.8 143.5 113L115 85L85 115L65 95L45 115L85 155L140 100L142 105C132 135 110 155 90 155C59.6 155 35 130.4 35 100C35 69.6 59.6 45 90 45Z" fill="#FFFFFF"/>
+    <rect x="165" y="20" width="12" height="12" fill="#FFFFFF" />
+    <rect x="180" y="5" width="10" height="10" fill="#FFFFFF" opacity="0.8" />
+    <rect x="150" y="35" width="8" height="8" fill="#FFFFFF" opacity="0.6" />
+  </g>
+
+  <text x="250" y="380" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-weight="bold" font-size="80" fill="#FFFFFF">
+    CompliQ
+  </text>
+</svg>

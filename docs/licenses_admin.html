@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>لوحة التحكم التراخيص</title>
+  <link rel="stylesheet" href="style-admin.css?v=20260207_palette2">
+  <link rel="icon" type="image/svg+xml" href="/logos/CompliQ.svg">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+</head>
+<body class="admin-body">
+  <main class="admin-main">
+    <header class="admin-header">
+      <div class="header-title">لوحة التحكم التراخيص</div>
+      <div class="header-actions">
+        <button onclick="setLang('ar')" class="btn btn-secondary">AR</button>
+        <button onclick="setLang('en')" class="btn btn-secondary">EN</button>
+        <a href="admin.html" class="btn btn-secondary">↩ الرجوع للوحة</a>
+        <button onclick="location.reload()" class="btn btn-secondary">🔄 تحديث</button>
+      </div>
+    </header>
+
+    <div class="admin-content-wrapper">
+      <div class="card-section" style="margin-bottom: 30px; background: linear-gradient(to left, rgba(16, 185, 129, 0.1), rgba(30, 41, 75, 0.4)); border-color: rgba(16, 185, 129, 0.2);">
+        <div class="section-header">
+          <span class="section-title" style="color: #10b981;">📤 تحديث البيانات</span>
+        </div>
+        <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+          <p style="margin: 0; color: #94a3b8; font-size: 0.9rem;">قم برفع ملف Excel لتحديث الإحصائيات في اللوحة أدناه.</p>
+          <input type="file" id="lic-excel-file" accept=".xlsx, .xls, .csv" style="display: none;">
+          <button class="btn btn-primary" id="btn-upload" style="background-color: #10b981;">📂 رفع ملف Excel</button>
+          <button class="btn btn-secondary" onclick="downloadLicensesTemplate()">⬇️ تحميل نموذج</button>
+          <span id="lic-file-name" style="color: #fff; font-size: 0.9rem;"></span>
+          <div style="margin-right: auto; display: flex; gap: 10px;">
+            <button onclick="clearLicensesData()" class="btn btn-danger" style="font-size: 0.8rem;">🗑️ مسح البيانات</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-metrics-row">
+        <div class="dash-metric-card">
+          <div class="dm-icon" style="color:#4facfe;">🏬</div>
+          <div class="dm-info"><h4>إجمالي السجلات</h4><span class="dm-val" id="kpi-total">0</span></div>
+        </div>
+        <div class="dash-metric-card" style="border-color: rgba(239, 68, 68, 0.3);">
+          <div class="dm-icon" style="color:#ef4444;">📜</div>
+          <div class="dm-info"><h4>رخص منتهية (Store)</h4><span class="dm-val" id="kpi-store-exp" style="color: #ef4444;">0</span></div>
+        </div>
+        <div class="dash-metric-card" style="border-color: rgba(239, 68, 68, 0.3);">
+          <div class="dm-icon" style="color:#ef4444;">🚒</div>
+          <div class="dm-info"><h4>دفاع مدني منتهي</h4><span class="dm-val" id="kpi-civil-exp" style="color: #ef4444;">0</span></div>
+        </div>
+        <div class="dash-metric-card">
+          <div class="dm-icon" style="color:#10b981;">💰</div>
+          <div class="dm-info"><h4>إجمالي التكلفة التشغيلية</h4><span class="dm-val" id="kpi-cost" style="color: #10b981; font-size: 1.5rem;">0</span></div>
+        </div>
+      </div>
+
+      <div class="dash-grid-split" style="grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); margin-bottom: 30px;">
+        <div class="dash-panel"><div class="dash-panel-header"><span class="dash-panel-title">حالة الدفاع المدني</span></div><div style="height: 250px;"><canvas id="chart-civil"></canvas></div></div>
+        <div class="dash-panel"><div class="dash-panel-header"><span class="dash-panel-title">حالة رخصة البلدية</span></div><div style="height: 250px;"><canvas id="chart-store"></canvas></div></div>
+        <div class="dash-panel"><div class="dash-panel-header"><span class="dash-panel-title">التوزيع حسب المنطقة</span></div><div style="height: 250px;"><canvas id="chart-region"></canvas></div></div>
+      </div>
+
+      <div class="dash-grid-split" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); margin-bottom: 30px;">
+        <div class="dash-panel"><div class="dash-panel-header"><span class="dash-panel-title">الفروع حسب العلامة</span></div><div style="height: 250px;"><canvas id="chart-brand"></canvas></div></div>
+        <div class="dash-panel"><div class="dash-panel-header"><span class="dash-panel-title">تصاريح 24 ساعة</span></div><div style="height: 250px;"><canvas id="chart-24h"></canvas></div></div>
+        <div class="dash-panel"><div class="dash-panel-header"><span class="dash-panel-title">تصاريح HD</span></div><div style="height: 250px;"><canvas id="chart-hd"></canvas></div></div>
+      </div>
+
+      <div class="card-section">
+        <div class="section-header">
+          <span class="section-title">تفاصيل الفروع</span>
+          <input type="text" id="search-table" class="form-control" style="width: 220px;" placeholder="بحث..." onkeyup="filterTable()">
+        </div>
+        <div style="overflow-x: auto; max-height: 600px;">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>الفرع</th>
+                <th>المنطقة</th>
+                <th>Cost Center</th>
+                <th>رخصة البلدية</th>
+                <th>الدفاع المدني</th>
+                <th>التكلفة</th>
+                <th>العلامة</th>
+              </tr>
+            </thead>
+            <tbody id="licenses-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    (function(){
+      function setLang(lang){
+        if (window.App && typeof App.setLang === 'function') App.setLang(lang);
+        else localStorage.setItem('lang', lang);
+        applyLicensesAdminTranslations();
+      }
+      window.setLang = setLang;
+      function applyLicensesAdminTranslations(){
+        const lang = (window.App && typeof App.getLang === 'function') ? App.getLang() : (localStorage.getItem('lang') || 'ar');
+        const isAr = lang === 'ar';
+        document.documentElement.lang = isAr ? 'ar' : 'en';
+        document.documentElement.dir = isAr ? 'rtl' : 'ltr';
+        document.title = isAr ? 'لوحة التحكم التراخيص' : 'Licenses Admin Dashboard';
+        const map = [
+          ['.header-title', 'لوحة التحكم التراخيص', 'Licenses Admin Dashboard'],
+          ['a[href="admin.html"]', '↩ الرجوع للوحة', '↩ Back to Admin'],
+          ['button[onclick="location.reload()"]', '🔄 تحديث', '🔄 Refresh'],
+          ['.section-title[style*="#10b981"]', '📤 تحديث البيانات', '📤 Data Update'],
+          ['#btn-upload', '📂 رفع ملف Excel', '📂 Upload Excel'],
+          ['button[onclick="downloadLicensesTemplate()"]', '⬇️ تحميل نموذج', '⬇️ Download Template'],
+          ['button[onclick="clearLicensesData()"]', '🗑️ مسح البيانات', '🗑️ Clear Data'],
+          ['#search-table', 'بحث...', 'Search...']
+        ];
+        map.forEach(function(item){
+          const el = document.querySelector(item[0]);
+          if (!el) return;
+          if (el.tagName === 'INPUT') el.setAttribute('placeholder', isAr ? item[1] : item[2]);
+          else el.textContent = isAr ? item[1] : item[2];
+        });
+        const kpiAr = ['إجمالي السجلات','رخص منتهية (Store)','دفاع مدني منتهي','إجمالي التكلفة التشغيلية'];
+        const kpiEn = ['Total Records','Expired Store Licenses','Expired Civil Defense','Total Operating Cost'];
+        document.querySelectorAll('.dm-info h4').forEach(function(h, i){
+          if (i < kpiAr.length) h.textContent = isAr ? kpiAr[i] : kpiEn[i];
+        });
+        const panelAr = ['حالة الدفاع المدني','حالة رخصة البلدية','التوزيع حسب المنطقة','الفروع حسب العلامة','تصاريح 24 ساعة','تصاريح HD'];
+        const panelEn = ['Civil Defense Status','Municipality License Status','Distribution by Region','Branches by Brand','24h Permits','HD Permits'];
+        document.querySelectorAll('.dash-panel-title').forEach(function(h, i){
+          if (i < panelAr.length) h.textContent = isAr ? panelAr[i] : panelEn[i];
+        });
+        const tableAr = ['الفرع','المنطقة','Cost Center','رخصة البلدية','الدفاع المدني','التكلفة','العلامة'];
+        const tableEn = ['Branch','Region','Cost Center','Municipality License','Civil Defense','Cost','Brand'];
+        document.querySelectorAll('.admin-table thead th').forEach(function(th, i){
+          if (i < tableAr.length) th.textContent = isAr ? tableAr[i] : tableEn[i];
+        });
+      }
+      const KEY = 'admin_licenses';
+      const chartInstances = {};
+
+      function safeParse(k, d){ try { return JSON.parse(localStorage.getItem(k)||JSON.stringify(d)); } catch(e){ return d; } }
+      function safeSet(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(_){} }
+
+      function normalizeRow(raw){
+        const r = raw || {};
+        const get = (...keys) => {
+          for (const k of keys) {
+            const v = r[k];
+            if (v !== undefined && v !== null && String(v).trim() !== '') return v;
+          }
+          return '';
+        };
+        const asNum = (v) => {
+          if (v === null || v === undefined) return 0;
+          const s = String(v).replace(/,/g,'').trim();
+          const n = Number(s);
+          return Number.isFinite(n) ? n : 0;
+        };
+        const wrapStatus = (v) => ({ status: String(v || '').trim() || '-' });
+        return {
+          branch: String(get('branch','Branch','الفرع','اسم الفرع') || '').trim(),
+          region: String(get('region','Region','المنطقة') || '').trim(),
+          brand: String(get('brand','Brand','العلامة','العلامة التجارية') || '').trim(),
+          cost_center: String(get('cost_center','costCenter','Cost Center','cost center','مركز التكلفة') || '').trim(),
+          cost: asNum(get('cost','Cost','التكلفة')),
+          store_license: r.store_license && typeof r.store_license === 'object' ? r.store_license : wrapStatus(get('store_license','store_status','Store','Store License','رخصة البلدية')),
+          civil_defense: r.civil_defense && typeof r.civil_defense === 'object' ? r.civil_defense : wrapStatus(get('civil_defense','civil_status','Civil','Civil Defense','الدفاع المدني')),
+          permit_24: r.permit_24 && typeof r.permit_24 === 'object' ? r.permit_24 : wrapStatus(get('permit_24','24h','تصريح 24','تصريح 24 ساعة')),
+          permit_hd: r.permit_hd && typeof r.permit_hd === 'object' ? r.permit_hd : wrapStatus(get('permit_hd','HD','تصريح HD','تصريح توصيل','تصريح التوصيل'))
+        };
+      }
+
+      function getStatusClass(status){
+        if(!status) return '';
+        const s = String(status).toLowerCase();
+        if(s.includes('valid') || s.includes('ساري')) return 'status-valid';
+        if(s.includes('near') || s.includes('close') || s.includes('قريب')) return 'status-near';
+        if(s === '-' || s.includes('unknown')) return '';
+        return 'status-expired';
+      }
+
+      function renderTable(data){
+        const tbody = document.getElementById('licenses-table-body');
+        if(!tbody) return;
+        tbody.innerHTML = '';
+        (data||[]).forEach(item => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td style="font-weight:bold;">${item.branch || '-'}</td>
+            <td>${item.region || '-'}</td>
+            <td>${item.cost_center || '-'}</td>
+            <td class="${getStatusClass(item.store_license && item.store_license.status)}">${(item.store_license && item.store_license.status) || '-'}</td>
+            <td class="${getStatusClass(item.civil_defense && item.civil_defense.status)}">${(item.civil_defense && item.civil_defense.status) || '-'}</td>
+            <td>${(item.cost || 0).toLocaleString()}</td>
+            <td>${item.brand || '-'}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      function updateChart(canvasId, type, labels, data, colors){
+        const ctx = document.getElementById(canvasId);
+        if (!ctx || typeof Chart === 'undefined') return;
+        if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
+        const commonOptions = {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { family: 'Segoe UI' } } } }
+        };
+        if(type === 'bar') {
+          commonOptions.plugins.legend.display = false;
+          commonOptions.scales = { y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }, x: { grid: { display: false }, ticks: { color: '#94a3b8' } } };
+        }
+        chartInstances[canvasId] = new Chart(ctx, {
+          type,
+          data: { labels, datasets: [{ label: 'Count', data, backgroundColor: colors, borderWidth: 0, borderRadius: type === 'bar' ? 4 : 0 }] },
+          options: commonOptions
+        });
+      }
+
+      function updateDashboardStats(data){
+        const rows = Array.isArray(data) ? data : [];
+        let total = rows.length;
+        let storeExp = 0, storeNear = 0, storeValid = 0;
+        let civilExp = 0, civilNear = 0, civilValid = 0;
+        let p24Valid = 0, p24Exp = 0;
+        let hdValid = 0, hdExp = 0;
+        let totalCost = 0;
+        let regionMap = {};
+        let brandMap = {};
+
+        rows.forEach(item => {
+          totalCost += (item.cost || 0);
+          const sStatus = String(item.store_license && item.store_license.status || '').toLowerCase();
+          if (sStatus.includes('valid') || sStatus.includes('ساري')) storeValid++;
+          else if (sStatus.includes('near') || sStatus.includes('close') || sStatus.includes('قريب')) storeNear++;
+          else if (sStatus && sStatus !== '-') storeExp++;
+          const cStatus = String(item.civil_defense && item.civil_defense.status || '').toLowerCase();
+          if (cStatus.includes('valid') || cStatus.includes('ساري')) civilValid++;
+          else if (cStatus.includes('near') || cStatus.includes('close') || cStatus.includes('قريب')) civilNear++;
+          else if (cStatus && cStatus !== '-') civilExp++;
+          const p24 = String(item.permit_24 && item.permit_24.status || '').toLowerCase();
+          if (p24.includes('valid') || p24.includes('yes') || p24.includes('ساري') || p24.includes('يوجد')) p24Valid++; else if (p24 && p24 !== '-') p24Exp++;
+          const hd = String(item.permit_hd && item.permit_hd.status || '').toLowerCase();
+          if (hd.includes('valid') || hd.includes('yes') || hd.includes('ساري') || hd.includes('يوجد')) hdValid++; else if (hd && hd !== '-') hdExp++;
+          const region = item.region || 'Unknown';
+          regionMap[region] = (regionMap[region] || 0) + 1;
+          const brand = item.brand || 'Unknown';
+          brandMap[brand] = (brandMap[brand] || 0) + 1;
+        });
+
+        const elTotal = document.getElementById('kpi-total'); if (elTotal) elTotal.textContent = String(total);
+        const elStore = document.getElementById('kpi-store-exp'); if (elStore) elStore.textContent = String(storeExp);
+        const elCivil = document.getElementById('kpi-civil-exp'); if (elCivil) elCivil.textContent = String(civilExp);
+        const elCost = document.getElementById('kpi-cost'); if (elCost) elCost.textContent = totalCost.toLocaleString() + ' ' + (getLang() === 'ar' ? 'ر.س' : 'SAR');
+
+        updateChart('chart-region', 'bar', Object.keys(regionMap), Object.values(regionMap), '#4facfe');
+        updateChart('chart-brand', 'doughnut', Object.keys(brandMap), Object.values(brandMap), ['#f5c518', '#e11d48', '#f59e0b', '#10b981', '#6366f1']);
+        const statLabels = getLang() === 'ar' ? ['ساري', 'قريب الانتهاء', 'منتهي'] : ['Valid', 'Near Expiry', 'Expired'];
+        const existLabels = getLang() === 'ar' ? ['يوجد', 'لا يوجد'] : ['Available', 'Unavailable'];
+        updateChart('chart-civil', 'doughnut', statLabels, [civilValid, civilNear, civilExp], ['#10b981', '#f59e0b', '#ef4444']);
+        updateChart('chart-store', 'doughnut', statLabels, [storeValid, storeNear, storeExp], ['#10b981', '#f59e0b', '#ef4444']);
+        updateChart('chart-24h', 'pie', existLabels, [p24Valid, p24Exp], ['#3b82f6', '#475569']);
+        updateChart('chart-hd', 'pie', existLabels, [hdValid, hdExp], ['#8b5cf6', '#475569']);
+      }
+
+      window.filterTable = function(){
+        const input = document.getElementById('search-table');
+        const filter = (input && input.value ? input.value : '').toLowerCase();
+        const rows = document.getElementById('licenses-table-body') ? document.getElementById('licenses-table-body').getElementsByTagName('tr') : [];
+        for (let i = 0; i < rows.length; i++) {
+          const txt = rows[i].textContent.toLowerCase();
+          rows[i].style.display = txt.includes(filter) ? "" : "none";
+        }
+      };
+
+      window.clearLicensesData = function(){
+        try { localStorage.removeItem(KEY); } catch(_) {}
+        const data = [];
+        renderTable(data);
+        updateDashboardStats(data);
+      };
+
+      window.downloadLicensesTemplate = function(){
+        const headers = ['branch','region','brand','cost_center','cost','store_license_status','civil_defense_status','permit_24_status','permit_hd_status'];
+        const csv = headers.join(',') + '\\n';
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'licenses_template.csv';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      };
+
+      function renderAll(){
+        const data = safeParse(KEY, []).map(normalizeRow).filter(x => x.branch);
+        renderTable(data);
+        updateDashboardStats(data);
+      }
+
+      document.addEventListener('DOMContentLoaded', function(){
+        if (window.App && typeof App.init === 'function') App.init('licenses');
+        applyLicensesAdminTranslations();
+        document.addEventListener('app:lang', applyLicensesAdminTranslations);
+        const style = document.createElement('style');
+        style.innerHTML = '.status-valid{color:#10b981;font-weight:bold}.status-near{color:#f59e0b;font-weight:bold}.status-expired{color:#ef4444;font-weight:bold}';
+        document.head.appendChild(style);
+        const upBtn = document.getElementById('btn-upload');
+        const fileEl = document.getElementById('lic-excel-file');
+        if (upBtn && fileEl) upBtn.onclick = function(){ fileEl.click(); };
+        if (fileEl) {
+          fileEl.addEventListener('change', function(){
+            const f = fileEl.files && fileEl.files[0];
+            const nameEl = document.getElementById('lic-file-name');
+            if (nameEl) nameEl.textContent = f ? f.name : '';
+            if (!f) return;
+            const reader = new FileReader();
+            reader.onload = function(e){
+              try {
+                const data = new Uint8Array(e.target.result);
+                const wb = XLSX.read(data, { type: 'array' });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+                const normalized = rows.map(normalizeRow).filter(x => x.branch);
+                safeSet(KEY, normalized);
+                renderAll();
+              } catch(_) {}
+            };
+            reader.readAsArrayBuffer(f);
+          });
+        }
+        setTimeout(renderAll, 50);
+      });
+    })();
+  </script>
+</body>
+</html>

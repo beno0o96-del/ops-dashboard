@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>المواصلات</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style-base.css">
+  <link rel="stylesheet" href="style-site.css">
+</head>
+<body>
+  <canvas id="bg-canvas"></canvas>
+  <nav class="glass-nav">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <div class="text-lg font-bold">لوحة التشغيل</div>
+      <div class="flex items-center gap-4">
+        <a href="./index.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.home">الرئيسية</a>
+        <a href="./employees.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.employees">الموظفون</a>
+        <a href="./branches.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.branches">الفروع</a>
+        <a href="./licenses.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.licenses">الرخص والعقود</a>
+        <a href="./violations.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.violations">المخالفات</a>
+        <a href="./housings.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.housings">السكنات</a>
+        <a href="./transports.html" class="text-indigo-600 font-medium" data-i18n="nav.transports">المواصلات</a>
+        <a href="./reports.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.reports">التقارير</a>
+        <a href="./login.html" class="text-gray-700 hover:text-indigo-600" data-i18n="nav.login">تسجيل الدخول</a>
+        <button id="help-toggle" class="px-3 py-1 rounded bg-gray-100 text-gray-800"></button>
+        <button id="lang-toggle" class="px-3 py-1 rounded bg-indigo-600 text-white"></button>
+        <div class="relative inline-block">
+          <div id="user-badge" class="user-badge">
+            <div class="user-avatar"></div>
+            <span id="user-badge-name"></span>
+          </div>
+          <div id="user-menu" class="user-menu">
+            <a href="#" data-en="My Profile" data-ar="ملفّي">My Profile</a>
+            <button onclick="App.logout()" data-en="Logout" data-ar="تسجيل الخروج">Logout</button>
+          </div>
+        </div>
+        <button class="logout-btn" onclick="App.logout()" data-en="Logout" data-ar="تسجيل الخروج">Logout</button>
+      </div>
+    </div>
+  </nav>
+  <main class="max-w-7xl mx-auto px-4 py-8">
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-semibold" data-i18n="transports.title">المواصلات</h1>
+      <a class="btn-primary text-white px-4 py-2 rounded" href="#">إضافة وسيلة</a>
+    </div>
+    <div class="glass-card">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">النوع</th>
+              <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">اللوحة/الكود</th>
+              <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">السعة</th>
+              <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الحالة</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr>
+              <td class="px-4 py-2 text-sm text-gray-800">مركبة</td>
+              <td class="px-4 py-2 text-sm text-gray-600">أ ب ج 1234</td>
+              <td class="px-4 py-2 text-sm text-gray-600">4</td>
+              <td class="px-4 py-2"><span class="px-2 py-1 rounded bg-green-100 text-green-700 text-xs">نشط</span></td>
+            </tr>
+            <tr>
+              <td class="px-4 py-2 text-sm text-gray-800">خط نقل</td>
+              <td class="px-4 py-2 text-sm text-gray-600">R-019</td>
+              <td class="px-4 py-2 text-sm text-gray-600">20</td>
+              <td class="px-4 py-2"><span class="px-2 py-1 rounded bg-yellow-100 text-yellow-700 text-xs">متوقّف</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+  <script src="app.js"></script>
+  <script>App.init('transports');</script>
+</body>
+</html>
